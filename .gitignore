@@ -1,0 +1,10 @@
+.godot/
+.import/
+.mono/
+
+tmp_*.png
+tmp_*.png.import
+
+export_presets.cfg
+*.tmp
+*.log

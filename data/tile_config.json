@@ -1,0 +1,40 @@
+{
+  "reward_tiles": ["market", "factory", "haunted_house"],
+  "tiles": [
+	{
+	  "id": "market",
+	  "kind": "market",
+	  "tile_name": "集市",
+	  "tile_icon": 1,
+	  "tile_rare": "普通",
+	  "tile_describe": "踩中后获得3金币。",
+	  "reward": 3,
+	  "color": [0.02, 0.66, 0.78, 1.0],
+	  "accent": [1.0, 0.82, 0.12, 1.0]
+	},
+	{
+	  "id": "factory",
+	  "kind": "factory",
+	  "tile_name": "工厂",
+	  "tile_icon": 2,
+	  "tile_rare": "普通",
+	  "tile_describe": "踩中获得2金币。\n多个骰子同轮踩中时获得5金币。",
+	  "reward": 2,
+	  "combo_reward": 5,
+	  "color": [0.33, 0.42, 0.62, 1.0],
+	  "accent": [1.0, 0.42, 0.14, 1.0]
+	},
+	{
+	  "id": "haunted_house",
+	  "kind": "haunted_house",
+	  "tile_name": "鬼屋",
+	  "tile_icon": 3,
+	  "tile_rare": "稀有",
+	  "tile_describe": "偶数点数踩中失去3金币。\n奇数点数踩中获得5金币。",
+	  "odd_reward": 5,
+	  "even_reward": -3,
+	  "color": [0.34, 0.12, 0.62, 1.0],
+	  "accent": [0.42, 1.0, 0.64, 1.0]
+	}
+  ]
+}
