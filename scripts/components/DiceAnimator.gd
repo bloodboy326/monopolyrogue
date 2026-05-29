@@ -127,17 +127,17 @@ func _draw() -> void:
 	var rect = Rect2(Vector2.ZERO, size)
 	var min_side = min(size.x, size.y)
 	var radius = min_side * 0.18
-	_draw_rounded_box(rect, radius, Color(0.02, 0.012, 0.05, 0.96))
-	_draw_rounded_box(rect.grow(-4.0), radius * 0.8, dice_color.darkened(0.2))
-	draw_arc(size * 0.5, min_side * 0.48, 0.0, TAU, 40, dice_color.lightened(0.55), 3.0)
-	var glint = Color(1.0, 1.0, 1.0, 0.28 + (0.18 if rolling else 0.0))
-	draw_line(Vector2(size.x * 0.2, size.y * 0.16), Vector2(size.x * 0.72, size.y * 0.12), glint, 3.0)
+	_draw_rounded_box(Rect2(Vector2(5.0, 6.0), size), radius, Color(0.0, 0.0, 0.0, 0.34))
+	_draw_rounded_box(rect, radius, Color(0.0, 0.0, 0.0, 1.0))
+	_draw_rounded_box(rect.grow(-5.0), radius * 0.75, dice_color)
+	draw_line(Vector2(size.x * 0.20, size.y * 0.18), Vector2(size.x * 0.66, size.y * 0.18), Color(1.0, 1.0, 1.0, 0.24 + (0.16 if rolling else 0.0)), 4.0)
+	draw_line(Vector2(size.x * 0.18, size.y * 0.76), Vector2(size.x * 0.70, size.y * 0.76), dice_color.lightened(0.32), 4.0)
 	_draw_pips()
 	if shockwave > 0.0 and shockwave < 1.0:
 		var alpha = 1.0 - shockwave
-		var wave_color = dice_color.lightened(0.7)
+		var wave_color = Color(1.0, 0.92, 0.28, 1.0)
 		wave_color.a = alpha * 0.55
-		draw_arc(size * 0.5, min_side * (0.35 + shockwave * 0.42), 0.0, TAU, 48, wave_color, 5.0)
+		draw_arc(size * 0.5, min_side * (0.35 + shockwave * 0.42), 0.0, TAU, 5, wave_color, 5.0)
 
 func _draw_pips() -> void:
 	var points = {
@@ -149,8 +149,8 @@ func _draw_pips() -> void:
 		6: [Vector2(0.32, 0.28), Vector2(0.68, 0.28), Vector2(0.32, 0.5), Vector2(0.68, 0.5), Vector2(0.32, 0.72), Vector2(0.68, 0.72)]
 	}
 	for point in points[value]:
-		draw_circle(point * size, min(size.x, size.y) * 0.055, Color.WHITE)
-		draw_circle(point * size + Vector2(1.5, 1.5), min(size.x, size.y) * 0.025, dice_color.lightened(0.5))
+		draw_circle(point * size, min(size.x, size.y) * 0.070, Color(0.0, 0.0, 0.0, 1.0))
+		draw_circle(point * size - Vector2(1.5, 1.5), min(size.x, size.y) * 0.030, Color.WHITE)
 
 func _draw_rounded_box(rect: Rect2, radius: float, color: Color) -> void:
 	var box = StyleBoxFlat.new()

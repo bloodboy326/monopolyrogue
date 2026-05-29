@@ -1,4 +1,4 @@
-﻿extends Control
+extends Control
 
 var points: Array[Vector2] = []
 var pulse = 0.0
@@ -22,8 +22,6 @@ func _draw() -> void:
 	for point in points:
 		loop_points.append(point)
 	loop_points.append(points[0])
-	var halo = Color(0.0, 0.9, 1.0, 0.16 + sin(pulse * 2.2) * 0.04)
-	var core = Color(1.0, 0.27, 0.78, 0.32 + sin(pulse * 3.4) * 0.05)
-	draw_polyline(loop_points, halo, 26.0, true)
-	draw_polyline(loop_points, Color(0.05, 0.02, 0.13, 0.88), 17.0, true)
-	draw_polyline(loop_points, core, 5.0, true)
+	draw_polyline(loop_points, Color(0.0, 0.0, 0.0, 1.0), 20.0, true)
+	draw_polyline(loop_points, Color(0.94, 0.36, 0.43, 1.0), 12.0, true)
+	draw_polyline(loop_points, Color(1.0, 0.86, 0.22, 0.95), 4.0, true)

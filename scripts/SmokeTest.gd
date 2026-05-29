@@ -7,6 +7,8 @@ func _ready() -> void:
 	add_child(main)
 	await get_tree().process_frame
 	await get_tree().process_frame
+	while main.round_intro_active:
+		await get_tree().process_frame
 	await main._play_roll_turn()
 	if main.round_score <= 0:
 		push_error("Smoke test failed: rolling once did not award score.")

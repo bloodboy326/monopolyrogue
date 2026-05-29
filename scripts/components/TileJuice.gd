@@ -1,19 +1,17 @@
-﻿extends Control
+extends Control
 
 signal picked(index: int)
 
-const TILE_SHADER = preload("res://shaders/tile_glow.gdshader")
 const TileCardFrame = preload("res://scripts/components/TileCardFrame.gd")
-const ICON_ROOT = "res://assets/icons/tiles/"
-const FALLBACK_ICON_PATH = "res://assets/icons/tiles/0.png"
+const VectorTileIcon = preload("res://scripts/components/VectorTileIcon.gd")
 
 var tile_index = 0
 var tile_name = "集市"
+var tile_kind = "market"
 var reward = 3
 var icon = 0
-var icon_texture: Texture2D
-var base_color = Color(0.04, 0.74, 0.82)
-var accent_color = Color(1.0, 0.86, 0.16)
+var base_color = Color(0.95, 0.36, 0.43)
+var accent_color = Color(1.0, 0.86, 0.22)
 var glow = 0.0
 var hover = false
 var insert_hint = false
@@ -21,43 +19,29 @@ var delete_hint = false
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	var shader_material = ShaderMaterial.new()
-	shader_material.shader = TILE_SHADER
-	shader_material.set_shader_parameter("glow_color", Color(0.0, 1.0, 0.92, 1.0))
-	material = shader_material
 	mouse_entered.connect(_on_mouse_entered)
 	mouse_exited.connect(_on_mouse_exited)
 
 func setup(index: int, data: Dictionary) -> void:
 	tile_index = index
 	tile_name = str(data.get("tile_name", data.get("name", "集市")))
+	tile_kind = str(data.get("kind", "market"))
 	reward = int(data.get("reward", 3))
 	icon = int(data.get("tile_icon", data.get("icon", 0)))
-	base_color = data.get("color", Color(0.04, 0.74, 0.82))
-	accent_color = data.get("accent", Color(1.0, 0.86, 0.16))
-	icon_texture = _load_icon_texture(icon)
+	base_color = data.get("color", Color(0.95, 0.36, 0.43))
+	accent_color = data.get("accent", Color(1.0, 0.86, 0.22))
 	queue_redraw()
 
 func set_insert_hint(value: bool) -> void:
 	insert_hint = value
-	if value:
-		set_glow(0.45)
-	else:
-		set_glow(0.0)
-	queue_redraw()
+	set_glow(0.45 if value else 0.0)
 
 func set_delete_hint(value: bool) -> void:
 	delete_hint = value
-	if value:
-		set_glow(0.36)
-	else:
-		set_glow(0.0)
-	queue_redraw()
+	set_glow(0.36 if value else 0.0)
 
 func set_glow(value: float) -> void:
 	glow = value
-	if material is ShaderMaterial:
-		(material as ShaderMaterial).set_shader_parameter("glow", glow)
 	queue_redraw()
 
 func play_spawn() -> void:
@@ -108,36 +92,23 @@ func _gui_input(event: InputEvent) -> void:
 
 func _draw() -> void:
 	var r = Rect2(Vector2.ZERO, size)
-	var radius = min(size.x, size.y) * 0.12
-	var shadow = Rect2(Vector2(0, size.y * 0.07), size)
-	draw_rect(shadow.grow(-2.0), Color(0.0, 0.0, 0.0, 0.26), true)
+	var radius = min(size.x, size.y) * 0.14
 	TileCardFrame.draw_icon_card(self, r.grow(-3.0), base_color, radius)
 	_draw_tile_icon()
-	var outline = Color(0.0, 0.92, 1.0, 0.0)
-	if hover or insert_hint or delete_hint:
-		outline = Color(1.0, 0.9, 0.18, 0.82) if insert_hint else Color(0.0, 0.95, 1.0, 0.64)
+	if glow > 0.0:
+		var pulse_color = Color(1.0, 0.94, 0.28, 0.65 * glow)
 		if delete_hint:
-			outline = Color(1.0, 0.18, 0.26, 0.76)
-		TileCardFrame.draw_rect_outline(self, r.grow(-4.0), outline, max(2.0, size.x * 0.035))
+			pulse_color = Color(1.0, 0.18, 0.28, 0.65 * glow)
+		elif not insert_hint:
+			pulse_color = Color(1.0, 1.0, 1.0, 0.50 * glow)
+		TileCardFrame.draw_rect_outline(self, r.grow(-4.0 - glow * 4.0), pulse_color, max(3.0, size.x * 0.04))
+	if hover or insert_hint or delete_hint:
+		var outline = Color(1.0, 0.90, 0.18, 1.0) if insert_hint else Color(1.0, 1.0, 1.0, 0.92)
+		if delete_hint:
+			outline = Color(1.0, 0.18, 0.26, 0.95)
+		TileCardFrame.draw_rect_outline(self, r.grow(-5.0), outline, max(3.0, size.x * 0.045))
 
 func _draw_tile_icon() -> void:
-	var icon_side = min(size.x, size.y) * 0.68
+	var icon_side = min(size.x, size.y) * 0.84
 	var icon_rect = Rect2(size * 0.5 - Vector2(icon_side, icon_side) * 0.5, Vector2(icon_side, icon_side))
-	if icon_texture != null:
-		draw_texture_rect(icon_texture, icon_rect, false)
-	else:
-		_draw_fallback_icon(icon_rect)
-
-func _draw_fallback_icon(rect: Rect2) -> void:
-	var center = rect.get_center()
-	var radius = rect.size.x * 0.33
-	draw_circle(center, radius, Color(1.0, 0.84, 0.16, 1.0))
-	draw_circle(center, radius * 0.55, Color(0.1, 0.06, 0.18, 1.0))
-
-func _load_icon_texture(icon_id: int) -> Texture2D:
-	var icon_path = "%s%d.png" % [ICON_ROOT, icon_id]
-	if ResourceLoader.exists(icon_path):
-		return load(icon_path)
-	if ResourceLoader.exists(FALLBACK_ICON_PATH):
-		return load(FALLBACK_ICON_PATH)
-	return null
+	VectorTileIcon.draw_icon(self, tile_kind, icon, icon_rect, base_color, accent_color)

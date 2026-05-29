@@ -10,7 +10,8 @@ const FloatingText = preload("res://scripts/components/FloatingText.gd")
 const CoinBurst = preload("res://scripts/components/CoinBurst.gd")
 const ScreenShake = preload("res://scripts/components/ScreenShake.gd")
 const BoardPath = preload("res://scripts/components/BoardPath.gd")
-const BG_SHADER = preload("res://shaders/background_flow.gdshader")
+const VectorBackground = preload("res://scripts/components/VectorBackground.gd")
+const RoundStartBanner = preload("res://scripts/components/RoundStartBanner.gd")
 const ROUND_CONFIG_PATH = "res://data/round_config.json"
 const TILE_CONFIG_PATH = "res://data/tile_config.json"
 const BOARD_VIEW_SCALE = 1.0
@@ -19,7 +20,7 @@ const BOARD_START_ANGLE = -PI * 0.75
 var rng = RandomNumberGenerator.new()
 
 var world: Control
-var background: ColorRect
+var background: Control
 var board_path: Control
 var tile_layer: Control
 var pawn_layer: Node2D
@@ -38,6 +39,7 @@ var cancel_action_button: Button
 var round_flash: ColorRect
 var choice_overlay: Control
 var fail_overlay: Control
+var round_start_banner: Control
 var shaker: Node
 
 var tiles_data: Array[Dictionary] = []
@@ -48,9 +50,9 @@ var dice_nodes = {}
 var pawn_indices = {"red": 0, "blue": 2, "green": 4}
 var pawn_order = ["red", "blue", "green"]
 var color_defs = {
-	"red": Color(1.0, 0.18, 0.30),
-	"blue": Color(0.18, 0.62, 1.0),
-	"green": Color(0.15, 1.0, 0.48)
+	"red": Color(0.96, 0.27, 0.36),
+	"blue": Color(0.35, 0.42, 0.96),
+	"green": Color(0.16, 0.82, 0.46)
 }
 
 var round_number = 1
@@ -61,6 +63,7 @@ var round_score = 0
 var assets = 8
 var mode = "play"
 var roll_locked = false
+var round_intro_active = false
 var pending_tile: Dictionary = {}
 var batch_remaining = 0
 var round_configs: Array = []
@@ -82,13 +85,10 @@ func _build_scene() -> void:
 	world.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(world)
 
-	background = ColorRect.new()
-	background.name = "NeonBackground"
+	background = VectorBackground.new()
+	background.name = "VectorBackground"
 	background.set_anchors_preset(Control.PRESET_FULL_RECT)
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var background_material = ShaderMaterial.new()
-	background_material.shader = BG_SHADER
-	background.material = background_material
 	world.add_child(background)
 
 	board_path = BoardPath.new()
@@ -133,30 +133,34 @@ func _build_scene() -> void:
 	_on_resized()
 
 func _build_hud() -> void:
-	round_label = _make_label("第 1 轮", 34, Color(0.93, 1.0, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
+	round_label = _make_label("第 1 轮", 34, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
 	hud_layer.add_child(round_label)
 
-	score_label = _make_label("金币 0 / 18", 28, Color(1.0, 0.93, 0.25), HORIZONTAL_ALIGNMENT_LEFT)
+	score_label = _make_label("金币 0 / 18", 28, Color(1.0, 0.90, 0.20), HORIZONTAL_ALIGNMENT_LEFT)
 	hud_layer.add_child(score_label)
 
-	assets_label = _make_label("资产 8", 22, Color(0.47, 1.0, 0.95), HORIZONTAL_ALIGNMENT_LEFT)
+	assets_label = _make_label("资产 8", 22, Color(0.55, 1.0, 0.82), HORIZONTAL_ALIGNMENT_LEFT)
 	hud_layer.add_child(assets_label)
 
-	roll_result_label = _make_label("准备投掷", 22, Color(1.0, 0.72, 0.96), HORIZONTAL_ALIGNMENT_CENTER)
+	roll_result_label = _make_label("准备投掷", 22, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
+	roll_result_label.z_index = 120
 	hud_layer.add_child(roll_result_label)
 
 	action_banner = _make_label("", 24, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
+	action_banner.z_index = 120
 	action_banner.visible = false
 	hud_layer.add_child(action_banner)
 
-	cancel_action_button = _make_button("取消", Color(1.0, 0.28, 0.52))
+	cancel_action_button = _make_button("取消", Color(0.96, 0.27, 0.36))
+	cancel_action_button.z_index = 120
 	cancel_action_button.visible = false
 	cancel_action_button.pressed.connect(_on_cancel_action)
 	hud_layer.add_child(cancel_action_button)
 
 	dice_shell = PanelContainer.new()
 	dice_shell.name = "DiceDock"
-	dice_shell.add_theme_stylebox_override("panel", _make_panel_style(Color(0.03, 0.02, 0.08, 0.76), Color(0.0, 0.92, 1.0, 0.55), 8))
+	dice_shell.z_index = 40
+	dice_shell.add_theme_stylebox_override("panel", _make_panel_style(Color(0.05, 0.055, 0.06, 0.94), Color.BLACK, 10))
 	hud_layer.add_child(dice_shell)
 
 	dice_panel = HBoxContainer.new()
@@ -177,12 +181,12 @@ func _build_hud() -> void:
 	roll_stack.custom_minimum_size = Vector2(172, 82)
 	dice_panel.add_child(roll_stack)
 
-	roll_button = _make_button("掷骰", Color(1.0, 0.84, 0.14))
+	roll_button = _make_button("掷骰", Color(1.0, 0.86, 0.22))
 	roll_button.custom_minimum_size = Vector2(154, 48)
 	roll_button.pressed.connect(_on_roll_pressed)
 	roll_stack.add_child(roll_button)
 
-	counter_label = _make_label("3 / 3", 18, Color(0.92, 1.0, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
+	counter_label = _make_label("3 / 3", 18, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
 	counter_label.custom_minimum_size = Vector2(154, 26)
 	roll_stack.add_child(counter_label)
 
@@ -211,6 +215,13 @@ func _build_overlays() -> void:
 	fail_overlay.z_index = 200
 	add_child(fail_overlay)
 
+	round_start_banner = RoundStartBanner.new()
+	round_start_banner.name = "RoundStartBanner"
+	round_start_banner.set_anchors_preset(Control.PRESET_FULL_RECT)
+	round_start_banner.visible = false
+	round_start_banner.z_index = 260
+	add_child(round_start_banner)
+
 func _start_new_game() -> void:
 	round_number = 1
 	assets = 8
@@ -227,6 +238,7 @@ func _reset_pawn_indices() -> void:
 func _start_round() -> void:
 	mode = "play"
 	roll_locked = false
+	round_intro_active = true
 	pending_tile.clear()
 	choice_overlay.visible = false
 	fail_overlay.visible = false
@@ -234,12 +246,22 @@ func _start_round() -> void:
 	round_score = 0
 	_setup_round_values()
 	rolls_left = total_rolls
-	roll_result_label.text = "霓虹棋盘已就绪"
+	roll_result_label.text = "矢量棋盘已就绪"
 	_reset_pawn_indices()
 	_rebuild_board_tiles()
 	_position_pawns()
 	_update_ui()
-	_flash(Color(0.0, 0.9, 1.0, 0.16), 0.38)
+	_flash(Color(1.0, 0.90, 0.22, 0.18), 0.38)
+	_play_round_intro()
+
+func _play_round_intro() -> void:
+	if round_start_banner == null:
+		round_intro_active = false
+		_update_ui()
+		return
+	await round_start_banner.play(round_number, target_score)
+	round_intro_active = false
+	_update_ui()
 
 func _setup_round_values() -> void:
 	var config = _get_round_config(round_number)
@@ -300,8 +322,8 @@ func _default_tile_catalog() -> Dictionary:
 			"name": "集市",
 			"icon": 1,
 			"reward": 3,
-			"color": Color(0.02, 0.66, 0.78),
-			"accent": Color(1.0, 0.82, 0.12)
+			"color": Color(0.96, 0.34, 0.42),
+			"accent": Color(1.0, 0.86, 0.20)
 		},
 		"factory": {
 			"id": "factory",
@@ -314,8 +336,8 @@ func _default_tile_catalog() -> Dictionary:
 			"icon": 2,
 			"reward": 2,
 			"combo_reward": 5,
-			"color": Color(0.33, 0.42, 0.62),
-			"accent": Color(1.0, 0.42, 0.14)
+			"color": Color(0.22, 0.56, 0.88),
+			"accent": Color(0.16, 0.82, 0.72)
 		},
 		"haunted_house": {
 			"id": "haunted_house",
@@ -328,8 +350,8 @@ func _default_tile_catalog() -> Dictionary:
 			"icon": 3,
 			"odd_reward": 5,
 			"even_reward": -3,
-			"color": Color(0.34, 0.12, 0.62),
-			"accent": Color(0.42, 1.0, 0.64)
+			"color": Color(0.46, 0.22, 0.74),
+			"accent": Color(0.96, 0.27, 0.36)
 		}
 	}
 
@@ -361,7 +383,7 @@ func _color_from_config(value, fallback: Color) -> Color:
 	return fallback
 
 func _on_roll_pressed() -> void:
-	if roll_locked or mode != "play" or rolls_left <= 0:
+	if roll_locked or round_intro_active or mode != "play" or rolls_left <= 0:
 		return
 	roll_locked = true
 	roll_button.disabled = true
@@ -467,13 +489,13 @@ func _finish_round() -> void:
 		assets += 4 + max(0, int(float(round_score - target_score) / 3.0))
 		_update_ui()
 		roll_result_label.text = "目标达成，选择新地块"
-		_flash(Color(1.0, 0.84, 0.12, 0.23), 0.5)
+		_flash(Color(1.0, 0.86, 0.20, 0.24), 0.5)
 		shaker.shake(world, 8.0, 0.28)
 		await get_tree().create_timer(0.42).timeout
 		_show_choice_overlay()
 	else:
 		roll_result_label.text = "未达目标"
-		_flash(Color(1.0, 0.05, 0.12, 0.28), 0.46)
+		_flash(Color(0.96, 0.20, 0.28, 0.30), 0.46)
 		shaker.shake(world, 11.0, 0.35)
 		await get_tree().create_timer(0.36).timeout
 		_show_fail_overlay()
@@ -484,19 +506,19 @@ func _show_choice_overlay() -> void:
 	_clear_overlay(choice_overlay)
 	choice_overlay.visible = true
 	var viewport_size = get_viewport_rect().size
-	var dim = _make_overlay_dim(Color(0.01, 0.0, 0.04, 0.76))
+	var dim = _make_overlay_dim(Color(0.90, 0.36, 0.39, 0.86))
 	choice_overlay.add_child(dim)
 	var title = _make_label("通过第 %d 轮：选择一个地块" % round_number, 34, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
-	title.position = Vector2(viewport_size.x * 0.5 - 330, viewport_size.y * 0.16)
+	title.position = Vector2(viewport_size.x * 0.5 - 330, viewport_size.y * 0.13)
 	title.size = Vector2(660, 48)
 	choice_overlay.add_child(title)
 
-	var card_width: float = clamp(viewport_size.x * 0.17, 180.0, 220.0)
-	var card_height: float = clamp(viewport_size.y * 0.34, 230.0, 270.0)
-	var gap: float = 18.0
+	var card_width: float = clamp(viewport_size.x * 0.20, 195.0, 238.0)
+	var card_height: float = clamp(viewport_size.y * 0.36, 280.0, 318.0)
+	var gap: float = 34.0
 	var total_width: float = card_width * 3.0 + gap * 2.0
 	var start_x: float = viewport_size.x * 0.5 - total_width * 0.5
-	var y: float = viewport_size.y * 0.28
+	var y: float = viewport_size.y * 0.25
 	for i in range(3):
 		var choice_data = _make_tile(reward_tile_ids[i % reward_tile_ids.size()])
 		var card = TileChoiceCard.new()
@@ -510,9 +532,10 @@ func _show_choice_overlay() -> void:
 		)
 		choice_overlay.add_child(card)
 		card.play_spawn()
+		card.start_idle(float(i) * 0.75)
 
-	var skip = _make_button("跳过", Color(0.25, 0.75, 1.0))
-	skip.position = Vector2(viewport_size.x * 0.5 - 86, viewport_size.y * 0.76)
+	var skip = _make_button("跳过", Color(0.16, 0.82, 0.72))
+	skip.position = Vector2(viewport_size.x * 0.5 - 86, viewport_size.y * 0.80)
 	skip.size = Vector2(172, 52)
 	skip.pressed.connect(_on_reward_skipped)
 	choice_overlay.add_child(skip)
@@ -544,21 +567,58 @@ func _on_tile_picked(index: int) -> void:
 func _insert_pending_tile_after(index: int) -> void:
 	if pending_tile.is_empty():
 		return
+	mode = "busy"
 	var insert_at: int = clamp(index + 1, 0, tiles_data.size())
-	tiles_data.insert(insert_at, pending_tile.duplicate(true))
+	var inserted_tile = pending_tile.duplicate(true)
+	tiles_data.insert(insert_at, inserted_tile)
 	for color_key in pawn_order:
 		if pawn_indices[color_key] >= insert_at:
 			pawn_indices[color_key] += 1
 	pending_tile.clear()
 	_clear_board_hints()
 	_set_action_banner("")
-	_rebuild_board_tiles()
+	_update_ui()
+	await _play_insert_animation(insert_at, inserted_tile)
 	_position_pawns()
 	_update_ui()
-	if insert_at >= 0 and insert_at < tile_nodes.size():
-		tile_nodes[insert_at].play_spawn()
-	_flash(Color(0.0, 1.0, 0.76, 0.18), 0.32)
+	_flash(Color(0.16, 0.82, 0.72, 0.22), 0.32)
+	await get_tree().create_timer(0.18).timeout
 	_after_round_reward_done()
+
+func _play_insert_animation(insert_at: int, inserted_tile: Dictionary) -> void:
+	var old_nodes = tile_nodes.duplicate()
+	var new_positions = _calculate_board_positions(tiles_data.size())
+	var new_tile_size = _calculate_tile_size(tiles_data.size())
+	board_path.set_points(new_positions)
+	var preview = TileJuice.new()
+	preview.setup(insert_at, inserted_tile)
+	preview.size = Vector2(new_tile_size, new_tile_size)
+	preview.custom_minimum_size = preview.size
+	preview.position = new_positions[insert_at] - preview.size * 0.5
+	preview.pivot_offset = preview.size * 0.5
+	preview.scale = Vector2(0.08, 0.08)
+	preview.rotation = -0.16
+	preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	preview.z_index = 30
+	tile_layer.add_child(preview)
+
+	var tween = create_tween()
+	tween.set_parallel(true)
+	for i in range(old_nodes.size()):
+		var node = old_nodes[i] as Control
+		if node == null:
+			continue
+		node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var new_index = i if i < insert_at else i + 1
+		var target_size = Vector2(new_tile_size, new_tile_size)
+		tween.tween_property(node, "size", target_size, 0.34).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tween.tween_property(node, "position", new_positions[new_index] - target_size * 0.5, 0.36).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(preview, "scale", Vector2.ONE, 0.36).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(preview, "rotation", 0.0, 0.28).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	await tween.finished
+	_rebuild_board_tiles()
+	if insert_at >= 0 and insert_at < tile_nodes.size():
+		tile_nodes[insert_at].play_step(true)
 
 func _on_cancel_action() -> void:
 	_clear_board_hints()
@@ -576,8 +636,8 @@ func _show_fail_overlay() -> void:
 	_clear_overlay(fail_overlay)
 	fail_overlay.visible = true
 	var viewport_size = get_viewport_rect().size
-	fail_overlay.add_child(_make_overlay_dim(Color(0.08, 0.0, 0.025, 0.82)))
-	var title = _make_label("游戏失败", 44, Color(1.0, 0.26, 0.38), HORIZONTAL_ALIGNMENT_CENTER)
+	fail_overlay.add_child(_make_overlay_dim(Color(0.06, 0.025, 0.035, 0.88)))
+	var title = _make_label("游戏失败", 44, Color(1.0, 0.32, 0.42), HORIZONTAL_ALIGNMENT_CENTER)
 	title.position = Vector2(viewport_size.x * 0.5 - 220, viewport_size.y * 0.28)
 	title.size = Vector2(440, 60)
 	fail_overlay.add_child(title)
@@ -585,7 +645,7 @@ func _show_fail_overlay() -> void:
 	detail.position = Vector2(viewport_size.x * 0.5 - 260, viewport_size.y * 0.4)
 	detail.size = Vector2(520, 42)
 	fail_overlay.add_child(detail)
-	var retry = _make_button("重玩", Color(1.0, 0.84, 0.14))
+	var retry = _make_button("重玩", Color(1.0, 0.86, 0.20))
 	retry.position = Vector2(viewport_size.x * 0.5 - 90, viewport_size.y * 0.56)
 	retry.size = Vector2(180, 56)
 	retry.pressed.connect(_start_new_game)
@@ -646,14 +706,17 @@ func _calculate_tile_size(count: int) -> float:
 	return clamp(spacing * 0.62, 46.0, 88.0)
 
 func _get_board_circle() -> Dictionary:
-	var viewport_size = get_viewport_rect().size
-	var top_limit: float = clamp(viewport_size.y * 0.14, 92.0, 124.0)
-	var bottom_limit: float = viewport_size.y - clamp(viewport_size.y * 0.26, 188.0, 224.0)
-	var vertical_radius: float = max(120.0, (bottom_limit - top_limit) * 0.5)
-	var horizontal_radius: float = max(120.0, viewport_size.x * 0.42)
-	var radius: float = min(vertical_radius, horizontal_radius) * BOARD_VIEW_SCALE
-	var center = Vector2(viewport_size.x * 0.5, (top_limit + bottom_limit) * 0.5)
+	var board_rect = _get_board_panel_rect()
+	var center = board_rect.get_center() + Vector2(0.0, 8.0)
+	var radius = min(board_rect.size.x * 0.30, board_rect.size.y * 0.43) * BOARD_VIEW_SCALE
 	return {"center": center, "radius": radius}
+
+func _get_board_panel_rect() -> Rect2:
+	var viewport_size = get_viewport_rect().size
+	var panel_height = min(viewport_size.y - 226.0, max(500.0, viewport_size.y * 0.68))
+	var panel_width = min(viewport_size.x - 94.0, max(690.0, panel_height * 1.34))
+	var panel_pos = Vector2((viewport_size.x - panel_width) * 0.5, 96.0)
+	return Rect2(panel_pos, Vector2(panel_width, panel_height))
 
 func _pawn_offset(color_key: String) -> Vector2:
 	if color_key == "red":
@@ -667,7 +730,7 @@ func _update_ui() -> void:
 	score_label.text = "金币 %d / %d" % [round_score, target_score]
 	assets_label.text = "资产 %d" % assets
 	counter_label.text = "%d / %d" % [rolls_left, total_rolls]
-	roll_button.disabled = roll_locked or mode != "play" or rolls_left <= 0
+	roll_button.disabled = roll_locked or round_intro_active or mode != "play" or rolls_left <= 0
 
 func _clear_board_hints() -> void:
 	for tile in tile_nodes:
@@ -689,9 +752,9 @@ func _make_label(text_value: String, font_size: int, color: Color, alignment: Ho
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.add_theme_font_size_override("font_size", font_size)
 	label.add_theme_color_override("font_color", color)
-	label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.78))
-	label.add_theme_constant_override("shadow_offset_x", 3)
-	label.add_theme_constant_override("shadow_offset_y", 3)
+	label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.92))
+	label.add_theme_constant_override("shadow_offset_x", 4)
+	label.add_theme_constant_override("shadow_offset_y", 4)
 	return label
 
 func _make_button(text_value: String, accent: Color) -> Button:
@@ -699,13 +762,14 @@ func _make_button(text_value: String, accent: Color) -> Button:
 	button.text = text_value
 	button.focus_mode = Control.FOCUS_NONE
 	button.add_theme_font_size_override("font_size", 20)
-	button.add_theme_color_override("font_color", Color.WHITE)
-	button.add_theme_color_override("font_hover_color", Color.WHITE)
-	button.add_theme_color_override("font_pressed_color", Color(0.04, 0.02, 0.08))
-	button.add_theme_stylebox_override("normal", _make_panel_style(Color(0.04, 0.03, 0.10, 0.9), Color(accent.r, accent.g, accent.b, 0.75), 8))
-	button.add_theme_stylebox_override("hover", _make_panel_style(accent.darkened(0.5), accent.lightened(0.18), 8))
-	button.add_theme_stylebox_override("pressed", _make_panel_style(accent.lightened(0.1), Color.WHITE, 8))
-	button.add_theme_stylebox_override("disabled", _make_panel_style(Color(0.05, 0.05, 0.07, 0.62), Color(0.32, 0.32, 0.38, 0.45), 8))
+	button.add_theme_color_override("font_color", Color(0.02, 0.02, 0.025))
+	button.add_theme_color_override("font_hover_color", Color(0.02, 0.02, 0.025))
+	button.add_theme_color_override("font_pressed_color", Color(0.02, 0.02, 0.025))
+	button.add_theme_color_override("font_disabled_color", Color(0.55, 0.55, 0.58))
+	button.add_theme_stylebox_override("normal", _make_panel_style(accent, Color.BLACK, 9))
+	button.add_theme_stylebox_override("hover", _make_panel_style(accent.lightened(0.12), Color.BLACK, 9))
+	button.add_theme_stylebox_override("pressed", _make_panel_style(accent.darkened(0.10), Color.BLACK, 9))
+	button.add_theme_stylebox_override("disabled", _make_panel_style(Color(0.34, 0.34, 0.36, 0.88), Color.BLACK, 9))
 	button.mouse_entered.connect(func() -> void:
 		if not button.disabled:
 			_pulse_node(button, Vector2(1.04, 1.04), Vector2(1.02, 1.02))
@@ -724,8 +788,11 @@ func _make_panel_style(bg: Color, border: Color, radius: int) -> StyleBoxFlat:
 	var style = StyleBoxFlat.new()
 	style.bg_color = bg
 	style.border_color = border
-	style.set_border_width_all(2)
+	style.set_border_width_all(4)
 	style.set_corner_radius_all(radius)
+	style.shadow_color = Color(0.0, 0.0, 0.0, 0.35)
+	style.shadow_size = 4
+	style.shadow_offset = Vector2(4, 5)
 	style.content_margin_left = 12
 	style.content_margin_right = 12
 	style.content_margin_top = 8
@@ -777,16 +844,17 @@ func _on_resized() -> void:
 	score_label.size = Vector2(360, 44)
 	assets_label.position = Vector2(30, 62)
 	assets_label.size = Vector2(260, 34)
-	roll_result_label.position = Vector2(viewport_size.x * 0.5 - 210, viewport_size.y - 162)
-	roll_result_label.size = Vector2(420, 34)
 	action_banner.position = Vector2(viewport_size.x * 0.5 - 360, 76)
 	action_banner.size = Vector2(720, 42)
 	cancel_action_button.position = Vector2(viewport_size.x * 0.5 + 270, 78)
 	cancel_action_button.size = Vector2(110, 42)
 
 	var shell_size = Vector2(492, 116)
-	dice_shell.position = Vector2(viewport_size.x * 0.5 - shell_size.x * 0.5, viewport_size.y - shell_size.y - 28)
+	var shell_position = Vector2(viewport_size.x * 0.5 - shell_size.x * 0.5, viewport_size.y - shell_size.y - 28)
+	dice_shell.position = shell_position
 	dice_shell.size = shell_size
+	roll_result_label.position = Vector2(viewport_size.x * 0.5 - 210, shell_position.y - 45)
+	roll_result_label.size = Vector2(420, 34)
 
 	for color_key in pawn_order:
 		if dice_nodes.has(color_key):

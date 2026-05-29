@@ -79,8 +79,8 @@ func play_final_pop() -> void:
 func _draw() -> void:
 	draw_circle(Vector2(0.0, 20.0), 16.0 * shadow_scale, Color(0.0, 0.0, 0.0, 0.24))
 	var body_y = sin(wobble * 5.0) * 1.8
-	draw_circle(Vector2(0, body_y), 18.0, pawn_color.darkened(0.25))
-	draw_circle(Vector2(-3, body_y - 4), 14.0, pawn_color)
-	draw_arc(Vector2.ZERO + Vector2(0, body_y), 20.0, 0.0, TAU, 36, Color(1.0, 1.0, 1.0, 0.72), 3.0)
+	draw_circle(Vector2(0, body_y), 20.0, Color(0.0, 0.0, 0.0, 1.0))
+	draw_circle(Vector2(-2, body_y - 3), 15.0, pawn_color)
+	draw_circle(Vector2(-8, body_y - 9), 4.0, Color(1.0, 1.0, 1.0, 0.72))
 	var font = ThemeDB.fallback_font
-	draw_string(font, Vector2(-8, body_y + 7), label, HORIZONTAL_ALIGNMENT_CENTER, 16.0, 17, Color(0.05, 0.03, 0.08, 1.0))
+	draw_string(font, Vector2(-12.0, body_y + 6.0), label, HORIZONTAL_ALIGNMENT_CENTER, 24.0, 17, Color(0.05, 0.03, 0.08, 1.0))
