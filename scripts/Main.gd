@@ -12,6 +12,16 @@ const ScreenShake = preload("res://scripts/components/ScreenShake.gd")
 const BoardPath = preload("res://scripts/components/BoardPath.gd")
 const VectorBackground = preload("res://scripts/components/VectorBackground.gd")
 const RoundStartBanner = preload("res://scripts/components/RoundStartBanner.gd")
+const RunState = preload("res://scripts/domain/RunState.gd")
+const TileRuntime = preload("res://scripts/domain/Tile.gd")
+const TileDefinitions = preload("res://scripts/data/TileDefinitions.gd")
+const RelicDefinitions = preload("res://scripts/data/RelicDefinitions.gd")
+const BuffLibrary = preload("res://scripts/buffs/BuffLibrary.gd")
+const TurnResolver = preload("res://scripts/systems/TurnResolver.gd")
+const EffectResolver = preload("res://scripts/effects/EffectResolver.gd")
+const GameCommand = preload("res://scripts/effects/GameCommand.gd")
+const TurnContext = preload("res://scripts/domain/TurnContext.gd")
+const ResolveContext = preload("res://scripts/domain/ResolveContext.gd")
 const ROUND_CONFIG_PATH = "res://data/round_config.json"
 const TILE_CONFIG_PATH = "res://data/tile_config.json"
 const BOARD_VIEW_SCALE = 1.0
@@ -70,13 +80,27 @@ var round_configs: Array = []
 var default_round_config = {"target_score": 27, "rolls": 3}
 var tile_catalog = {}
 var reward_tile_ids = ["market", "factory", "haunted_house"]
+var run_state
+var turn_resolver = TurnResolver.new()
+var tile_definitions: Dictionary = {}
+var relic_definitions: Dictionary = {}
+var buff_definitions: Dictionary = {}
 
 func _ready() -> void:
 	rng.randomize()
-	_load_tile_config()
+	_load_game_definitions()
 	_load_round_config()
 	_build_scene()
 	_start_new_game()
+
+func _load_game_definitions() -> void:
+	tile_definitions = TileDefinitions.all()
+	relic_definitions = RelicDefinitions.all()
+	buff_definitions = BuffLibrary.definitions()
+	reward_tile_ids = []
+	for tile_id in tile_definitions.keys():
+		if bool(tile_definitions[tile_id].get("selectable", false)):
+			reward_tile_ids.append(tile_id)
 
 func _build_scene() -> void:
 	world = Control.new()
@@ -224,11 +248,9 @@ func _build_overlays() -> void:
 
 func _start_new_game() -> void:
 	round_number = 1
-	assets = 8
-	tiles_data.clear()
-	for i in range(8):
-		tiles_data.append(_make_tile("market"))
-	_reset_pawn_indices()
+	run_state = RunState.new()
+	run_state.setup(tile_definitions, relic_definitions, buff_definitions, rng.randi(), "T001", 8)
+	_sync_from_run_state()
 	_start_round()
 
 func _reset_pawn_indices() -> void:
@@ -236,6 +258,8 @@ func _reset_pawn_indices() -> void:
 		pawn_indices[color_key] = 0
 
 func _start_round() -> void:
+	if run_state != null:
+		run_state.begin_round(round_number)
 	mode = "play"
 	roll_locked = false
 	round_intro_active = true
@@ -243,11 +267,10 @@ func _start_round() -> void:
 	choice_overlay.visible = false
 	fail_overlay.visible = false
 	_set_action_banner("")
-	round_score = 0
 	_setup_round_values()
 	rolls_left = total_rolls
 	roll_result_label.text = "矢量棋盘已就绪"
-	_reset_pawn_indices()
+	_sync_from_run_state()
 	_rebuild_board_tiles()
 	_position_pawns()
 	_update_ui()
@@ -399,7 +422,8 @@ func _play_roll_turn() -> void:
 
 	var results = {}
 	for color_key in pawn_order:
-		results[color_key] = rng.randi_range(1, 6)
+		results[color_key] = run_state.rng.randi_range(1, 6)
+	var plan = turn_resolver.plan_roll(run_state, pawn_order, results)
 
 	batch_remaining = pawn_order.size()
 	for color_key in pawn_order:
@@ -414,16 +438,44 @@ func _play_roll_turn() -> void:
 		pawn_nodes[color_key].move_steps(tile_positions, pawn_indices[color_key], results[color_key])
 	await batch_finished
 
-	var landing_counts = _get_landing_counts()
-	var gain = 0
-	for color_key in pawn_order:
-		gain += await _trigger_tile_reward(color_key, pawn_indices[color_key], results[color_key], landing_counts)
+	var turn = turn_resolver.resolve_planned_roll(run_state, pawn_order, results, plan)
+	var gain = turn.total_gain
+	await _play_turn_feedback(turn)
+	_sync_from_run_state()
+	_rebuild_board_tiles()
+	_position_pawns()
 
 	roll_result_label.text = "本次投掷 %s%d" % ["+" if gain >= 0 else "", gain]
 	_pulse_node(roll_result_label, Vector2(1.18, 1.18), Vector2.ONE)
 	if rolls_left <= 0:
 		await get_tree().create_timer(0.45).timeout
 		await _finish_round()
+
+func _play_turn_feedback(turn) -> void:
+	for event in turn.events:
+		if str(event.get("type", "")) != "coins_added":
+			continue
+		var amount = int(event.get("amount", 0))
+		if amount == 0:
+			continue
+		var source_index = int(event.get("sourceIndex", 0))
+		var start = tile_positions[source_index] if source_index >= 0 and source_index < tile_positions.size() else get_viewport_rect().size * 0.5
+		var end = score_label.global_position + score_label.size * 0.5
+		var float_text = FloatingText.new()
+		effects_layer.add_child(float_text)
+		if amount >= 0:
+			float_text.play("+%d" % amount, start + Vector2(0, -42), Color(1.0, 0.93, 0.24))
+			var coins = CoinBurst.new()
+			effects_layer.add_child(coins)
+			coins.play(start, end, Color(1.0, 0.86, 0.12), 6)
+		else:
+			float_text.play("%d" % amount, start + Vector2(0, -42), Color(1.0, 0.24, 0.35))
+			_negative_feedback(score_label)
+		_sync_from_run_state()
+		_update_ui()
+		_pulse_node(score_label, Vector2(1.10, 1.10), Vector2.ONE)
+		shaker.shake(world, 4.0 if amount >= 0 else 8.0, 0.14)
+		await get_tree().create_timer(0.12).timeout
 
 func _mark_batch_item_done() -> void:
 	batch_remaining -= 1
@@ -486,13 +538,17 @@ func _get_tile_reward(data: Dictionary, tile_index: int, dice_value: int, landin
 func _finish_round() -> void:
 	roll_button.disabled = true
 	if round_score >= target_score:
-		assets += 4 + max(0, int(float(round_score - target_score) / 3.0))
+		run_state.coins += 4 + max(0, int(float(round_score - target_score) / 3.0))
+		_sync_from_run_state()
 		_update_ui()
-		roll_result_label.text = "目标达成，选择新地块"
+		roll_result_label.text = "目标达成"
 		_flash(Color(1.0, 0.86, 0.20, 0.24), 0.5)
 		shaker.shake(world, 8.0, 0.28)
 		await get_tree().create_timer(0.42).timeout
-		_show_choice_overlay()
+		if round_number % 3 == 0:
+			_show_relic_choice_overlay()
+		else:
+			_show_choice_overlay()
 	else:
 		roll_result_label.text = "未达目标"
 		_flash(Color(0.96, 0.20, 0.28, 0.30), 0.46)
@@ -519,8 +575,9 @@ func _show_choice_overlay() -> void:
 	var total_width: float = card_width * 3.0 + gap * 2.0
 	var start_x: float = viewport_size.x * 0.5 - total_width * 0.5
 	var y: float = viewport_size.y * 0.25
+	var choices = run_state.draw_tile_choices(3)
 	for i in range(3):
-		var choice_data = _make_tile(reward_tile_ids[i % reward_tile_ids.size()])
+		var choice_data = _make_tile(choices[i % choices.size()])
 		var card = TileChoiceCard.new()
 		card.setup(i, choice_data)
 		card.size = Vector2(card_width, card_height)
@@ -553,6 +610,74 @@ func _after_round_reward_done() -> void:
 	round_number += 1
 	_start_round()
 
+func _show_relic_choice_overlay() -> void:
+	mode = "relic_choice"
+	_update_ui()
+	_clear_overlay(choice_overlay)
+	choice_overlay.visible = true
+	var viewport_size = get_viewport_rect().size
+	choice_overlay.add_child(_make_overlay_dim(Color(0.03, 0.035, 0.08, 0.90)))
+	var title = _make_label("第 %d 轮奖励：选择一个遗物" % round_number, 34, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
+	title.position = Vector2(viewport_size.x * 0.5 - 330, viewport_size.y * 0.12)
+	title.size = Vector2(660, 48)
+	choice_overlay.add_child(title)
+	var choices = run_state.draw_relic_choices(3)
+	var card_width: float = clamp(viewport_size.x * 0.22, 210.0, 260.0)
+	var card_height: float = clamp(viewport_size.y * 0.32, 245.0, 290.0)
+	var gap := 28.0
+	var total_width = card_width * 3.0 + gap * 2.0
+	var start_x = viewport_size.x * 0.5 - total_width * 0.5
+	var y = viewport_size.y * 0.27
+	for i in range(choices.size()):
+		var card = _make_relic_card(choices[i], Vector2(start_x + (card_width + gap) * i, y), Vector2(card_width, card_height))
+		choice_overlay.add_child(card)
+	var skip = _make_button("跳过", Color(0.16, 0.82, 0.72))
+	skip.position = Vector2(viewport_size.x * 0.5 - 86, viewport_size.y * 0.82)
+	skip.size = Vector2(172, 52)
+	skip.pressed.connect(_on_relic_choice_done)
+	choice_overlay.add_child(skip)
+
+func _make_relic_card(relic_id: String, card_position: Vector2, card_size: Vector2) -> PanelContainer:
+	var relic: Dictionary = relic_definitions.get(relic_id, {})
+	var panel = PanelContainer.new()
+	panel.position = card_position
+	panel.size = card_size
+	panel.custom_minimum_size = card_size
+	panel.add_theme_stylebox_override("panel", _make_panel_style(Color(0.05, 0.06, 0.12, 0.96), Color(1.0, 0.86, 0.20, 0.9), 8))
+	var stack = VBoxContainer.new()
+	stack.add_theme_constant_override("separation", 10)
+	panel.add_child(stack)
+	var name_label = _make_label(str(relic.get("name", relic_id)), 24, Color(1.0, 0.90, 0.22), HORIZONTAL_ALIGNMENT_CENTER)
+	name_label.custom_minimum_size = Vector2(card_size.x - 24, 36)
+	stack.add_child(name_label)
+	var rarity_label = _make_label(str(relic.get("rarity", "")), 17, Color(0.55, 1.0, 0.82), HORIZONTAL_ALIGNMENT_CENTER)
+	rarity_label.custom_minimum_size = Vector2(card_size.x - 24, 24)
+	stack.add_child(rarity_label)
+	var desc = Label.new()
+	desc.text = str(relic.get("description", ""))
+	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	desc.add_theme_font_size_override("font_size", 17)
+	desc.add_theme_color_override("font_color", Color(0.92, 0.95, 1.0))
+	desc.custom_minimum_size = Vector2(card_size.x - 30, card_size.y - 136)
+	stack.add_child(desc)
+	var pick = _make_button("选择", Color(1.0, 0.86, 0.20))
+	pick.custom_minimum_size = Vector2(card_size.x - 34, 48)
+	pick.pressed.connect(_on_relic_chosen.bind(relic_id))
+	stack.add_child(pick)
+	return panel
+
+func _on_relic_chosen(relic_id: String) -> void:
+	var effect_resolver = EffectResolver.new()
+	var turn = TurnContext.new()
+	var context = ResolveContext.new().setup(run_state, turn, null, null, -1, 0, "relic_choice")
+	effect_resolver.execute_commands([GameCommand.add_relic(relic_id)], context)
+	_sync_from_run_state()
+	_on_relic_choice_done()
+
+func _on_relic_choice_done() -> void:
+	choice_overlay.visible = false
+	_show_choice_overlay()
+
 func enter_insert_mode() -> void:
 	mode = "insert"
 	_set_action_banner("选择一个地块：新地块会插在它后面")
@@ -568,12 +693,14 @@ func _insert_pending_tile_after(index: int) -> void:
 	if pending_tile.is_empty():
 		return
 	mode = "busy"
-	var insert_at: int = clamp(index + 1, 0, tiles_data.size())
-	var inserted_tile = pending_tile.duplicate(true)
-	tiles_data.insert(insert_at, inserted_tile)
-	for color_key in pawn_order:
-		if pawn_indices[color_key] >= insert_at:
-			pawn_indices[color_key] += 1
+	var insert_at: int = clamp(index + 1, 0, run_state.board.size())
+	var inserted_tile_runtime = run_state.create_tile(str(pending_tile.get("id", "T001")))
+	run_state.board.insert_tile(insert_at, inserted_tile_runtime)
+	for dice_state in run_state.dice.values():
+		if dice_state.index >= insert_at:
+			dice_state.index += 1
+	_sync_from_run_state()
+	var inserted_tile = inserted_tile_runtime.to_display_data()
 	pending_tile.clear()
 	_clear_board_hints()
 	_set_action_banner("")
@@ -726,6 +853,8 @@ func _pawn_offset(color_key: String) -> Vector2:
 	return Vector2(0, 18)
 
 func _update_ui() -> void:
+	if run_state != null:
+		_sync_from_run_state()
 	round_label.text = "第 %d 轮" % round_number
 	score_label.text = "金币 %d / %d" % [round_score, target_score]
 	assets_label.text = "资产 %d" % assets
@@ -743,7 +872,17 @@ func _set_action_banner(message: String) -> void:
 	cancel_action_button.visible = not message.is_empty()
 
 func _make_tile(tile_id: String) -> Dictionary:
-	return tile_catalog.get(tile_id, tile_catalog["market"]).duplicate(true)
+	return TileRuntime.from_definition(tile_definitions.get(tile_id, tile_definitions["T000"]), 0).to_display_data()
+
+func _sync_from_run_state() -> void:
+	if run_state == null:
+		return
+	tiles_data = run_state.board.to_display_array()
+	round_score = run_state.round_score
+	assets = run_state.coins
+	for color_key in pawn_order:
+		if run_state.dice.has(color_key):
+			pawn_indices[color_key] = run_state.dice[color_key].index
 
 func _make_label(text_value: String, font_size: int, color: Color, alignment: HorizontalAlignment) -> Label:
 	var label = Label.new()

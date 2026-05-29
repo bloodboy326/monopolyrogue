@@ -22,3 +22,6 @@ func _ready() -> void:
 		push_error("Smoke test failed: choice overlay did not open.")
 		return
 	print("SMOKE_OK score=%d rolls_left=%d tiles=%d choice_cards=%d" % [main.round_score, main.rolls_left, main.tiles_data.size(), main.choice_overlay.get_child_count()])
+	main.queue_free()
+	await get_tree().process_frame
+	get_tree().quit()
