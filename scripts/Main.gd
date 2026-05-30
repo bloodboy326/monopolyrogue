@@ -16,6 +16,8 @@ const IntentIcon = preload("res://scripts/components/IntentIcon.gd")
 const RollCounterBadge = preload("res://scripts/components/RollCounterBadge.gd")
 const BlockShieldBurst = preload("res://scripts/components/BlockShieldBurst.gd")
 const RollTargetPreview = preload("res://scripts/components/RollTargetPreview.gd")
+const SfxBus = preload("res://scripts/components/SfxBus.gd")
+const HealthBar = preload("res://scripts/components/HealthBar.gd")
 const RunState = preload("res://scripts/domain/RunState.gd")
 const TileRuntime = preload("res://scripts/domain/Tile.gd")
 const TileDefinitions = preload("res://scripts/data/TileDefinitions.gd")
@@ -54,9 +56,11 @@ var end_turn_button: Button
 var roll_counter_badge: Control
 var counter_label: Label
 var round_label: Label
+var player_hp_bar: Control
 var player_hp_label: Label
 var player_block_label: Label
 var monster_name_label: Label
+var monster_hp_bar: Control
 var monster_hp_label: Label
 var roll_result_label: Label
 var action_banner: Label
@@ -66,6 +70,7 @@ var choice_overlay: Control
 var fail_overlay: Control
 var info_tooltip: Control
 var shaker: Node
+var sfx_bus: Node
 var boss_view: Control
 var intent_icon: Control
 var intent_label: Label
@@ -114,6 +119,10 @@ func _build_scene() -> void:
 	world.set_anchors_preset(Control.PRESET_FULL_RECT)
 	world.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(world)
+
+	sfx_bus = SfxBus.new()
+	sfx_bus.name = "SfxBus"
+	add_child(sfx_bus)
 
 	background = TextureRect.new()
 	background.name = "VectorBackground"
@@ -197,7 +206,12 @@ func _build_boss() -> void:
 	monster_name_label.z_index = 70
 	boss_layer.add_child(monster_name_label)
 
-	monster_hp_label = _make_label("80 / 80", 18, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
+	monster_hp_bar = HealthBar.new()
+	monster_hp_bar.name = "MonsterHpBar"
+	monster_hp_bar.z_index = 72
+	boss_layer.add_child(monster_hp_bar)
+
+	monster_hp_label = _make_label("", 17, Color(0.58, 0.82, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
 	monster_hp_label.z_index = 70
 	boss_layer.add_child(monster_hp_label)
 
@@ -205,7 +219,13 @@ func _build_hud() -> void:
 	round_label = _make_label("第 1 关", 32, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
 	hud_layer.add_child(round_label)
 
-	player_hp_label = _make_label("生命 80 / 80", 26, Color(1.0, 0.36, 0.42), HORIZONTAL_ALIGNMENT_LEFT)
+	player_hp_bar = HealthBar.new()
+	player_hp_bar.name = "PlayerHpBar"
+	player_hp_bar.z_index = 110
+	hud_layer.add_child(player_hp_bar)
+
+	player_hp_label = _make_label("", 16, Color(1.0, 0.36, 0.42), HORIZONTAL_ALIGNMENT_LEFT)
+	player_hp_label.visible = false
 	hud_layer.add_child(player_hp_label)
 
 	player_block_label = _make_label("护盾 0", 22, Color(0.55, 0.85, 1.0), HORIZONTAL_ALIGNMENT_LEFT)
@@ -319,6 +339,7 @@ func _start_battle() -> void:
 	if battle_number > max_battles:
 		_show_run_complete_overlay()
 		return
+	_sfx("turn_start", -4.0)
 	var battle = MonsterConfig.battle_for(monster_config, battle_number)
 	var monster_def = MonsterConfig.monster(monster_config, str(battle.get("monster_id", "slime_boss")))
 	run_state.start_battle(battle_number, monster_def)
@@ -367,6 +388,7 @@ func _apply_phase_enter_effect(phase_id: String) -> void:
 func _on_roll_pressed() -> void:
 	if roll_locked or mode != "play" or rolls_left <= 0:
 		return
+	_sfx("dice_roll", -2.0)
 	roll_locked = true
 	mode = "rolling"
 	if not run_state.spend_roll():
@@ -388,6 +410,7 @@ func _on_roll_pressed() -> void:
 		dice_nodes[color_key].roll_finished.connect(_mark_batch_item_done, CONNECT_ONE_SHOT)
 		dice_nodes[color_key].roll_to(int(current_rolls[color_key]))
 	await batch_finished
+	_sfx("dice_land", -3.0)
 
 	mode = "choose_dice"
 	roll_locked = false
@@ -399,6 +422,7 @@ func _on_roll_pressed() -> void:
 func _on_dice_picked(color_key: String) -> void:
 	if mode != "choose_dice" or not current_rolls.has(color_key):
 		return
+	_sfx("dice_select", -2.5)
 	_clear_roll_preview()
 	pending_roll_value = int(current_rolls[color_key])
 	mode = "moving"
@@ -437,6 +461,7 @@ func _on_dice_picked(color_key: String) -> void:
 func _on_dice_hovered(color_key: String) -> void:
 	if mode != "choose_dice" or not current_rolls.has(color_key):
 		return
+	_sfx("ui_hover", -8.0, 1.08)
 	_show_roll_preview(color_key)
 
 func _on_dice_unhovered(color_key: String) -> void:
@@ -446,6 +471,7 @@ func _on_dice_unhovered(color_key: String) -> void:
 func _on_end_turn_pressed() -> void:
 	if mode != "play" or roll_locked:
 		return
+	_sfx("turn_end", -3.0)
 	mode = "monster"
 	roll_locked = true
 	_clear_roll_preview()
@@ -458,6 +484,7 @@ func _on_end_turn_pressed() -> void:
 	run_state.record_current_intent_used()
 	run_state.battle_turn += 1
 	run_state.begin_player_turn(int(MonsterConfig.battle_for(monster_config, battle_number).get("rolls", 3)))
+	_sfx("turn_start", -5.0)
 	total_rolls = run_state.turn_rolls_total
 	rolls_left = run_state.turn_rolls_left
 	current_rolls.clear()
@@ -477,6 +504,7 @@ func _execute_monster_turn() -> void:
 	var intent = run_state.current_intent
 	roll_result_label.text = "%s：%s" % [run_state.monster_name, str(intent.get("name", "行动"))]
 	if str(intent.get("intent_type", "")) == "ATTACK":
+		_sfx("enemy_attack", -2.0)
 		boss_view.play_attack()
 		await get_tree().create_timer(0.16).timeout
 	var events: Array[Dictionary] = []
@@ -542,6 +570,8 @@ func _play_turn_feedback(turn) -> void:
 				var blocked = int(event.get("blocked", 0))
 				var start = _event_source_position(event)
 				if amount > 0:
+					_sfx("tile_attack", -3.0)
+					_sfx("enemy_hit", -4.0)
 					await _floating("-%d" % amount, start, Color(1.0, 0.32, 0.38))
 					boss_view.flash_hit()
 					shaker.shake(world, 7.0, 0.18)
@@ -551,20 +581,25 @@ func _play_turn_feedback(turn) -> void:
 				_update_ui()
 			"player_block_added":
 				var amount = int(event.get("amount", 0))
+				_sfx("tile_block", -3.0)
 				await _floating("+%d 护盾" % amount, _event_source_position(event), Color(0.55, 0.86, 1.0))
 				_pulse_node(player_block_label, Vector2(1.08, 1.08), Vector2.ONE)
 				_update_ui()
 			"rolls_added":
 				var amount = int(event.get("amount", 0))
+				_sfx("dice_bonus", -3.0)
 				rolls_left = int(event.get("rollsLeft", run_state.turn_rolls_left))
 				total_rolls = int(event.get("rollsTotal", run_state.turn_rolls_total))
 				await _floating(("%+d 骰子" % amount), _event_source_position(event), Color(1.0, 0.90, 0.25))
 				_update_ui()
 			"attack_multiplier_added":
+				_sfx("tile_buff", -3.0)
 				await _floating("强化 x%.0f" % float(event.get("multiplier", 2.0)), _event_source_position(event), Color(1.0, 0.78, 1.0))
 			"next_turn_rolls_added":
+				_sfx("dice_bonus", -4.0, 0.92)
 				await _floating("下回合%+d骰" % int(event.get("amount", 0)), _event_source_position(event), Color(0.72, 1.0, 0.36))
 			"destroy_next_tile_added":
+				_sfx("tile_buff", -4.0, 0.82)
 				await _floating("拆迁待命", _event_source_position(event), Color(1.0, 0.56, 0.18))
 	await _play_board_change_feedback(turn.events)
 
@@ -575,16 +610,21 @@ func _play_monster_feedback(events: Array[Dictionary]) -> void:
 				var amount = int(event.get("amount", 0))
 				var blocked = int(event.get("blocked", 0))
 				if amount > 0:
-					await _floating("-%d 生命" % amount, player_hp_label.global_position + player_hp_label.size * 0.5, Color(1.0, 0.25, 0.34))
-					_negative_feedback(player_hp_label)
+					_sfx("player_hit", -2.0)
+					await _floating("-%d 生命" % amount, player_hp_bar.global_position + player_hp_bar.size * 0.5, Color(1.0, 0.25, 0.34))
+					_negative_feedback(player_hp_bar)
 					shaker.shake(world, 10.0, 0.28)
 				elif blocked > 0:
+					_sfx("player_block", -3.0)
 					await _floating("护盾抵挡", player_block_label.global_position + player_block_label.size * 0.5, Color(0.56, 0.88, 1.0))
 			"monster_block_added":
+				_sfx("monster_block", -3.0)
 				await _floating("+%d 护甲" % int(event.get("amount", 0)), boss_view.global_position + boss_view.size * 0.5, Color(0.58, 0.82, 1.0))
 			"monster_strength_added":
+				_sfx("monster_strength", -2.5)
 				await _floating("+%d 力量" % int(event.get("amount", 0)), boss_view.global_position + boss_view.size * 0.5, Color(1.0, 0.66, 0.20))
 			"next_turn_rolls_changed":
+				_sfx("debuff", -3.0)
 				await _floating("下回合%+d骰" % int(event.get("amount", 0)), dice_shell.global_position + Vector2(40, -12), Color(1.0, 0.72, 0.24))
 	await _play_board_change_feedback(events)
 	_sync_from_run_state()
@@ -596,6 +636,7 @@ func _finish_battle_victory() -> void:
 	mode = "busy"
 	roll_locked = true
 	_update_ui()
+	_sfx("victory", -2.5)
 	roll_result_label.text = "击败 %s" % run_state.monster_name
 	boss_view.play_death()
 	_flash(Color(1.0, 0.86, 0.20, 0.24), 0.5)
@@ -621,6 +662,7 @@ func _show_choice_overlay() -> void:
 	_update_ui()
 	_clear_overlay(choice_overlay)
 	choice_overlay.visible = true
+	_sfx("reward_open", -3.0)
 	var viewport_size = get_viewport_rect().size
 	choice_overlay.add_child(_make_overlay_dim(Color(0.05, 0.10, 0.08, 0.88)))
 	var title = _make_label("第 %d 关胜利：选择一个地块" % battle_number, 34, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
@@ -663,11 +705,13 @@ func _show_choice_overlay() -> void:
 	choice_overlay.add_child(skip)
 
 func _on_reward_tile_chosen(tile_data: Dictionary) -> void:
+	_sfx("reward_pick", -2.5)
 	pending_tile = tile_data.duplicate(true)
 	choice_overlay.visible = false
 	enter_insert_mode()
 
 func _on_reward_skipped() -> void:
+	_sfx("ui_cancel", -4.0)
 	choice_overlay.visible = false
 	_after_round_reward_done()
 
@@ -677,6 +721,7 @@ func _after_round_reward_done() -> void:
 
 func enter_insert_mode() -> void:
 	mode = "insert"
+	_sfx("insert_tile", -6.0, 0.9)
 	_set_action_banner("选择一个地块：新地块会插在它后面")
 	for tile in tile_nodes:
 		tile.set_insert_hint(true)
@@ -684,12 +729,14 @@ func enter_insert_mode() -> void:
 
 func _on_tile_picked(index: int) -> void:
 	if mode == "insert":
+		_sfx("tile_trigger", -5.0)
 		_insert_pending_tile_after(index)
 
 func _insert_pending_tile_after(index: int) -> void:
 	if pending_tile.is_empty():
 		return
 	mode = "busy"
+	_sfx("insert_tile", -2.5)
 	var insert_at: int = clamp(index + 1, 0, run_state.board.size())
 	var inserted_tile_runtime = run_state.create_tile(str(pending_tile.get("id", "T001")))
 	run_state.board.insert_tile(insert_at, inserted_tile_runtime)
@@ -743,6 +790,7 @@ func _play_insert_animation(insert_at: int, inserted_tile: Dictionary) -> void:
 		tile_nodes[insert_at].play_step(true)
 
 func _on_cancel_action() -> void:
+	_sfx("ui_cancel", -4.0)
 	_clear_board_hints()
 	_set_action_banner("")
 	if mode == "insert":
@@ -760,6 +808,7 @@ func _on_cancel_action() -> void:
 func _show_fail_overlay() -> void:
 	mode = "fail"
 	_update_ui()
+	_sfx("defeat", -2.5)
 	_clear_overlay(fail_overlay)
 	fail_overlay.visible = true
 	var viewport_size = get_viewport_rect().size
@@ -781,6 +830,7 @@ func _show_fail_overlay() -> void:
 func _show_run_complete_overlay() -> void:
 	mode = "complete"
 	_update_ui()
+	_sfx("run_complete", -2.5)
 	_clear_overlay(fail_overlay)
 	fail_overlay.visible = true
 	var viewport_size = get_viewport_rect().size
@@ -826,6 +876,7 @@ func _play_generated_tile_preview(index: int, tile_id: String, temporary: bool) 
 	var final_positions = _calculate_board_positions(run_state.board.size())
 	if index < 0 or index >= final_positions.size():
 		return
+	_sfx("tile_generate", -3.0)
 	var tile_size = _calculate_tile_size(run_state.board.size())
 	var preview = TileJuice.new()
 	preview.setup(index, _make_tile(tile_id))
@@ -852,6 +903,7 @@ func _play_destroy_tile_preview(index: int) -> void:
 	var node = tile_nodes[index] as Control
 	if node == null:
 		return
+	_sfx("tile_destroy", -2.5)
 	var center = node.global_position + node.size * 0.5
 	await _floating("销毁", center + Vector2(0, -52), Color(1.0, 0.30, 0.36))
 	var tween = create_tween()
@@ -867,6 +919,7 @@ func _play_transform_tile_preview(index: int, tile_id: String) -> void:
 	var node = tile_nodes[index] as Control
 	if node == null:
 		return
+	_sfx("tile_transform", -3.0)
 	var center = node.global_position + node.size * 0.5
 	await _floating("转变", center + Vector2(0, -52), Color(1.0, 0.86, 0.28))
 	var preview = TileJuice.new()
@@ -903,6 +956,7 @@ func _event_source_position(event: Dictionary) -> Vector2:
 		if source_index < tile_nodes.size():
 			var tile = tile_nodes[source_index] as Control
 			if tile != null:
+				_sfx("tile_trigger", -8.0)
 				tile.play_reward()
 		return tile_positions[source_index] + Vector2(0, -42)
 	return boss_view.global_position + boss_view.size * 0.5
@@ -914,6 +968,7 @@ func _floating(text: String, start: Vector2, color: Color) -> void:
 	await get_tree().create_timer(0.15).timeout
 
 func _play_enemy_block_flash() -> void:
+	_sfx("enemy_block_big", -2.0)
 	var burst = BlockShieldBurst.new()
 	effects_layer.add_child(burst)
 	var center = boss_view.global_position + boss_view.size * 0.5 + Vector2(0, -10)
@@ -954,6 +1009,7 @@ func _rebuild_board_tiles() -> void:
 func _show_tile_tooltip(tile_data: Dictionary, anchor_global_pos: Vector2) -> void:
 	if info_tooltip == null:
 		return
+	_sfx("ui_hover", -11.0, 0.96)
 	info_tooltip.show_tile(tile_data, anchor_global_pos, get_viewport_rect())
 
 func _show_reference_tooltip(tile_id: String, anchor_global_pos: Vector2) -> void:
@@ -972,6 +1028,7 @@ func _position_pawns() -> void:
 		pawn_nodes[color_key].position = tile_positions[index] + _pawn_offset(color_key)
 
 func _on_pawn_step_landed(tile_index: int, final_step: bool, color_key: String) -> void:
+	_sfx("pawn_land" if final_step else "pawn_step", -4.0)
 	if tile_index >= 0 and tile_index < tile_nodes.size():
 		tile_nodes[tile_index].play_step(final_step)
 	if final_step:
@@ -1024,10 +1081,14 @@ func _update_ui() -> void:
 		rolls_left = run_state.turn_rolls_left
 		total_rolls = run_state.turn_rolls_total
 		round_label.text = "第 %d 关" % battle_number
-		player_hp_label.text = "生命 %d / %d" % [run_state.player_hp, run_state.player_max_hp]
+		if player_hp_bar != null:
+			player_hp_bar.set_values(run_state.player_hp, run_state.player_max_hp)
+		player_hp_label.text = "%d / %d" % [run_state.player_hp, run_state.player_max_hp]
 		player_block_label.text = "护盾 %d" % run_state.player_block
 		monster_name_label.text = run_state.monster_name
-		monster_hp_label.text = "HP %d / %d    护甲 %d" % [run_state.monster_hp, run_state.monster_max_hp, run_state.monster_block]
+		if monster_hp_bar != null:
+			monster_hp_bar.set_values(run_state.monster_hp, run_state.monster_max_hp)
+		monster_hp_label.text = "护甲 %d" % run_state.monster_block if run_state.monster_block > 0 else ""
 	counter_label.text = "%d / %d" % [rolls_left, total_rolls]
 	if roll_counter_badge != null:
 		roll_counter_badge.set_counts(rolls_left, total_rolls)
@@ -1105,6 +1166,10 @@ func _make_label(text_value: String, font_size: int, color: Color, alignment: Ho
 	label.add_theme_constant_override("shadow_offset_y", 4)
 	return label
 
+func _sfx(key: String, volume_db: float = 0.0, pitch_scale: float = 1.0) -> void:
+	if sfx_bus != null:
+		sfx_bus.play(key, volume_db, pitch_scale)
+
 func _make_button(text_value: String, accent: Color) -> Button:
 	var button = Button.new()
 	button.text = text_value
@@ -1118,6 +1183,13 @@ func _make_button(text_value: String, accent: Color) -> Button:
 	button.add_theme_stylebox_override("hover", _make_panel_style(accent.lightened(0.12), Color.BLACK, 8))
 	button.add_theme_stylebox_override("pressed", _make_panel_style(accent.darkened(0.10), Color.BLACK, 8))
 	button.add_theme_stylebox_override("disabled", _make_panel_style(Color(0.34, 0.34, 0.36, 0.88), Color.BLACK, 8))
+	button.mouse_entered.connect(func() -> void:
+		if not button.disabled:
+			_sfx("ui_hover", -7.0)
+	)
+	button.pressed.connect(func() -> void:
+		_sfx("ui_click", -3.5)
+	)
 	return button
 
 func _make_panel_style(bg: Color, border: Color, radius: int) -> StyleBoxFlat:
@@ -1176,9 +1248,11 @@ func _on_resized() -> void:
 		return
 	round_label.position = Vector2(viewport_size.x * 0.5 - 180, 18)
 	round_label.size = Vector2(360, 48)
-	player_hp_label.position = Vector2(28, 20)
-	player_hp_label.size = Vector2(360, 42)
-	player_block_label.position = Vector2(30, 58)
+	player_hp_bar.position = Vector2(30, 22)
+	player_hp_bar.size = Vector2(150, 28)
+	player_hp_label.position = player_hp_bar.position
+	player_hp_label.size = player_hp_bar.size
+	player_block_label.position = Vector2(30, 54)
 	player_block_label.size = Vector2(260, 34)
 	action_banner.position = Vector2(viewport_size.x * 0.5 - 360, 76)
 	action_banner.size = Vector2(720, 42)
@@ -1195,8 +1269,10 @@ func _on_resized() -> void:
 	intent_label.size = Vector2(200, 26)
 	monster_name_label.position = circle["center"] + Vector2(-150, 76)
 	monster_name_label.size = Vector2(300, 28)
-	monster_hp_label.position = circle["center"] + Vector2(-170, 106)
-	monster_hp_label.size = Vector2(340, 28)
+	monster_hp_bar.position = circle["center"] + Vector2(-72, 104)
+	monster_hp_bar.size = Vector2(144, 26)
+	monster_hp_label.position = circle["center"] + Vector2(-100, 127)
+	monster_hp_label.size = Vector2(200, 24)
 
 	var shell_size = Vector2(510, 116)
 	var shell_position = Vector2(viewport_size.x * 0.5 - shell_size.x * 0.5, viewport_size.y - shell_size.y - 28)
