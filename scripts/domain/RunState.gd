@@ -102,6 +102,11 @@ func cleanup_round_temporary_tiles() -> Array[Dictionary]:
 	temporary_tile_instances.clear()
 	return removed
 
+func cleanup_round_buffs() -> void:
+	buffs = buffs.filter(func(buff):
+		return not ["round", "roundTriggers", "untilEndOfRound"].has(str(buff.get("durationType", "")))
+	)
+
 func add_relic(relic_id: String) -> void:
 	if not relics.has(relic_id):
 		relics.append(relic_id)

@@ -20,7 +20,7 @@ static func create_buff(buff_id: String, source_id: String, dice_id: String, def
 	return buff
 
 static func consume_trigger(buff: Dictionary) -> void:
-	if str(buff.get("durationType", "")) == "triggers":
+	if ["triggers", "roundTriggers"].has(str(buff.get("durationType", ""))):
 		buff["remaining"] = max(0, int(buff.get("remaining", 1)) - 1)
 
 static func decrement_turn_buffs(run_state) -> void:

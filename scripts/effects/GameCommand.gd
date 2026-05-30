@@ -12,6 +12,9 @@ static func remove_buff(buff_id: String) -> Dictionary:
 static func destroy_tile(tile_index: int, destroy_mode = "permanent", source: String = "") -> Dictionary:
 	return {"type": "DestroyTile", "tileIndex": tile_index, "destroyMode": destroy_mode, "source": source}
 
+static func destroy_tile_instance(tile_index: int, tile_instance_id: String, destroy_mode = "permanent", source: String = "") -> Dictionary:
+	return {"type": "DestroyTile", "tileIndex": tile_index, "tileInstanceId": tile_instance_id, "destroyMode": destroy_mode, "source": source}
+
 static func transform_tile(tile_index: int, target_tile_id: String, options: Dictionary = {}) -> Dictionary:
 	return {"type": "TransformTile", "tileIndex": tile_index, "targetTileId": target_tile_id, "options": options}
 

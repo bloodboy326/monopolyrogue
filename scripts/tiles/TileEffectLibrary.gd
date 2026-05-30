@@ -59,9 +59,9 @@ static func _handle_custom(handler_id: String, context) -> Array:
 		"coffin_spawn":
 			return [GameCommand.generate_tile("T025", {"type": "randomEmpty"})]
 		"destroy_self":
-			return [GameCommand.destroy_tile(context.tile_index, {"type": "permanent"}, context.tile.id)]
+			return [GameCommand.destroy_tile_instance(context.tile_index, context.tile.instance_id, {"type": "permanent"}, context.tile.id)]
 		"bulldozer_buff":
-			return [GameCommand.add_buff({"id": "destroy_on_resolve", "sourceId": context.tile.id, "diceId": context.dice.id, "durationType": "triggers", "remaining": 1})]
+			return [GameCommand.add_buff({"id": "destroy_on_resolve", "sourceId": context.tile.id, "diceId": context.dice.id, "durationType": "roundTriggers", "remaining": 1})]
 		"watering_buff":
 			return [GameCommand.add_buff({"id": "watering", "sourceId": context.tile.id, "diceId": context.dice.id, "durationType": "turns", "remaining": 1})]
 		"fruit_tree":

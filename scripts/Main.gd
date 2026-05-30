@@ -748,8 +748,9 @@ func _finish_round() -> void:
 		_show_fail_overlay()
 
 func _cleanup_round_temporary_tiles_feedback() -> void:
-	if run_state == null or run_state.temporary_tile_instances.is_empty():
+	if run_state == null:
 		return
+	run_state.cleanup_round_buffs()
 	var events = run_state.cleanup_round_temporary_tiles()
 	if events.is_empty():
 		return

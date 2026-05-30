@@ -26,7 +26,10 @@ func _ready() -> void:
 	_test_random_empty_generation()
 	_test_generation_inserts_without_replacing()
 	_test_temporary_tiles_cleanup_at_round_end()
+	_test_ghost_destroy_uses_landing_snapshot_after_insert()
 	_test_bulldozer_buff_destroys_next_tile()
+	_test_bulldozer_buff_does_not_destroy_shifted_tile_after_self_destroy()
+	_test_round_trigger_buffs_expire_at_round_cleanup()
 	_test_transform_inheritance()
 	_test_relic_hooks()
 	_test_chain_limit()
@@ -129,6 +132,18 @@ func _test_temporary_tiles_cleanup_at_round_end() -> void:
 	run.cleanup_round_temporary_tiles()
 	_assert(run.board.tiles.all(func(tile): return tile.id != "T025"), "round-temporary vampire is removed at round cleanup")
 
+func _test_ghost_destroy_uses_landing_snapshot_after_insert() -> void:
+	var run = _new_run(["T020", "T000", "T021"], 18)
+	run.dice["red"].index = 2
+	run.dice["blue"].index = 1
+	var original_ghost_instance = run.board.get_tile(2).instance_id
+	TurnResolver.new().resolve_roll(run, ["red", "blue"], {"red": 1, "blue": 1})
+	var ghost_count = 0
+	for tile in run.board.tiles:
+		if tile.id == "T021":
+			ghost_count += 1
+	_assert(run.board.find_tile_index_by_instance(original_ghost_instance) == -1 and ghost_count == 1, "planned ghost landing still destroys the original ghost after earlier insertion shifts indices")
+
 func _test_bulldozer_buff_destroys_next_tile() -> void:
 	var run = _new_run(["T029", "T001", "T002"], 17)
 	run.dice["red"].index = 2
@@ -136,6 +151,20 @@ func _test_bulldozer_buff_destroys_next_tile() -> void:
 	_assert(run.has_buff("destroy_on_resolve", "red"), "bulldozer grants a pending destroy buff")
 	TurnResolver.new().resolve_roll(run, ["red"], {"red": 1})
 	_assert(run.board.size() == 2 and run.board.get_tile(1).id == "T002" and run.buffs.is_empty(), "bulldozer destroy buff removes the next resolved non-bulldozer tile")
+
+func _test_bulldozer_buff_does_not_destroy_shifted_tile_after_self_destroy() -> void:
+	var run = _new_run(["T029", "T021", "T002"], 19)
+	run.dice["red"].index = 2
+	TurnResolver.new().resolve_roll(run, ["red"], {"red": 1})
+	TurnResolver.new().resolve_roll(run, ["red"], {"red": 1})
+	_assert(run.board.size() == 2 and run.board.get_tile(1).id == "T002" and run.buffs.is_empty(), "bulldozer buff does not destroy the next shifted tile after a self-destroying target")
+
+func _test_round_trigger_buffs_expire_at_round_cleanup() -> void:
+	var run = _new_run(["T029", "T001"], 20)
+	run.dice["red"].index = 1
+	TurnResolver.new().resolve_roll(run, ["red"], {"red": 1})
+	run.cleanup_round_buffs()
+	_assert(not run.has_buff("destroy_on_resolve", "red"), "unused bulldozer buff expires when the round ends")
 
 func _test_transform_inheritance() -> void:
 	var run = _new_run(["T006"], 8)

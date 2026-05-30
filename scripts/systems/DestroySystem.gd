@@ -33,7 +33,9 @@ static func apply(command: Dictionary, context) -> Array:
 			return _apply_permanent(command, context, mode)
 
 static func _apply_permanent(command: Dictionary, context, mode: Dictionary) -> Array:
-	var index = context.run_state.board.normalize_index(int(command.get("tileIndex", context.tile_index)))
+	var index = _resolve_target_index(command, context)
+	if index == -1:
+		return []
 	var destroyed_tile = context.run_state.board.remove_tile(index)
 	if destroyed_tile == null:
 		return []
@@ -44,7 +46,9 @@ static func _apply_permanent(command: Dictionary, context, mode: Dictionary) -> 
 	return _after_destroy_commands(context, destroyed_tile, index, mode)
 
 static func _apply_temporary(command: Dictionary, context, mode: Dictionary) -> Array:
-	var index = context.run_state.board.normalize_index(int(command.get("tileIndex", context.tile_index)))
+	var index = _resolve_target_index(command, context)
+	if index == -1:
+		return []
 	var tile = context.run_state.board.get_tile(index)
 	tile.runtime_flags["temporarily_destroyed"] = true
 	context.turn_context.temporary_destroyed.append(tile.instance_id)
@@ -52,7 +56,9 @@ static func _apply_temporary(command: Dictionary, context, mode: Dictionary) -> 
 	return _after_destroy_commands(context, tile, index, mode)
 
 static func _apply_after_turn(command: Dictionary, context, _mode: Dictionary) -> Array:
-	var index = context.run_state.board.normalize_index(int(command.get("tileIndex", context.tile_index)))
+	var index = _resolve_target_index(command, context)
+	if index == -1:
+		return []
 	var tile = context.run_state.board.get_tile(index)
 	tile.runtime_flags["destroy_after_turn"] = true
 	context.turn_context.scheduled_end_turn.append(GameCommand.destroy_tile(index, {"type": "permanent"}, str(command.get("source", ""))))
@@ -63,7 +69,9 @@ static func _apply_on_step_immediate(command: Dictionary, context, mode: Diction
 	return _apply_permanent(command, context, mode)
 
 static func _apply_replace_with_empty(command: Dictionary, context, mode: Dictionary) -> Array:
-	var index = context.run_state.board.normalize_index(int(command.get("tileIndex", context.tile_index)))
+	var index = _resolve_target_index(command, context)
+	if index == -1:
+		return []
 	var destroyed_tile = context.run_state.board.get_tile(index)
 	context.run_state.board.set_tile(index, context.run_state.create_tile("T000"))
 	context.run_state.forget_temporary_tile(destroyed_tile.instance_id)
@@ -72,7 +80,9 @@ static func _apply_replace_with_empty(command: Dictionary, context, mode: Dictio
 	return _after_destroy_commands(context, destroyed_tile, index, mode)
 
 static func _apply_destroy_then_move_next_turn(command: Dictionary, context, mode: Dictionary) -> Array:
-	var index = context.run_state.board.normalize_index(int(command.get("tileIndex", context.tile_index)))
+	var index = _resolve_target_index(command, context)
+	if index == -1:
+		return []
 	var commands = _apply_permanent(command, context, mode)
 	if context.dice != null and context.run_state.board.size() > 0:
 		context.dice.next_turn_index_override = context.run_state.board.normalize_index(index)
@@ -95,3 +105,11 @@ static func _reindex_dice_after_remove(context, removed_index: int) -> void:
 			dice_state.index -= 1
 		elif dice_state.index == removed_index and context.run_state.board.size() > 0:
 			dice_state.index = context.run_state.board.normalize_index(removed_index)
+
+static func _resolve_target_index(command: Dictionary, context) -> int:
+	var instance_id = str(command.get("tileInstanceId", ""))
+	if not instance_id.is_empty():
+		return context.run_state.board.find_tile_index_by_instance(instance_id)
+	if context.run_state.board.is_empty():
+		return -1
+	return context.run_state.board.normalize_index(int(command.get("tileIndex", context.tile_index)))

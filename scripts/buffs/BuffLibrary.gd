@@ -74,7 +74,10 @@ static func handle_hook(buff: Dictionary, hook_name: String, context, payload: D
 				var blocked = buff.get("config", {}).get("blockedTileIds", [])
 				if not blocked.has(context.tile.id):
 					BuffSystem.consume_trigger(buff)
-					return [GameCommand.destroy_tile(context.tile_index, {"type": "permanent"}, buff.get("id", ""))]
+					var target_index = context.run_state.board.find_tile_index_by_instance(context.tile.instance_id)
+					if target_index == -1:
+						return []
+					return [GameCommand.destroy_tile_instance(target_index, context.tile.instance_id, {"type": "permanent"}, buff.get("id", ""))]
 		"next_coin_multiplier":
 			if hook_name == "beforeGainCoins" and int(payload.get("amount", 0)) > 0:
 				payload["amount"] = int(round(float(payload["amount"]) * float(buff.get("config", {}).get("multiplier", 2.0))))

@@ -29,8 +29,12 @@ func resolve_planned_roll(run_state, dice_order: Array, dice_rolls: Dictionary, 
 	_record_landings(run_state, turn, dice_order, dice_rolls, plan)
 	for dice_id in dice_order:
 		var dice_state = run_state.dice[dice_id]
-		var tile_index = int(plan["landings"][dice_id])
-		var tile = run_state.board.get_tile(tile_index)
+		var landing: Dictionary = turn.landed_by_dice.get(dice_id, {})
+		var tile = landing.get("tile")
+		var tile_index = _current_landing_index(run_state, landing)
+		if tile == null or tile_index == -1:
+			turn.emit_event("dice_landing_skipped", {"diceId": dice_id, "reason": "tile_missing"})
+			continue
 		dice_state.index = tile_index
 		dice_state.last_roll = int(dice_rolls[dice_id])
 		dice_state.moved_steps = int(dice_rolls[dice_id])
@@ -46,7 +50,7 @@ func _record_landings(run_state, turn, dice_order: Array, dice_rolls: Dictionary
 	for dice_id in dice_order:
 		var tile_index = int(plan["landings"][dice_id])
 		var tile = run_state.board.get_tile(tile_index)
-		var landing = {"diceId": dice_id, "tileIndex": tile_index, "tile": tile, "diceValue": int(dice_rolls[dice_id])}
+		var landing = {"diceId": dice_id, "tileIndex": tile_index, "tile": tile, "tileInstanceId": tile.instance_id if tile != null else "", "diceValue": int(dice_rolls[dice_id])}
 		turn.landed_tiles.append(landing)
 		turn.landed_by_dice[dice_id] = landing
 		turn.emit_event("dice_landed", {"diceId": dice_id, "tileIndex": tile_index, "tileId": tile.id})
@@ -71,3 +75,11 @@ func _apply_passive_path_effect(run_state, turn, _dice_id: String, _tile_index: 
 		# Passing vampire tiles is represented as a triggerable negative gain, not hard-coded in Main.
 		var context = ResolveContext.new().setup(run_state, turn, run_state.dice[_dice_id], tile, _tile_index, 0, "passed")
 		effect_resolver.execute_commands([preload("res://scripts/effects/GameCommand.gd").add_coins(tile.base_coin, tile.id)], context)
+
+func _current_landing_index(run_state, landing: Dictionary) -> int:
+	var instance_id = str(landing.get("tileInstanceId", ""))
+	if not instance_id.is_empty():
+		return run_state.board.find_tile_index_by_instance(instance_id)
+	if run_state.board.is_empty():
+		return -1
+	return run_state.board.normalize_index(int(landing.get("tileIndex", 0)))
