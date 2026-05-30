@@ -17,6 +17,7 @@ const RollCounterBadge = preload("res://scripts/components/RollCounterBadge.gd")
 const BlockShieldBurst = preload("res://scripts/components/BlockShieldBurst.gd")
 const RollTargetPreview = preload("res://scripts/components/RollTargetPreview.gd")
 const SfxBus = preload("res://scripts/components/SfxBus.gd")
+const MusicBus = preload("res://scripts/components/MusicBus.gd")
 const HealthBar = preload("res://scripts/components/HealthBar.gd")
 const RunState = preload("res://scripts/domain/RunState.gd")
 const TileRuntime = preload("res://scripts/domain/Tile.gd")
@@ -71,6 +72,7 @@ var fail_overlay: Control
 var info_tooltip: Control
 var shaker: Node
 var sfx_bus: Node
+var music_bus: Node
 var boss_view: Control
 var intent_icon: Control
 var intent_label: Label
@@ -123,6 +125,10 @@ func _build_scene() -> void:
 	sfx_bus = SfxBus.new()
 	sfx_bus.name = "SfxBus"
 	add_child(sfx_bus)
+
+	music_bus = MusicBus.new()
+	music_bus.name = "MusicBus"
+	add_child(music_bus)
 
 	background = TextureRect.new()
 	background.name = "VectorBackground"
@@ -1249,10 +1255,10 @@ func _on_resized() -> void:
 	round_label.position = Vector2(viewport_size.x * 0.5 - 180, 18)
 	round_label.size = Vector2(360, 48)
 	player_hp_bar.position = Vector2(30, 22)
-	player_hp_bar.size = Vector2(150, 28)
+	player_hp_bar.size = Vector2(184, 26)
 	player_hp_label.position = player_hp_bar.position
 	player_hp_label.size = player_hp_bar.size
-	player_block_label.position = Vector2(30, 54)
+	player_block_label.position = Vector2(30, 56)
 	player_block_label.size = Vector2(260, 34)
 	action_banner.position = Vector2(viewport_size.x * 0.5 - 360, 76)
 	action_banner.size = Vector2(720, 42)
@@ -1269,9 +1275,9 @@ func _on_resized() -> void:
 	intent_label.size = Vector2(200, 26)
 	monster_name_label.position = circle["center"] + Vector2(-150, 76)
 	monster_name_label.size = Vector2(300, 28)
-	monster_hp_bar.position = circle["center"] + Vector2(-72, 104)
-	monster_hp_bar.size = Vector2(144, 26)
-	monster_hp_label.position = circle["center"] + Vector2(-100, 127)
+	monster_hp_bar.position = circle["center"] + Vector2(-88, 116)
+	monster_hp_bar.size = Vector2(176, 24)
+	monster_hp_label.position = circle["center"] + Vector2(-100, 141)
 	monster_hp_label.size = Vector2(200, 24)
 
 	var shell_size = Vector2(510, 116)

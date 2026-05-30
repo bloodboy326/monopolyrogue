@@ -19,8 +19,8 @@ func set_values(current: int, maximum: int) -> void:
 	queue_redraw()
 
 func _draw() -> void:
-	var bar_height = clamp(size.y * 0.34, 8.0, 12.0)
-	var bar_rect = Rect2(Vector2(0.0, 2.0), Vector2(size.x, bar_height))
+	var bar_height = clamp(size.y * 0.72, 12.0, 18.0)
+	var bar_rect = Rect2(Vector2(0.0, (size.y - bar_height) * 0.5), Vector2(size.x, bar_height))
 	var fill_ratio = clamp(float(current_value) / float(max_value), 0.0, 1.0)
 	draw_rect(Rect2(bar_rect.position + Vector2(2.0, 3.0), bar_rect.size).grow(3.0), Color(0, 0, 0, 0.42), true)
 	draw_rect(bar_rect.grow(2.0), INK, true)
@@ -34,7 +34,8 @@ func _draw() -> void:
 	draw_line(bar_rect.position + Vector2(0, bar_rect.size.y + 1.0), bar_rect.end + Vector2(0, 1.0), INK, 2.0)
 	var font = ThemeDB.fallback_font
 	var text = "%d/%d" % [current_value, max_value]
-	var text_size = font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 13)
-	var text_pos = Vector2((size.x - text_size.x) * 0.5, min(size.y - 2.0, bar_rect.end.y + 14.0))
+	var font_size = 13
+	var text_size = font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
+	var text_pos = Vector2((size.x - text_size.x) * 0.5, bar_rect.position.y + (bar_rect.size.y + text_size.y) * 0.5 - 2.0)
 	draw_string(font, text_pos + Vector2(1, 1), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0, 0, 0, 0.95))
 	draw_string(font, text_pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, WHITE)
