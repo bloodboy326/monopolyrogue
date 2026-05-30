@@ -15,7 +15,6 @@ static func configure_tile_index(tile_definitions: Dictionary) -> void:
 		if not name.is_empty():
 			tile_name_to_id[name] = tile_id
 			tile_name_to_id["%s地块" % name] = tile_id
-			tile_name_to_id["%s块" % name] = tile_id
 
 static func to_bbcode(text: String) -> String:
 	var result = _format_tile_links(_escape_bbcode(text))
@@ -46,15 +45,12 @@ static func _match_tile_at(text: String, index: int, names: Array) -> Dictionary
 			continue
 		var escaped_name = _escape_bbcode(name)
 		if text.substr(index, escaped_name.length()) == escaped_name:
-			return {
-				"text": escaped_name,
-				"tile_id": str(tile_name_to_id[name])
-			}
+			return {"text": escaped_name, "tile_id": str(tile_name_to_id[name])}
 	return {}
 
 static func _format_plain(text: String) -> String:
 	var result = _colorize_numbers(text)
-	for keyword in ["金币", "销毁", "永久", "生成", "变成", "浇水", "收益", "计数", "倍率", "额外"]:
+	for keyword in ["伤害", "护盾", "护甲", "攻击", "防御", "骰子", "销毁", "生成", "变成", "额外", "翻倍", "废墟"]:
 		result = result.replace(keyword, "[color=%s]%s[/color]" % [KEYWORD_COLOR, keyword])
 	return result
 

@@ -3,97 +3,127 @@ extends RefCounted
 const GameCommand = preload("res://scripts/effects/GameCommand.gd")
 
 static func resolve_tile(context) -> Array:
+	if context.tile == null:
+		return []
+	return _commands_from_effects(context.tile.definition.get("effects", []), context)
+
+static func resolve_pass_tile(context) -> Array:
+	if context.tile == null:
+		return []
+	return _commands_from_effects(context.tile.definition.get("passEffects", []), context)
+
+static func resolve_destroy_tile(context) -> Array:
+	if context.tile == null:
+		return []
+	return _commands_from_effects(context.tile.definition.get("destroyEffects", []), context)
+
+static func handle_event_hook(_hook_id: String, _hook_name: String, _listener_tile, _listener_index: int, _context, _payload: Dictionary) -> Array:
+	return []
+
+static func _commands_from_effects(effects: Array, context) -> Array:
 	var commands = []
-	if context.tile == null or not context.tile.is_triggerable():
-		return commands
-	var definition: Dictionary = context.tile.definition
-	if bool(definition.get("autoAddBaseCoin", true)) and context.tile.base_coin != 0:
-		commands.append(GameCommand.add_coins(context.tile.base_coin, context.tile.id))
-	for handler_id in definition.get("customHandlers", []):
-		commands.append_array(_handle_custom(str(handler_id), context))
+	for effect in effects:
+		if typeof(effect) != TYPE_DICTIONARY:
+			continue
+		if not _condition_met(effect.get("condition", {}), context):
+			continue
+		commands.append_array(_command_for_effect(effect, context))
 	return commands
 
-static func handle_event_hook(hook_id: String, hook_name: String, _listener_tile, listener_index: int, _context, payload: Dictionary) -> Array:
-	match hook_id:
-		"mortuary_after_destroy":
-			if hook_name == "afterDestroyTile":
-				var destroyed_tile = payload.get("destroyedTile")
-				if destroyed_tile != null and destroyed_tile.has_tag("ghost"):
-					return [GameCommand.modify_tile_base_coin(listener_index, 1)]
-		"vampire_lord_after_destroy":
-			if hook_name == "afterDestroyTile":
-				var destroyed_tile = payload.get("destroyedTile")
-				if destroyed_tile != null and destroyed_tile.has_tag("vampire"):
-					return [GameCommand.modify_tile_base_coin(listener_index, 5)]
-		"jam_after_fruit_clear":
-			if hook_name == "afterFruitClear" and int(payload.get("clearedCount", 0)) > 0:
-				return [GameCommand.modify_tile_base_coin(listener_index, 5)]
-	return []
-
-static func _handle_custom(handler_id: String, context) -> Array:
-	match handler_id:
-		"piggy_bank":
-			var stored = int(context.tile.counters.get("stored", 0))
-			if stored <= 0:
+static func _command_for_effect(effect: Dictionary, context) -> Array:
+	var source_id = context.tile.id if context.tile != null else ""
+	match str(effect.get("type", "")):
+		"damage":
+			return [GameCommand.damage_monster(effect.get("value", effect.get("amount", 0)), source_id, bool(effect.get("attack", true)))]
+		"block":
+			return [GameCommand.add_player_block(_resolve_amount(effect.get("value", effect.get("amount", 0)), context), source_id)]
+		"block_if_monster_attack":
+			if context.run_state.is_monster_intent_attack():
+				return [GameCommand.add_player_block(_resolve_amount(effect.get("value", 0), context), source_id)]
+		"add_rolls":
+			return [GameCommand.add_rolls(_resolve_amount(effect.get("value", 0), context), source_id)]
+		"lose_rolls":
+			return [GameCommand.add_rolls(-_resolve_amount(effect.get("value", 0), context), source_id)]
+		"add_next_turn_rolls":
+			return [GameCommand.add_next_turn_rolls(_resolve_amount(effect.get("value", 0), context), source_id)]
+		"next_attack_multiplier":
+			return [GameCommand.add_next_attack_multiplier(float(effect.get("value", 2.0)), source_id)]
+		"increment_counter":
+			return [GameCommand.increment_counter(str(effect.get("counter", "value")), _resolve_amount(effect.get("value", 1), context), str(effect.get("scope", "turn")), source_id)]
+		"set_destroy_next_tile":
+			return [GameCommand.set_destroy_next_tile(source_id)]
+		"generate_tile":
+			return _generate_tile_commands(effect, source_id, context)
+		"move_self":
+			if context.dice == null:
 				return []
-			return [GameCommand.add_coins(stored, context.tile.id), GameCommand.modify_tile_counter(context.tile_index, "stored", -stored)]
-		"mine_transform":
-			return [_mine_counter_command(context, context.tile.state.get("counterTarget", "T007"))]
-		"mine_destroy":
-			return [_mine_counter_command(context, "")]
-		"casino_parity":
-			var want_odd = str(context.tile.state.get("parity", "odd")) == "odd"
-			var is_odd = context.dice_value % 2 == 1
-			if want_odd == is_odd:
-				return [GameCommand.add_coins(int(context.tile.state.get("winCoin", 7)), context.tile.id)]
-		"suit_bonus":
-			if _turn_has_other_suit(context):
-				return [GameCommand.add_coins(3, context.tile.id)]
-		"joker_buff":
-			return [GameCommand.add_buff({"id": "card_suit_double", "sourceId": context.tile.id, "diceId": "", "durationType": "untilEndOfTurn", "remaining": 1})]
-		"card_shark":
-			if _landed_card_count(context) >= 3:
-				return [GameCommand.add_coins(50, context.tile.id)]
-		"graveyard_spawn":
-			return [GameCommand.generate_tile("T021", {"type": "randomEmpty"})]
-		"coffin_spawn":
-			return [GameCommand.generate_tile("T025", {"type": "randomEmpty"})]
+			return [GameCommand.move_dice(context.dice.id, _resolve_amount(effect.get("steps", effect.get("value", 0)), context), str(effect.get("reason", "effect")))]
+		"destroy_tiles":
+			var rule: Dictionary = effect.get("targetRule", {"type": str(effect.get("target", "random")), "count": int(effect.get("count", 1))})
+			return [GameCommand.destroy_tiles_by_rule(rule, source_id, effect.get("destroyMode", {"type": "permanent"}))]
+		"transform_self_for_battle":
+			return [GameCommand.transform_tile_for_battle(context.tile_index, str(effect.get("target", "T010")), source_id)]
 		"destroy_self":
-			return [GameCommand.destroy_tile_instance(context.tile_index, context.tile.instance_id, {"type": "permanent"}, context.tile.id)]
-		"bulldozer_buff":
-			return [GameCommand.add_buff({"id": "destroy_on_resolve", "sourceId": context.tile.id, "diceId": context.dice.id, "durationType": "roundTriggers", "remaining": 1})]
-		"watering_buff":
-			return [GameCommand.add_buff({"id": "watering", "sourceId": context.tile.id, "diceId": context.dice.id, "durationType": "turns", "remaining": 1})]
-		"fruit_tree":
-			return [GameCommand.modify_run_counter(str(context.tile.state.get("fruit", "apple")), 1)]
-		"orchard_cashout":
-			var fruit_total = 0
-			for key in context.run_state.fruit_counters.keys():
-				fruit_total += int(context.run_state.fruit_counters[key])
-			if fruit_total <= 0:
+			if context.tile == null:
 				return []
-			return [GameCommand.add_coins(fruit_total * 5, context.tile.id), GameCommand.clear_run_counters(context.run_state.fruit_counters.keys())]
+			return [GameCommand.destroy_tile_instance(context.tile_index, context.tile.instance_id, {"type": "permanent"}, source_id)]
 	return []
 
-static func _mine_counter_command(context, target_tile_id) -> Dictionary:
-	var action: Dictionary
-	if str(target_tile_id).is_empty():
-		action = GameCommand.destroy_tile(context.tile_index, {"type": "permanent"}, context.tile.id)
-	else:
-		action = GameCommand.transform_tile(context.tile_index, str(target_tile_id), {"inherit": {"counters": false, "baseCoin": false, "state": false}})
-	return GameCommand.modify_tile_counter(context.tile_index, "hits_remaining", -1, {"threshold": 0, "action": action})
+static func _generate_tile_commands(effect: Dictionary, source_id: String, context) -> Array:
+	var commands = []
+	var tile_id = str(effect.get("tile", effect.get("tile_id", effect.get("target", "T000"))))
+	var count = max(0, _resolve_amount(effect.get("count", effect.get("value", 1)), context))
+	var position_rule: Dictionary = effect.get("positionRule", {"type": str(effect.get("position", "randomAny"))})
+	var temporary = bool(effect.get("temporary", false))
+	for _i in range(count):
+		if temporary:
+			commands.append(GameCommand.add_temporary_tile(tile_id, effect.get("durationRule", {"type": "battle"}), position_rule))
+		else:
+			var command = GameCommand.generate_tile(tile_id, position_rule)
+			command["source"] = source_id
+			commands.append(command)
+	return commands
 
-static func _turn_has_other_suit(context) -> bool:
-	for landing in context.turn_context.landed_tiles:
-		var tile = landing.get("tile")
-		if tile != null and tile.has_tag("suit") and tile.id != context.tile.id:
-			return true
-	return false
+static func _resolve_amount(raw_value, context) -> int:
+	if typeof(raw_value) == TYPE_DICTIONARY:
+		var formula: Dictionary = raw_value
+		var scope = str(formula.get("scope", "turn"))
+		var counter = str(formula.get("counter", ""))
+		var base = int(formula.get("base", 0))
+		var add = int(formula.get("add", 0))
+		var multiplier = int(formula.get("multiplier", 1))
+		match str(formula.get("type", "constant")):
+			"counter":
+				return (context.run_state.get_counter(scope, counter) + add) * multiplier
+			"counter_add":
+				return (base + context.run_state.get_counter(scope, counter) + add) * multiplier
+			"rolls_left_plus":
+				return (context.run_state.turn_rolls_left + add) * multiplier
+			"dice_value":
+				return (context.dice_value + add) * multiplier
+			_:
+				return int(formula.get("value", 0))
+	return int(raw_value)
 
-static func _landed_card_count(context) -> int:
-	var count = 0
-	for landing in context.turn_context.landed_tiles:
-		var tile = landing.get("tile")
-		if tile != null and tile.has_tag("card"):
-			count += 1
-	return count
+static func _condition_met(raw_condition, context) -> bool:
+	if typeof(raw_condition) != TYPE_DICTIONARY:
+		return true
+	var condition: Dictionary = raw_condition
+	if condition.is_empty():
+		return true
+	if condition.has("reason"):
+		if context.reason != str(condition.get("reason", "")):
+			return false
+	if condition.has("reason_in"):
+		var allowed: Array = condition.get("reason_in", [])
+		if not allowed.has(context.reason):
+			return false
+	if bool(condition.get("monster_intent_attack", false)) and not context.run_state.is_monster_intent_attack():
+		return false
+	if condition.has("dice_extra_moves_less_than"):
+		if context.dice == null:
+			return false
+		var limit = _resolve_amount(condition.get("dice_extra_moves_less_than", 0), context)
+		if context.dice.extra_move_count >= limit:
+			return false
+	return true

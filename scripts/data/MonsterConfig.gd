@@ -1,0 +1,128 @@
+extends RefCounted
+
+const MONSTER_CONFIG_PATH = "res://data/monster_config.json"
+
+static func load_config() -> Dictionary:
+	if not FileAccess.file_exists(MONSTER_CONFIG_PATH):
+		return {}
+	var file = FileAccess.open(MONSTER_CONFIG_PATH, FileAccess.READ)
+	if file == null:
+		return {}
+	var parsed = JSON.parse_string(file.get_as_text())
+	if typeof(parsed) != TYPE_DICTIONARY:
+		return {}
+	return _index_tables(parsed)
+
+static func battle_for(config: Dictionary, battle_number: int) -> Dictionary:
+	for battle in config.get("battles", []):
+		if typeof(battle) == TYPE_DICTIONARY and int(battle.get("battle", 0)) == battle_number:
+			return battle
+	return {"battle": battle_number, "monster_id": "slime_boss", "rolls": 3}
+
+static func battle_count(config: Dictionary) -> int:
+	return config.get("battles", []).size()
+
+static func monster(config: Dictionary, monster_id: String) -> Dictionary:
+	return config.get("monsters_by_id", {}).get(monster_id, {})
+
+static func choose_intent(config: Dictionary, run_state) -> Dictionary:
+	var phase = phase_for(config, run_state.monster_id, run_state.monster_hp, run_state.monster_max_hp, run_state.battle_turn)
+	var pool_id = str(phase.get("intent_pool", ""))
+	run_state.current_phase_id = str(phase.get("phase_id", ""))
+	var candidates = _available_pool_entries(config, pool_id, run_state, true)
+	if candidates.is_empty():
+		candidates = _available_pool_entries(config, pool_id, run_state, false)
+	if candidates.is_empty():
+		return {}
+	var picked = run_state.rng.pick_weighted(candidates)
+	if picked == null:
+		return {}
+	var intent_id = str(picked.get("intent_id", ""))
+	var intent = config.get("intents_by_id", {}).get(intent_id, {}).duplicate(true)
+	intent["effects"] = effects_for_intent(config, intent_id)
+	return intent
+
+static func phase_for(config: Dictionary, monster_id: String, hp: int, max_hp: int, turn: int) -> Dictionary:
+	var fallback := {}
+	var selected := {}
+	for phase in config.get("phases", []):
+		if typeof(phase) != TYPE_DICTIONARY or str(phase.get("monster_id", "")) != monster_id:
+			continue
+		if str(phase.get("enter_condition", "")) == "START":
+			fallback = phase
+		if _condition_met(str(phase.get("enter_condition", "")), hp, max_hp, turn):
+			selected = phase
+	return selected if not selected.is_empty() else fallback
+
+static func effects_for_intent(config: Dictionary, intent_id: String) -> Array:
+	var effects = []
+	for effect in config.get("intent_effects", []):
+		if typeof(effect) == TYPE_DICTIONARY and str(effect.get("intent_id", "")) == intent_id:
+			effects.append(effect.duplicate(true))
+	effects.sort_custom(func(a, b): return int(a.get("order", 0)) < int(b.get("order", 0)))
+	return effects
+
+static func _index_tables(config: Dictionary) -> Dictionary:
+	var indexed = config.duplicate(true)
+	var monsters_by_id := {}
+	for item in indexed.get("monsters", []):
+		if typeof(item) == TYPE_DICTIONARY:
+			monsters_by_id[str(item.get("monster_id", ""))] = item
+	indexed["monsters_by_id"] = monsters_by_id
+	var intents_by_id := {}
+	for item in indexed.get("intents", []):
+		if typeof(item) == TYPE_DICTIONARY:
+			intents_by_id[str(item.get("intent_id", ""))] = item
+	indexed["intents_by_id"] = intents_by_id
+	return indexed
+
+static func _available_pool_entries(config: Dictionary, pool_id: String, run_state, strict: bool) -> Array:
+	var result = []
+	for entry in config.get("intent_pools", []):
+		if typeof(entry) != TYPE_DICTIONARY or str(entry.get("pool_id", "")) != pool_id:
+			continue
+		if int(entry.get("min_turn", 1)) > run_state.battle_turn:
+			continue
+		if not _condition_met(str(entry.get("require", "")), run_state.monster_hp, run_state.monster_max_hp, run_state.battle_turn):
+			continue
+		var forbid = str(entry.get("forbid", ""))
+		if not forbid.is_empty() and _condition_met(forbid, run_state.monster_hp, run_state.monster_max_hp, run_state.battle_turn):
+			continue
+		if strict and _is_blocked_by_history(entry, run_state):
+			continue
+		result.append(entry)
+	return result
+
+static func _is_blocked_by_history(entry: Dictionary, run_state) -> bool:
+	var intent_id = str(entry.get("intent_id", ""))
+	var cooldown = int(entry.get("cooldown", 0))
+	if cooldown > 0 and run_state.intent_last_used.has(intent_id):
+		if run_state.battle_turn - int(run_state.intent_last_used[intent_id]) <= cooldown:
+			return true
+	var max_repeat = int(entry.get("max_repeat", 99))
+	if max_repeat < 99 and _tail_repeat_count(run_state.intent_history, intent_id) >= max_repeat:
+		return true
+	return false
+
+static func _tail_repeat_count(history: Array, intent_id: String) -> int:
+	var count = 0
+	for i in range(history.size() - 1, -1, -1):
+		if str(history[i]) != intent_id:
+			break
+		count += 1
+	return count
+
+static func _condition_met(condition: String, hp: int, max_hp: int, turn: int) -> bool:
+	if condition.is_empty() or condition == "START":
+		return true
+	if condition.begins_with("HP_PCT<="):
+		var threshold = float(condition.get_slice("<=", 1))
+		return (float(hp) / max(1.0, float(max_hp))) * 100.0 <= threshold
+	if condition.begins_with("HP_PCT>="):
+		var threshold = float(condition.get_slice(">=", 1))
+		return (float(hp) / max(1.0, float(max_hp))) * 100.0 >= threshold
+	if condition.begins_with("TURN>="):
+		return turn >= int(condition.get_slice(">=", 1))
+	if condition.begins_with("TURN<="):
+		return turn <= int(condition.get_slice("<=", 1))
+	return false

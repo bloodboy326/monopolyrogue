@@ -26,10 +26,9 @@ var tile_data: Dictionary = {}
 var description_text: RichTextLabel
 
 var rare_colors = {
+	"基础牌": Color(0.74, 0.76, 0.80, 1.0),
 	"普通": Color(0.45, 0.83, 0.38, 1.0),
 	"稀有": Color(0.36, 0.62, 1.0, 1.0),
-	"非凡": Color(0.88, 0.40, 1.0, 1.0),
-	"传说": Color(1.0, 0.72, 0.20, 1.0),
 	"诅咒": Color(0.94, 0.12, 0.30, 1.0)
 }
 
@@ -96,23 +95,19 @@ func _draw() -> void:
 	var rare_color: Color = rare_colors.get(tile_rare, rare_colors["普通"])
 	var rect = Rect2(Vector2.ZERO, size)
 	TileCardFrame.draw_choice_frame(self, rect, rare_color)
-
 	var font = get_theme_default_font()
 	draw_string(font, Vector2(12, 30), tile_name, HORIZONTAL_ALIGNMENT_LEFT, size.x - 24.0, 20, Color.WHITE)
-
 	var tile_side = min(size.x * 0.52, size.y * 0.31)
 	var tile_rect = Rect2(Vector2(size.x * 0.5 - tile_side * 0.5, 54), Vector2(tile_side, tile_side))
 	TileCardFrame.draw_icon_card(self, tile_rect, base_color, max(7.0, tile_side * 0.10))
 	var icon_side = tile_side * 0.84
 	var icon_rect = Rect2(tile_rect.get_center() - Vector2(icon_side, icon_side) * 0.5, Vector2(icon_side, icon_side))
 	VectorTileIcon.draw_icon(self, tile_kind, tile_icon, icon_rect, base_color, accent_color)
-
 	draw_string(font, Vector2(0, tile_rect.end.y + 27), tile_rare, HORIZONTAL_ALIGNMENT_CENTER, size.x, 17, rare_color)
 	var line_y = tile_rect.end.y + 37
-	draw_line(Vector2(18, line_y), Vector2(size.x - 18, line_y), Color(0.0, 0.0, 0.0, 1.0), 3.0)
+	draw_line(Vector2(18, line_y), Vector2(size.x - 18, line_y), Color.BLACK, 3.0)
 	draw_line(Vector2(19, line_y - 1), Vector2(size.x - 19, line_y - 1), rare_color, 2.0)
 	_layout_description_label()
-
 	if hover:
 		TileCardFrame.draw_rect_outline(self, rect.grow(-5.0), Color.WHITE, 4.0)
 

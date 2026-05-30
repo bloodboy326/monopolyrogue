@@ -65,16 +65,10 @@ func _record_paths(run_state, turn, dice_order: Array, plan: Dictionary) -> void
 func _apply_passive_path_effect(run_state, turn, _dice_id: String, _tile_index: int, tile) -> void:
 	if tile == null:
 		return
-	if tile.has_tag("coin"):
-		for board_index in range(run_state.board.size()):
-			var candidate = run_state.board.get_tile(board_index)
-			if candidate.id == "T003":
-				candidate.counters["stored"] = int(candidate.counters.get("stored", 0)) + 1
-				turn.emit_event("tile_counter_changed", {"tileIndex": board_index, "tileId": candidate.id, "counterKey": "stored", "value": candidate.counters["stored"]})
-	if tile.has_tag("vampire"):
-		# Passing vampire tiles is represented as a triggerable negative gain, not hard-coded in Main.
-		var context = ResolveContext.new().setup(run_state, turn, run_state.dice[_dice_id], tile, _tile_index, 0, "passed")
-		effect_resolver.execute_commands([preload("res://scripts/effects/GameCommand.gd").add_coins(tile.base_coin, tile.id)], context)
+	if tile.definition.get("passEffects", []).is_empty():
+		return
+	var context = ResolveContext.new().setup(run_state, turn, run_state.dice[_dice_id], tile, _tile_index, 0, "passed")
+	effect_resolver.resolve_pass_tile(context)
 
 func _current_landing_index(run_state, landing: Dictionary) -> int:
 	var instance_id = str(landing.get("tileInstanceId", ""))

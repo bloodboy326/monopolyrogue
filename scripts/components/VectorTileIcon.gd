@@ -15,6 +15,24 @@ static func draw_icon(canvas: CanvasItem, kind: String, icon_id: int, rect: Rect
 	match resolved:
 		"empty":
 			_draw_empty(canvas, rect, accent_color)
+		"sword":
+			_draw_sword(canvas, rect, accent_color)
+		"shield":
+			_draw_shield(canvas, rect, accent_color)
+		"combo":
+			_draw_combo(canvas, rect, accent_color)
+		"power":
+			_draw_power(canvas, rect, accent_color)
+		"meteor":
+			_draw_meteor(canvas, rect, accent_color)
+		"ruin":
+			_draw_ruin(canvas, rect, accent_color)
+		"charge":
+			_draw_charge(canvas, rect, accent_color)
+		"shield_wall":
+			_draw_shield_wall(canvas, rect, accent_color)
+		"slime_mud":
+			_draw_slime_mud(canvas, rect, accent_color)
 		"coin":
 			_draw_coin(canvas, rect, accent_color)
 		"piggy_bank":
@@ -122,6 +140,65 @@ static func _draw_coin(canvas: CanvasItem, rect: Rect2, accent: Color) -> void:
 	_line(canvas, rect, Vector2(0.50, 0.32), Vector2(0.50, 0.68), INK, 0.04)
 	_line(canvas, rect, Vector2(0.39, 0.44), Vector2(0.61, 0.44), INK, 0.032)
 	_line(canvas, rect, Vector2(0.39, 0.57), Vector2(0.61, 0.57), INK, 0.032)
+
+static func _draw_sword(canvas: CanvasItem, rect: Rect2, accent: Color) -> void:
+	_line(canvas, rect, Vector2(0.30, 0.72), Vector2(0.72, 0.30), INK, 0.12)
+	_line(canvas, rect, Vector2(0.32, 0.70), Vector2(0.74, 0.28), accent, 0.055)
+	_poly(canvas, rect, [Vector2(0.70, 0.20), Vector2(0.82, 0.18), Vector2(0.80, 0.30), Vector2(0.72, 0.32)], accent)
+	_line(canvas, rect, Vector2(0.24, 0.58), Vector2(0.42, 0.76), INK, 0.07)
+	_box(canvas, rect, 0.22, 0.72, 0.14, 0.08, INK)
+
+static func _draw_shield(canvas: CanvasItem, rect: Rect2, accent: Color) -> void:
+	_poly(canvas, rect, [Vector2(0.50, 0.16), Vector2(0.78, 0.28), Vector2(0.72, 0.62), Vector2(0.50, 0.82), Vector2(0.28, 0.62), Vector2(0.22, 0.28)], INK)
+	_poly(canvas, rect, [Vector2(0.50, 0.24), Vector2(0.68, 0.32), Vector2(0.64, 0.58), Vector2(0.50, 0.72), Vector2(0.36, 0.58), Vector2(0.32, 0.32)], accent)
+	_line(canvas, rect, Vector2(0.50, 0.25), Vector2(0.50, 0.72), WHITE, 0.026)
+
+static func _draw_combo(canvas: CanvasItem, rect: Rect2, accent: Color) -> void:
+	for i in range(3):
+		var x = 0.34 + i * 0.14
+		canvas.draw_circle(_pt(rect, x, 0.52 - i * 0.07), rect.size.x * 0.12, INK)
+		canvas.draw_circle(_pt(rect, x, 0.52 - i * 0.07), rect.size.x * 0.075, accent.lightened(float(i) * 0.08))
+	_line(canvas, rect, Vector2(0.27, 0.70), Vector2(0.73, 0.30), INK, 0.035)
+	_line(canvas, rect, Vector2(0.31, 0.72), Vector2(0.77, 0.32), WHITE, 0.018)
+
+static func _draw_power(canvas: CanvasItem, rect: Rect2, accent: Color) -> void:
+	_poly(canvas, rect, [Vector2(0.56, 0.14), Vector2(0.32, 0.52), Vector2(0.50, 0.52), Vector2(0.42, 0.84), Vector2(0.72, 0.42), Vector2(0.54, 0.42)], INK)
+	_poly(canvas, rect, [Vector2(0.55, 0.22), Vector2(0.40, 0.48), Vector2(0.57, 0.48), Vector2(0.50, 0.70), Vector2(0.66, 0.45), Vector2(0.50, 0.45)], accent)
+
+static func _draw_meteor(canvas: CanvasItem, rect: Rect2, accent: Color) -> void:
+	_poly(canvas, rect, [Vector2(0.18, 0.22), Vector2(0.48, 0.34), Vector2(0.34, 0.48)], Color(1.0, 0.42, 0.16, 1.0))
+	_poly(canvas, rect, [Vector2(0.26, 0.16), Vector2(0.58, 0.38), Vector2(0.42, 0.56)], accent)
+	canvas.draw_circle(_pt(rect, 0.62, 0.62), rect.size.x * 0.22, INK)
+	canvas.draw_circle(_pt(rect, 0.62, 0.62), rect.size.x * 0.16, Color(0.55, 0.33, 0.28, 1.0))
+	canvas.draw_circle(_pt(rect, 0.55, 0.56), rect.size.x * 0.04, accent)
+
+static func _draw_ruin(canvas: CanvasItem, rect: Rect2, accent: Color) -> void:
+	_poly(canvas, rect, [Vector2(0.22, 0.74), Vector2(0.34, 0.38), Vector2(0.48, 0.74)], INK)
+	_poly(canvas, rect, [Vector2(0.52, 0.76), Vector2(0.66, 0.26), Vector2(0.78, 0.76)], INK)
+	_line(canvas, rect, Vector2(0.25, 0.74), Vector2(0.80, 0.74), accent, 0.045)
+	_line(canvas, rect, Vector2(0.36, 0.48), Vector2(0.46, 0.60), accent.darkened(0.2), 0.026)
+
+static func _draw_charge(canvas: CanvasItem, rect: Rect2, accent: Color) -> void:
+	_poly(canvas, rect, [Vector2(0.22, 0.52), Vector2(0.52, 0.24), Vector2(0.52, 0.42), Vector2(0.78, 0.42), Vector2(0.48, 0.74), Vector2(0.48, 0.56)], INK)
+	_poly(canvas, rect, [Vector2(0.33, 0.52), Vector2(0.50, 0.35), Vector2(0.50, 0.48), Vector2(0.66, 0.48), Vector2(0.50, 0.64), Vector2(0.50, 0.52)], accent)
+	canvas.draw_circle(_pt(rect, 0.28, 0.28), rect.size.x * 0.055, WHITE)
+	canvas.draw_circle(_pt(rect, 0.72, 0.72), rect.size.x * 0.045, WHITE)
+
+static func _draw_shield_wall(canvas: CanvasItem, rect: Rect2, accent: Color) -> void:
+	for i in range(3):
+		var x = 0.24 + i * 0.18
+		_poly(canvas, rect, [Vector2(x + 0.08, 0.26), Vector2(x + 0.17, 0.32), Vector2(x + 0.15, 0.58), Vector2(x + 0.08, 0.68), Vector2(x + 0.01, 0.58), Vector2(x - 0.01, 0.32)], INK)
+		_poly(canvas, rect, [Vector2(x + 0.08, 0.33), Vector2(x + 0.13, 0.36), Vector2(x + 0.12, 0.56), Vector2(x + 0.08, 0.61), Vector2(x + 0.04, 0.56), Vector2(x + 0.03, 0.36)], accent)
+	_line(canvas, rect, Vector2(0.20, 0.72), Vector2(0.80, 0.72), INK, 0.04)
+
+static func _draw_slime_mud(canvas: CanvasItem, rect: Rect2, accent: Color) -> void:
+	canvas.draw_circle(_pt(rect, 0.46, 0.56), rect.size.x * 0.24, INK)
+	canvas.draw_circle(_pt(rect, 0.58, 0.56), rect.size.x * 0.22, INK)
+	_box(canvas, rect, 0.25, 0.55, 0.52, 0.18, INK)
+	canvas.draw_circle(_pt(rect, 0.46, 0.55), rect.size.x * 0.18, accent.darkened(0.05))
+	canvas.draw_circle(_pt(rect, 0.59, 0.55), rect.size.x * 0.16, accent)
+	canvas.draw_circle(_pt(rect, 0.42, 0.48), rect.size.x * 0.026, INK)
+	canvas.draw_circle(_pt(rect, 0.59, 0.47), rect.size.x * 0.026, INK)
 
 static func _draw_piggy_bank(canvas: CanvasItem, rect: Rect2, accent: Color) -> void:
 	canvas.draw_circle(_pt(rect, 0.50, 0.52), rect.size.x * 0.27, INK)

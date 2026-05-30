@@ -1,6 +1,7 @@
 extends Control
 
 signal roll_finished
+signal picked
 
 var dice_color = Color.RED
 var value = 1
@@ -11,6 +12,7 @@ var animation_player: AnimationPlayer
 var roll_target = 1
 var face_elapsed = 0.0
 var roll_origin = Vector2.ZERO
+var selectable = false
 
 func configure(new_color: Color, start_value: int = 1) -> void:
 	dice_color = new_color
@@ -18,7 +20,7 @@ func configure(new_color: Color, start_value: int = 1) -> void:
 	queue_redraw()
 
 func _ready() -> void:
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mouse_filter = Control.MOUSE_FILTER_STOP
 	pivot_offset = size * 0.5
 	rng.randomize()
 	set_process(false)
@@ -27,6 +29,18 @@ func _ready() -> void:
 	add_child(animation_player)
 	_build_idle_animation()
 	animation_player.play("idle")
+
+func set_selectable(value_in: bool) -> void:
+	selectable = value_in
+	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if selectable else Control.CURSOR_ARROW
+	queue_redraw()
+
+func _gui_input(event: InputEvent) -> void:
+	if not selectable or rolling:
+		return
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		accept_event()
+		picked.emit()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED:
@@ -133,6 +147,10 @@ func _draw() -> void:
 	draw_line(Vector2(size.x * 0.20, size.y * 0.18), Vector2(size.x * 0.66, size.y * 0.18), Color(1.0, 1.0, 1.0, 0.24 + (0.16 if rolling else 0.0)), 4.0)
 	draw_line(Vector2(size.x * 0.18, size.y * 0.76), Vector2(size.x * 0.70, size.y * 0.76), dice_color.lightened(0.32), 4.0)
 	_draw_pips()
+	if selectable and not rolling:
+		var glow_color = Color(1.0, 0.92, 0.25, 0.92)
+		draw_arc(size * 0.5, min_side * 0.48, 0.0, TAU, 18, glow_color, 5.0)
+		draw_arc(size * 0.5, min_side * 0.40, 0.0, TAU, 18, Color(1.0, 1.0, 1.0, 0.28), 2.0)
 	if shockwave > 0.0 and shockwave < 1.0:
 		var alpha = 1.0 - shockwave
 		var wave_color = Color(1.0, 0.92, 0.28, 1.0)

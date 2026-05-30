@@ -2,6 +2,8 @@ extends RefCounted
 class_name DestroySystem
 
 const GameCommand = preload("res://scripts/effects/GameCommand.gd")
+const ResolveContext = preload("res://scripts/domain/ResolveContext.gd")
+const TileEffectLibrary = preload("res://scripts/tiles/TileEffectLibrary.gd")
 
 static func apply(command: Dictionary, context) -> Array:
 	var raw_mode = command.get("destroyMode", "permanent")
@@ -97,7 +99,10 @@ static func _apply_destroy_and_generate(command: Dictionary, context, mode: Dict
 
 static func _after_destroy_commands(context, destroyed_tile, index: int, mode: Dictionary) -> Array:
 	var payload = {"destroyedTile": destroyed_tile, "tileIndex": index, "mode": mode}
-	return preload("res://scripts/systems/HookBus.gd").collect("afterDestroyTile", context, payload)
+	var commands = preload("res://scripts/systems/HookBus.gd").collect("afterDestroyTile", context, payload)
+	var destroy_context = ResolveContext.new().setup(context.run_state, context.turn_context, context.dice, destroyed_tile, index, context.dice_value, "destroyed", payload)
+	commands.append_array(TileEffectLibrary.resolve_destroy_tile(destroy_context))
+	return commands
 
 static func _reindex_dice_after_remove(context, removed_index: int) -> void:
 	for dice_state in context.run_state.dice.values():

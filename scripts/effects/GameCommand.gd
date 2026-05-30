@@ -1,7 +1,28 @@
 extends RefCounted
 
+static func damage_monster(amount, source: String = "", attack: bool = true) -> Dictionary:
+	return {"type": "DamageMonster", "amount": amount, "source": source, "attack": attack}
+
+static func add_player_block(amount: int, source: String = "") -> Dictionary:
+	return {"type": "AddPlayerBlock", "amount": amount, "source": source}
+
+static func add_rolls(amount: int, source: String = "") -> Dictionary:
+	return {"type": "AddRolls", "amount": amount, "source": source}
+
+static func add_next_turn_rolls(amount: int, source: String = "") -> Dictionary:
+	return {"type": "AddNextTurnRolls", "amount": amount, "source": source}
+
+static func add_next_attack_multiplier(multiplier: float, source: String = "") -> Dictionary:
+	return {"type": "AddNextAttackMultiplier", "multiplier": multiplier, "source": source}
+
+static func increment_counter(counter_key: String, amount: int = 1, scope: String = "turn", source: String = "") -> Dictionary:
+	return {"type": "IncrementCounter", "counterKey": counter_key, "amount": amount, "scope": scope, "source": source}
+
+static func set_destroy_next_tile(source: String = "") -> Dictionary:
+	return {"type": "SetDestroyNextTile", "source": source}
+
 static func add_coins(amount, source: String = "") -> Dictionary:
-	return {"type": "AddCoins", "amount": amount, "source": source}
+	return damage_monster(int(amount), source, true)
 
 static func add_buff(buff: Dictionary) -> Dictionary:
 	return {"type": "AddBuff", "buff": buff}
@@ -15,8 +36,14 @@ static func destroy_tile(tile_index: int, destroy_mode = "permanent", source: St
 static func destroy_tile_instance(tile_index: int, tile_instance_id: String, destroy_mode = "permanent", source: String = "") -> Dictionary:
 	return {"type": "DestroyTile", "tileIndex": tile_index, "tileInstanceId": tile_instance_id, "destroyMode": destroy_mode, "source": source}
 
+static func destroy_tiles_by_rule(target_rule: Dictionary, source: String = "", destroy_mode = "permanent") -> Dictionary:
+	return {"type": "DestroyTilesByRule", "targetRule": target_rule, "destroyMode": destroy_mode, "source": source}
+
 static func transform_tile(tile_index: int, target_tile_id: String, options: Dictionary = {}) -> Dictionary:
 	return {"type": "TransformTile", "tileIndex": tile_index, "targetTileId": target_tile_id, "options": options}
+
+static func transform_tile_for_battle(tile_index: int, target_tile_id: String, source: String = "") -> Dictionary:
+	return {"type": "TransformTileForBattle", "tileIndex": tile_index, "targetTileId": target_tile_id, "source": source}
 
 static func generate_tile(tile_id: String, position_rule: Dictionary) -> Dictionary:
 	return {"type": "GenerateTile", "tileId": tile_id, "positionRule": position_rule}
