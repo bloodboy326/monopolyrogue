@@ -8,9 +8,13 @@ var shield_alpha := 1.0
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	z_as_relative = false
+	z_index = 1200
 	pivot_offset = size * 0.5
 
 func play(center: Vector2, target_size: Vector2 = Vector2(94, 94)) -> void:
+	if get_parent() != null:
+		get_parent().move_child(self, get_parent().get_child_count() - 1)
 	size = target_size
 	pivot_offset = size * 0.5
 	global_position = center - size * 0.5
