@@ -192,6 +192,9 @@ func _draw_sprite_texture(texture: Texture2D) -> void:
 		return
 	var scale_factor = min(size.x / tex_size.x, size.y / tex_size.y)
 	var draw_size = tex_size * scale_factor
+	if _sprite_state_key() == "idle":
+		var breath = 1.0 + sin(wobble * 2.4) * 0.035
+		draw_size *= breath
 	var draw_rect = Rect2((size - draw_size) * 0.5, draw_size)
 	draw_texture_rect(texture, draw_rect, false)
 
@@ -224,14 +227,16 @@ func _draw_gloss(rect: Rect2, bob: float) -> void:
 func _line(rect: Rect2, a: Vector2, b: Vector2, color: Color, width_ratio: float) -> void:
 	draw_line(_pt(rect, a), _pt(rect, b), color, max(1.0, rect.size.x * width_ratio), true)
 
-func _poly(rect: Rect2, points: Array[Vector2], color: Color) -> void:
+func _poly(rect: Rect2, points: Array, color: Color) -> void:
 	var packed = PackedVector2Array()
 	for point in points:
-		packed.append(_pt(rect, point))
+		var point_vec: Vector2 = point
+		packed.append(_pt(rect, point_vec))
 	draw_polygon(packed, PackedColorArray([INK]))
 	var inner = PackedVector2Array()
 	for point in points:
-		inner.append(_pt(rect, point).lerp(rect.get_center(), 0.08))
+		var inner_point_vec: Vector2 = point
+		inner.append(_pt(rect, inner_point_vec).lerp(rect.get_center(), 0.08))
 	draw_polygon(inner, PackedColorArray([color]))
 
 func _ellipse(rect: Rect2, color: Color) -> void:

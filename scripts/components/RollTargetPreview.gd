@@ -2,6 +2,8 @@ extends Control
 
 var all_points: Array[Vector2] = []
 var path_indices: Array[int] = []
+var start_point := Vector2.ZERO
+var has_start_point := false
 var target_index := -1
 var preview_color := Color.WHITE
 var pulse := 0.0
@@ -11,9 +13,11 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_process(true)
 
-func set_preview(points: Array[Vector2], indices: Array[int], color: Color) -> void:
+func set_preview(points: Array[Vector2], indices: Array[int], color: Color, path_start: Vector2) -> void:
 	all_points = points.duplicate()
 	path_indices = indices.duplicate()
+	start_point = path_start
+	has_start_point = true
 	target_index = path_indices.back() if not path_indices.is_empty() else -1
 	preview_color = color
 	active = target_index >= 0 and target_index < all_points.size()
@@ -21,6 +25,7 @@ func set_preview(points: Array[Vector2], indices: Array[int], color: Color) -> v
 
 func clear_preview() -> void:
 	active = false
+	has_start_point = false
 	path_indices.clear()
 	target_index = -1
 	queue_redraw()
@@ -35,6 +40,8 @@ func _draw() -> void:
 	if not active or path_indices.is_empty() or all_points.is_empty():
 		return
 	var path_points = PackedVector2Array()
+	if has_start_point:
+		path_points.append(start_point)
 	for index in path_indices:
 		if index >= 0 and index < all_points.size():
 			path_points.append(all_points[index])

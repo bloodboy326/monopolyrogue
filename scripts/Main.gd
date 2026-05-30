@@ -1048,7 +1048,7 @@ func _show_roll_preview(color_key: String) -> void:
 		return
 	roll_preview_target_index = int(path.back())
 	if roll_preview_layer != null:
-		roll_preview_layer.set_preview(tile_positions, path, color_defs.get(color_key, Color.WHITE))
+		roll_preview_layer.set_preview(tile_positions, path, color_defs.get(color_key, Color.WHITE), pawn_nodes[color_key].position)
 	if roll_preview_target_index >= 0 and roll_preview_target_index < tile_nodes.size():
 		tile_nodes[roll_preview_target_index].set_glow(1.0)
 

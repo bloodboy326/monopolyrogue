@@ -54,10 +54,11 @@ func _draw() -> void:
 	draw_line(_pt(rect, Vector2(0.50, 0.20)), _pt(rect, Vector2(0.50, 0.74)), Color(LIGHT.r, LIGHT.g, LIGHT.b, 0.95 * shield_alpha), max(2.0, size.x * 0.055), true)
 	draw_arc(size * 0.5, size.x * 0.46, -0.78, 3.88, 18, Color(0.74, 0.94, 1.0, 0.55 * shield_alpha), max(2.0, size.x * 0.035), true)
 
-func _poly(rect: Rect2, points: Array[Vector2], color: Color, offset: Vector2) -> void:
+func _poly(rect: Rect2, points: Array, color: Color, offset: Vector2) -> void:
 	var packed = PackedVector2Array()
 	for point in points:
-		packed.append(_pt(rect, point) + offset)
+		var point_vec: Vector2 = point
+		packed.append(_pt(rect, point_vec) + offset)
 	draw_polygon(packed, PackedColorArray([color]))
 
 func _pt(rect: Rect2, point: Vector2) -> Vector2:
