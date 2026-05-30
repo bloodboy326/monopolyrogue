@@ -112,23 +112,23 @@ func _transform_tile(command: Dictionary, context) -> Array:
 		new_tile.base_coin = old_tile.base_coin
 	if bool(inherit.get("state", false)):
 		new_tile.state = old_tile.state.duplicate(true)
-	context.turn_context.emit_event("tile_transforming", {"tileIndex": index, "fromTileId": old_tile.id, "toTileId": new_tile.id})
+	context.turn_context.emit_event("tile_transforming", {"tileIndex": index, "fromTileId": old_tile.id, "toTileId": new_tile.id, "fromTileInstanceId": old_tile.instance_id})
 	context.run_state.board.set_tile(index, new_tile)
-	context.turn_context.emit_event("tile_transformed", {"tileIndex": index, "fromTileId": old_tile.id, "toTileId": new_tile.id})
+	context.turn_context.emit_event("tile_transformed", {"tileIndex": index, "fromTileId": old_tile.id, "toTileId": new_tile.id, "fromTileInstanceId": old_tile.instance_id, "toTileInstanceId": new_tile.instance_id})
 	return HookBus.collect("onTileTransform", context, {"tileIndex": index, "fromTile": old_tile, "toTile": new_tile})
 
 func _generate_tile(command: Dictionary, context) -> Array:
 	context.turn_context.enqueue_many(HookBus.collect("beforeGenerateTile", context, command))
 	var index = PositionResolver.resolve(command.get("positionRule", {"type": "randomAny"}), context)
 	var tile = context.run_state.create_tile(str(command.get("tileId", "T000")))
-	if index >= context.run_state.board.size():
-		context.run_state.board.tiles.append(tile)
-	else:
-		context.run_state.board.set_tile(index, tile)
-	if bool(tile.definition.get("temporary", false)):
+	var insert_at = clamp(index, 0, context.run_state.board.size())
+	context.run_state.board.insert_tile(insert_at, tile)
+	context.run_state.reindex_dice_after_insert(insert_at)
+	if bool(tile.definition.get("temporary", false)) or bool(command.get("forceTemporary", false)):
+		context.run_state.register_temporary_tile(tile)
 		context.turn_context.temporary_tiles.append(tile.instance_id)
-	context.turn_context.emit_event("tile_generated", {"tileIndex": index, "tileId": tile.id})
-	return HookBus.collect("afterGenerateTile", context, {"tileIndex": index, "tile": tile})
+	context.turn_context.emit_event("tile_generated", {"tileIndex": insert_at, "tileId": tile.id, "tileInstanceId": tile.instance_id, "temporary": bool(tile.runtime_flags.get("temporary_tile", false))})
+	return HookBus.collect("afterGenerateTile", context, {"tileIndex": insert_at, "tile": tile})
 
 func _move_dice(command: Dictionary, context) -> Array:
 	var dice_id = str(command.get("diceId", context.dice.id if context.dice != null else ""))
@@ -187,9 +187,12 @@ func _copy_tile(command: Dictionary, context) -> Array:
 	var source_index = context.run_state.board.normalize_index(int(command.get("sourceTileIndex", context.tile_index)))
 	var source_tile = context.run_state.board.get_tile(source_index)
 	var target_index = PositionResolver.resolve(command.get("targetPositionRule", {"type": "randomEmpty"}), context)
-	context.run_state.board.set_tile(target_index, source_tile.duplicate_runtime(context.run_state._tile_serial))
+	var copy = source_tile.duplicate_runtime(context.run_state._tile_serial)
 	context.run_state._tile_serial += 1
-	context.turn_context.emit_event("tile_copied", {"sourceIndex": source_index, "targetIndex": target_index, "tileId": source_tile.id})
+	var insert_at = clamp(target_index, 0, context.run_state.board.size())
+	context.run_state.board.insert_tile(insert_at, copy)
+	context.run_state.reindex_dice_after_insert(insert_at)
+	context.turn_context.emit_event("tile_copied", {"sourceIndex": source_index, "targetIndex": insert_at, "tileId": source_tile.id})
 	return []
 
 func _add_relic(command: Dictionary, context) -> Array:
@@ -203,8 +206,8 @@ func _add_relic(command: Dictionary, context) -> Array:
 
 func _add_temporary_tile(command: Dictionary, context) -> Array:
 	var generated = GameCommand.generate_tile(str(command.get("tileId", "T000")), command.get("positionRule", {"type": "randomEmpty"}))
-	var tile_id = str(command.get("tileId", "T000"))
-	context.turn_context.temporary_tiles.append(tile_id)
+	generated["forceTemporary"] = true
+	generated["durationRule"] = command.get("durationRule", {"type": "round"})
 	return [generated]
 
 func _trigger_tile(command: Dictionary, context) -> void:

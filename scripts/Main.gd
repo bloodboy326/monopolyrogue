@@ -485,6 +485,187 @@ func _play_turn_feedback(turn) -> void:
 		_pulse_node(score_label, Vector2(1.10, 1.10), Vector2.ONE)
 		shaker.shake(world, 4.0 if amount >= 0 else 8.0, 0.14)
 		await get_tree().create_timer(0.12).timeout
+	await _play_board_change_feedback(turn.events)
+
+func _play_board_change_feedback(events: Array) -> void:
+	var changes: Array[Dictionary] = []
+	for event in events:
+		var event_type = str(event.get("type", ""))
+		if ["tile_generated", "tile_destroyed", "tile_replaced_with_empty", "tile_transformed", "temporary_tile_removed"].has(event_type):
+			changes.append(event)
+	if changes.is_empty():
+		return
+
+	var panel = _make_board_change_panel(changes)
+	effects_layer.add_child(panel)
+	panel.modulate.a = 0.0
+	panel.scale = Vector2(0.92, 0.92)
+	panel.pivot_offset = panel.size * 0.5
+	var open_tween = create_tween()
+	open_tween.set_parallel(true)
+	open_tween.tween_property(panel, "modulate:a", 1.0, 0.12)
+	open_tween.tween_property(panel, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	await open_tween.finished
+
+	for event in changes:
+		await _play_single_board_change(event)
+		await get_tree().create_timer(0.08).timeout
+
+	await get_tree().create_timer(0.18).timeout
+	var close_tween = create_tween()
+	close_tween.set_parallel(true)
+	close_tween.tween_property(panel, "modulate:a", 0.0, 0.16)
+	close_tween.tween_property(panel, "scale", Vector2(0.96, 0.96), 0.16)
+	await close_tween.finished
+	panel.queue_free()
+
+func _make_board_change_panel(changes: Array) -> PanelContainer:
+	var viewport_size = get_viewport_rect().size
+	var panel = PanelContainer.new()
+	panel.z_index = 500
+	panel.size = Vector2(330, 76 + min(changes.size(), 4) * 34)
+	panel.position = Vector2(viewport_size.x - panel.size.x - 28, viewport_size.y * 0.18)
+	panel.add_theme_stylebox_override("panel", _make_panel_style(Color(0.035, 0.04, 0.055, 0.96), Color(0.85, 0.95, 1.0, 0.92), 8))
+	var stack = VBoxContainer.new()
+	stack.add_theme_constant_override("separation", 6)
+	panel.add_child(stack)
+	var title = _make_label("结算变化", 22, Color(0.92, 0.98, 1.0), HORIZONTAL_ALIGNMENT_LEFT)
+	title.custom_minimum_size = Vector2(280, 28)
+	stack.add_child(title)
+	for event in changes.slice(0, 4):
+		var label = _make_label(_board_change_message(event), 17, _board_change_color(str(event.get("type", ""))), HORIZONTAL_ALIGNMENT_LEFT)
+		label.custom_minimum_size = Vector2(286, 26)
+		stack.add_child(label)
+	if changes.size() > 4:
+		var more = _make_label("还有 %d 个变化" % (changes.size() - 4), 15, Color(0.72, 0.78, 0.86), HORIZONTAL_ALIGNMENT_LEFT)
+		more.custom_minimum_size = Vector2(286, 22)
+		stack.add_child(more)
+	return panel
+
+func _play_single_board_change(event: Dictionary) -> void:
+	var event_type = str(event.get("type", ""))
+	var index = _event_tile_node_index(event)
+	match event_type:
+		"tile_generated":
+			await _play_generated_tile_preview(int(event.get("tileIndex", -1)), str(event.get("tileId", "T000")), bool(event.get("temporary", false)))
+		"tile_destroyed", "tile_replaced_with_empty", "temporary_tile_removed":
+			await _play_destroy_tile_preview(index)
+		"tile_transformed":
+			await _play_transform_tile_preview(index, str(event.get("toTileId", "T000")))
+
+func _play_generated_tile_preview(index: int, tile_id: String, temporary: bool) -> void:
+	if run_state == null or run_state.board.is_empty():
+		return
+	var final_positions = _calculate_board_positions(run_state.board.size())
+	if index < 0 or index >= final_positions.size():
+		return
+	var tile_size = _calculate_tile_size(run_state.board.size())
+	var preview = TileJuice.new()
+	preview.setup(index, _make_tile(tile_id))
+	preview.size = Vector2(tile_size, tile_size)
+	preview.custom_minimum_size = preview.size
+	preview.position = final_positions[index] - preview.size * 0.5
+	preview.pivot_offset = preview.size * 0.5
+	preview.scale = Vector2(0.08, 0.08)
+	preview.modulate = Color(0.58, 1.0, 0.72, 0.95) if not temporary else Color(0.70, 0.92, 1.0, 0.95)
+	preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	preview.z_index = 70
+	effects_layer.add_child(preview)
+	var float_text = FloatingText.new()
+	effects_layer.add_child(float_text)
+	float_text.play("生成", final_positions[index] + Vector2(0, -52), Color(0.55, 1.0, 0.70))
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(preview, "scale", Vector2(1.18, 1.18), 0.20).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(preview, "rotation", 0.10, 0.16).set_trans(Tween.TRANS_SINE)
+	tween.tween_property(preview, "modulate:a", 0.0, 0.22).set_delay(0.36)
+	await tween.finished
+	preview.queue_free()
+
+func _play_destroy_tile_preview(index: int) -> void:
+	if index < 0 or index >= tile_nodes.size():
+		return
+	var node = tile_nodes[index] as Control
+	if node == null:
+		return
+	var center = node.global_position + node.size * 0.5
+	var float_text = FloatingText.new()
+	effects_layer.add_child(float_text)
+	float_text.play("销毁", center + Vector2(0, -52), Color(1.0, 0.30, 0.36))
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(node, "scale", Vector2(0.10, 0.10), 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+	tween.tween_property(node, "rotation", node.rotation + 0.45, 0.22).set_trans(Tween.TRANS_SINE)
+	tween.tween_property(node, "modulate", Color(1.0, 0.22, 0.28, 0.12), 0.22)
+	shaker.shake(world, 6.0, 0.18)
+	await tween.finished
+
+func _play_transform_tile_preview(index: int, tile_id: String) -> void:
+	if index < 0 or index >= tile_nodes.size():
+		return
+	var node = tile_nodes[index] as Control
+	if node == null:
+		return
+	var center = node.global_position + node.size * 0.5
+	var float_text = FloatingText.new()
+	effects_layer.add_child(float_text)
+	float_text.play("转变", center + Vector2(0, -52), Color(1.0, 0.86, 0.28))
+	var preview = TileJuice.new()
+	preview.setup(index, _make_tile(tile_id))
+	preview.size = node.size
+	preview.custom_minimum_size = node.size
+	preview.position = node.position
+	preview.pivot_offset = node.pivot_offset
+	preview.scale = Vector2(0.12, 0.12)
+	preview.modulate.a = 0.0
+	preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	preview.z_index = 80
+	tile_layer.add_child(preview)
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(node, "scale", Vector2(0.18, 0.18), 0.20).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+	tween.tween_property(node, "modulate:a", 0.0, 0.18)
+	tween.tween_property(preview, "scale", Vector2(1.16, 1.16), 0.22).set_delay(0.08).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(preview, "modulate:a", 1.0, 0.12).set_delay(0.08)
+	tween.tween_property(preview, "scale", Vector2.ONE, 0.14).set_delay(0.30)
+	shaker.shake(world, 5.0, 0.18)
+	await tween.finished
+	preview.queue_free()
+
+func _board_change_message(event: Dictionary) -> String:
+	match str(event.get("type", "")):
+		"tile_generated":
+			var suffix = "（临时）" if bool(event.get("temporary", false)) else ""
+			return "生成：%s%s" % [_tile_name_by_id(str(event.get("tileId", ""))), suffix]
+		"tile_destroyed", "tile_replaced_with_empty":
+			return "销毁：%s" % _tile_name_by_id(str(event.get("tileId", "")))
+		"temporary_tile_removed":
+			return "消散：%s" % _tile_name_by_id(str(event.get("tileId", "")))
+		"tile_transformed":
+			return "转变：%s -> %s" % [_tile_name_by_id(str(event.get("fromTileId", ""))), _tile_name_by_id(str(event.get("toTileId", "")))]
+	return "变化"
+
+func _board_change_color(event_type: String) -> Color:
+	match event_type:
+		"tile_generated":
+			return Color(0.55, 1.0, 0.70)
+		"tile_destroyed", "tile_replaced_with_empty", "temporary_tile_removed":
+			return Color(1.0, 0.42, 0.46)
+		"tile_transformed":
+			return Color(1.0, 0.86, 0.28)
+	return Color.WHITE
+
+func _tile_name_by_id(tile_id: String) -> String:
+	var definition: Dictionary = tile_definitions.get(tile_id, {})
+	return str(definition.get("name", definition.get("tile_name", tile_id)))
+
+func _event_tile_node_index(event: Dictionary) -> int:
+	var instance_id = str(event.get("tileInstanceId", event.get("fromTileInstanceId", "")))
+	if not instance_id.is_empty():
+		for i in range(tiles_data.size()):
+			if str(tiles_data[i].get("instance_id", "")) == instance_id:
+				return i
+	return int(event.get("tileIndex", -1))
 
 func _mark_batch_item_done() -> void:
 	batch_remaining -= 1
@@ -554,6 +735,7 @@ func _finish_round() -> void:
 		_flash(Color(1.0, 0.86, 0.20, 0.24), 0.5)
 		shaker.shake(world, 8.0, 0.28)
 		await get_tree().create_timer(0.42).timeout
+		await _cleanup_round_temporary_tiles_feedback()
 		if round_number % 3 == 0:
 			_show_relic_choice_overlay()
 		else:
@@ -564,6 +746,18 @@ func _finish_round() -> void:
 		shaker.shake(world, 11.0, 0.35)
 		await get_tree().create_timer(0.36).timeout
 		_show_fail_overlay()
+
+func _cleanup_round_temporary_tiles_feedback() -> void:
+	if run_state == null or run_state.temporary_tile_instances.is_empty():
+		return
+	var events = run_state.cleanup_round_temporary_tiles()
+	if events.is_empty():
+		return
+	await _play_board_change_feedback(events)
+	_sync_from_run_state()
+	_rebuild_board_tiles()
+	_position_pawns()
+	_update_ui()
 
 func _show_choice_overlay() -> void:
 	mode = "choice"

@@ -24,6 +24,9 @@ func _ready() -> void:
 	_test_buff_duration_and_triggers()
 	_test_destroy_modes()
 	_test_random_empty_generation()
+	_test_generation_inserts_without_replacing()
+	_test_temporary_tiles_cleanup_at_round_end()
+	_test_bulldozer_buff_destroys_next_tile()
 	_test_transform_inheritance()
 	_test_relic_hooks()
 	_test_chain_limit()
@@ -104,7 +107,35 @@ func _test_random_empty_generation() -> void:
 	var turn = TurnContext.new()
 	var context = _context(run, turn, "red", 0)
 	resolver.execute_commands([GameCommand.generate_tile("T002", {"type": "randomEmpty"})], context)
-	_assert(run.board.get_tile(1).id == "T002", "randomEmpty generation uses empty slot")
+	_assert(run.board.size() == 3 and run.board.get_tile(1).id == "T002" and run.board.get_tile(2).id == "T000", "randomEmpty generation inserts at empty slot without replacing it")
+
+func _test_generation_inserts_without_replacing() -> void:
+	var run = _new_run(["T001", "T002", "T004"], 15)
+	var resolver = EffectResolver.new()
+	var turn = TurnContext.new()
+	var context = _context(run, turn, "red", 0)
+	resolver.execute_commands([GameCommand.generate_tile("T025", {"type": "specificIndex", "index": 1})], context)
+	_assert(run.board.size() == 4 and run.board.get_tile(1).id == "T025" and run.board.get_tile(2).id == "T002", "generation inserts an extra tile instead of replacing the target")
+
+func _test_temporary_tiles_cleanup_at_round_end() -> void:
+	var run = _new_run(["T001", "T024"], 16)
+	run.dice["red"].index = 0
+	TurnResolver.new().resolve_roll(run, ["red"], {"red": 1})
+	var vampire_count = 0
+	for tile in run.board.tiles:
+		if tile.id == "T025":
+			vampire_count += 1
+	_assert(vampire_count == 1 and run.temporary_tile_instances.size() == 1, "coffin generates a round-temporary vampire")
+	run.cleanup_round_temporary_tiles()
+	_assert(run.board.tiles.all(func(tile): return tile.id != "T025"), "round-temporary vampire is removed at round cleanup")
+
+func _test_bulldozer_buff_destroys_next_tile() -> void:
+	var run = _new_run(["T029", "T001", "T002"], 17)
+	run.dice["red"].index = 2
+	TurnResolver.new().resolve_roll(run, ["red"], {"red": 1})
+	_assert(run.has_buff("destroy_on_resolve", "red"), "bulldozer grants a pending destroy buff")
+	TurnResolver.new().resolve_roll(run, ["red"], {"red": 1})
+	_assert(run.board.size() == 2 and run.board.get_tile(1).id == "T002" and run.buffs.is_empty(), "bulldozer destroy buff removes the next resolved non-bulldozer tile")
 
 func _test_transform_inheritance() -> void:
 	var run = _new_run(["T006"], 8)

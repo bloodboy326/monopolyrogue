@@ -73,6 +73,7 @@ static func handle_hook(buff: Dictionary, hook_name: String, context, payload: D
 			if hook_name == "afterTileResolve" and context.tile != null:
 				var blocked = buff.get("config", {}).get("blockedTileIds", [])
 				if not blocked.has(context.tile.id):
+					BuffSystem.consume_trigger(buff)
 					return [GameCommand.destroy_tile(context.tile_index, {"type": "permanent"}, buff.get("id", ""))]
 		"next_coin_multiplier":
 			if hook_name == "beforeGainCoins" and int(payload.get("amount", 0)) > 0:

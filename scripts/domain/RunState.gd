@@ -19,6 +19,7 @@ var fruit_counters: Dictionary = {"apple": 0, "peach": 0, "orange": 0}
 var tile_definitions: Dictionary = {}
 var relic_definitions: Dictionary = {}
 var buff_definitions: Dictionary = {}
+var temporary_tile_instances: Array[String] = []
 var rng = GameRng.new(1)
 var _tile_serial: int = 1
 
@@ -33,6 +34,7 @@ func setup(p_tile_definitions: Dictionary, p_relic_definitions: Dictionary, p_bu
 	round_number = 1
 	relics.clear()
 	buffs.clear()
+	temporary_tile_instances.clear()
 	fruit_counters = {"apple": 0, "peach": 0, "orange": 0}
 	tile_pool = []
 	for id in tile_definitions.keys():
@@ -63,6 +65,42 @@ func create_tile(tile_id: String):
 	var tile = Tile.from_definition(get_tile_definition(tile_id), _tile_serial)
 	_tile_serial += 1
 	return tile
+
+func register_temporary_tile(tile) -> void:
+	if tile == null:
+		return
+	tile.runtime_flags["temporary_tile"] = true
+	if not temporary_tile_instances.has(tile.instance_id):
+		temporary_tile_instances.append(tile.instance_id)
+
+func forget_temporary_tile(instance_id: String) -> void:
+	temporary_tile_instances.erase(instance_id)
+
+func reindex_dice_after_insert(insert_index: int) -> void:
+	for dice_state in dice.values():
+		if dice_state.index >= insert_index:
+			dice_state.index += 1
+
+func reindex_dice_after_remove(removed_index: int) -> void:
+	for dice_state in dice.values():
+		if dice_state.index > removed_index:
+			dice_state.index -= 1
+		elif dice_state.index == removed_index and board.size() > 0:
+			dice_state.index = board.normalize_index(removed_index)
+
+func cleanup_round_temporary_tiles() -> Array[Dictionary]:
+	var removed: Array[Dictionary] = []
+	for instance_id in temporary_tile_instances.duplicate():
+		var index = board.find_tile_index_by_instance(instance_id)
+		if index == -1:
+			continue
+		var tile = board.remove_tile(index)
+		if tile == null:
+			continue
+		removed.append({"type": "temporary_tile_removed", "tileIndex": index, "tileId": tile.id, "tileInstanceId": tile.instance_id})
+		reindex_dice_after_remove(index)
+	temporary_tile_instances.clear()
+	return removed
 
 func add_relic(relic_id: String) -> void:
 	if not relics.has(relic_id):
