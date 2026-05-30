@@ -22,6 +22,7 @@ func _ready() -> void:
 	_test_quick_shot_counters()
 	_test_warp_pass_effects()
 	_test_destroy_next_tile_triggers_destroy_effect()
+	_test_monster_block_expires_and_reports_full_block()
 	_test_monster_tables_include_new_flow()
 	print("RULES_OK tests=%d" % passed)
 	get_tree().quit()
@@ -96,6 +97,16 @@ func _test_destroy_next_tile_triggers_destroy_effect() -> void:
 	_roll(run, 0, 1)
 	_assert(run.monster_hp == 80, "destroyed rotten hilt deals destroy damage only")
 	_assert(run.board.size() == 1, "destroyed target is removed from board")
+
+func _test_monster_block_expires_and_reports_full_block() -> void:
+	var run = _new_run(["T001"], 8)
+	run.monster_block = 7
+	var turn = _roll(run, 0, 1)
+	var blocked_events = turn.events.filter(func(event): return str(event.get("type", "")) == "monster_damaged" and int(event.get("amount", 0)) == 0 and int(event.get("blocked", 0)) == 5)
+	_assert(blocked_events.size() == 1 and run.monster_hp == 100, "full monster block is reported without damage")
+	_assert(run.monster_block == 2, "monster block absorbs incoming attack")
+	run.begin_monster_turn()
+	_assert(run.monster_block == 0, "monster block expires before the monster acts again")
 
 func _test_monster_tables_include_new_flow() -> void:
 	var config = MonsterConfig.load_config()

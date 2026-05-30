@@ -14,6 +14,8 @@ const RichDescription = preload("res://scripts/components/RichDescription.gd")
 const SlimeBossView = preload("res://scripts/components/SlimeBossView.gd")
 const IntentIcon = preload("res://scripts/components/IntentIcon.gd")
 const RollCounterBadge = preload("res://scripts/components/RollCounterBadge.gd")
+const BlockShieldBurst = preload("res://scripts/components/BlockShieldBurst.gd")
+const RollTargetPreview = preload("res://scripts/components/RollTargetPreview.gd")
 const RunState = preload("res://scripts/domain/RunState.gd")
 const TileRuntime = preload("res://scripts/domain/Tile.gd")
 const TileDefinitions = preload("res://scripts/data/TileDefinitions.gd")
@@ -40,6 +42,7 @@ var world: Control
 var background: Control
 var board_path: Control
 var tile_layer: Control
+var roll_preview_layer: Control
 var boss_layer: Control
 var pawn_layer: Node2D
 var effects_layer: Node2D
@@ -86,6 +89,7 @@ var total_rolls = 3
 var rolls_left = 3
 var pending_roll_value = 0
 var current_rolls: Dictionary = {}
+var roll_preview_target_index := -1
 var mode = "play"
 var roll_locked = false
 var pending_tile: Dictionary = {}
@@ -130,6 +134,12 @@ func _build_scene() -> void:
 	tile_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
 	tile_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	world.add_child(tile_layer)
+
+	roll_preview_layer = RollTargetPreview.new()
+	roll_preview_layer.name = "RollTargetPreview"
+	roll_preview_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	roll_preview_layer.z_index = 48
+	world.add_child(roll_preview_layer)
 
 	boss_layer = Control.new()
 	boss_layer.name = "BossLayer"
@@ -238,6 +248,8 @@ func _build_hud() -> void:
 		dice.custom_minimum_size = Vector2(74, 74)
 		dice.configure(color_defs[color_key], rng.randi_range(1, 6))
 		dice.picked.connect(_on_dice_picked.bind(color_key))
+		dice.mouse_entered.connect(_on_dice_hovered.bind(color_key))
+		dice.mouse_exited.connect(_on_dice_unhovered.bind(color_key))
 		dice_nodes[color_key] = dice
 		dice_panel.add_child(dice)
 
@@ -318,6 +330,7 @@ func _start_battle() -> void:
 	pending_roll_value = 0
 	current_rolls.clear()
 	pending_tile.clear()
+	_clear_roll_preview()
 	_set_dice_selectable(false)
 	choice_overlay.visible = false
 	fail_overlay.visible = false
@@ -386,6 +399,7 @@ func _on_roll_pressed() -> void:
 func _on_dice_picked(color_key: String) -> void:
 	if mode != "choose_dice" or not current_rolls.has(color_key):
 		return
+	_clear_roll_preview()
 	pending_roll_value = int(current_rolls[color_key])
 	mode = "moving"
 	roll_locked = true
@@ -420,12 +434,23 @@ func _on_dice_picked(color_key: String) -> void:
 	roll_result_label.text = "继续掷骰或结束回合"
 	_update_ui()
 
+func _on_dice_hovered(color_key: String) -> void:
+	if mode != "choose_dice" or not current_rolls.has(color_key):
+		return
+	_show_roll_preview(color_key)
+
+func _on_dice_unhovered(color_key: String) -> void:
+	if mode == "choose_dice" and current_rolls.has(color_key):
+		_clear_roll_preview()
+
 func _on_end_turn_pressed() -> void:
 	if mode != "play" or roll_locked:
 		return
 	mode = "monster"
 	roll_locked = true
+	_clear_roll_preview()
 	_update_ui()
+	run_state.begin_monster_turn()
 	await _execute_monster_turn()
 	if run_state.player_hp <= 0:
 		_show_fail_overlay()
@@ -437,6 +462,7 @@ func _on_end_turn_pressed() -> void:
 	rolls_left = run_state.turn_rolls_left
 	current_rolls.clear()
 	pending_roll_value = 0
+	_clear_roll_preview()
 	_set_dice_selectable(false)
 	_choose_next_monster_intent()
 	roll_locked = false
@@ -520,6 +546,7 @@ func _play_turn_feedback(turn) -> void:
 					boss_view.flash_hit()
 					shaker.shake(world, 7.0, 0.18)
 				elif blocked > 0:
+					_play_enemy_block_flash()
 					await _floating("格挡", start, Color(0.60, 0.82, 1.0))
 				_update_ui()
 			"player_block_added":
@@ -886,6 +913,13 @@ func _floating(text: String, start: Vector2, color: Color) -> void:
 	float_text.play(text, start, color)
 	await get_tree().create_timer(0.15).timeout
 
+func _play_enemy_block_flash() -> void:
+	var burst = BlockShieldBurst.new()
+	effects_layer.add_child(burst)
+	var center = boss_view.global_position + boss_view.size * 0.5 + Vector2(0, -10)
+	burst.play(center, Vector2(94, 94))
+	shaker.shake(world, 3.2, 0.12)
+
 func _mark_batch_item_done() -> void:
 	batch_remaining -= 1
 	if batch_remaining <= 0:
@@ -896,6 +930,7 @@ func _on_pawn_movement_finished(final_index: int, color_key: String) -> void:
 	_mark_batch_item_done()
 
 func _rebuild_board_tiles() -> void:
+	_clear_roll_preview()
 	for child in tile_layer.get_children():
 		tile_layer.remove_child(child)
 		child.queue_free()
@@ -1004,12 +1039,45 @@ func _clear_board_hints() -> void:
 		tile.set_insert_hint(false)
 		tile.set_delete_hint(false)
 
+func _show_roll_preview(color_key: String) -> void:
+	if tile_positions.is_empty() or not current_rolls.has(color_key):
+		return
+	_clear_roll_preview()
+	var path = _roll_preview_path_indices(color_key, int(current_rolls[color_key]))
+	if path.is_empty():
+		return
+	roll_preview_target_index = int(path.back())
+	if roll_preview_layer != null:
+		roll_preview_layer.set_preview(tile_positions, path, color_defs.get(color_key, Color.WHITE))
+	if roll_preview_target_index >= 0 and roll_preview_target_index < tile_nodes.size():
+		tile_nodes[roll_preview_target_index].set_glow(1.0)
+
+func _clear_roll_preview() -> void:
+	if roll_preview_layer != null:
+		roll_preview_layer.clear_preview()
+	if roll_preview_target_index >= 0 and roll_preview_target_index < tile_nodes.size():
+		tile_nodes[roll_preview_target_index].set_glow(0.0)
+	roll_preview_target_index = -1
+
+func _roll_preview_path_indices(color_key: String, steps: int) -> Array[int]:
+	var result: Array[int] = []
+	if run_state == null or run_state.board.is_empty():
+		return result
+	var start_index = int(pawn_indices.get(color_key, 0))
+	if run_state.dice.has(color_key):
+		start_index = run_state.dice[color_key].index
+	for step in range(1, max(0, steps) + 1):
+		result.append(run_state.board.normalize_index(start_index + step))
+	return result
+
 func _set_action_banner(message: String) -> void:
 	action_banner.text = message
 	action_banner.visible = not message.is_empty()
 	cancel_action_button.visible = mode == "insert"
 
 func _set_dice_selectable(value: bool) -> void:
+	if not value:
+		_clear_roll_preview()
 	for color_key in pawn_order:
 		if dice_nodes.has(color_key):
 			dice_nodes[color_key].set_selectable(value and mode == "choose_dice")

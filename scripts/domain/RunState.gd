@@ -127,6 +127,9 @@ func begin_player_turn(base_rolls: int = -1) -> void:
 	for dice_state in dice.values():
 		dice_state.begin_turn(board.size())
 
+func begin_monster_turn() -> void:
+	monster_block = 0
+
 func begin_roll() -> void:
 	for dice_state in dice.values():
 		dice_state.begin_roll()
