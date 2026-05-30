@@ -3,6 +3,8 @@ extends Node2D
 signal step_landed(tile_index: int, final_step: bool)
 signal movement_finished(final_index: int)
 
+const MOVE_TIME_SCALE = 1.0 / 1.5
+
 var pawn_color = Color.RED
 var label = "R"
 var wobble = 0.0
@@ -44,7 +46,7 @@ func _advance_one_step() -> void:
 func _hop_to(destination: Vector2, final_step: bool) -> void:
 	var start = position
 	var height = 34.0 if final_step else 24.0
-	var duration = 0.24 if final_step else 0.18
+	var duration = (0.24 if final_step else 0.18) * MOVE_TIME_SCALE
 	var tween = create_tween()
 	tween.tween_method(_set_hop.bind(start, destination, height), 0.0, 1.0, duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	tween.finished.connect(func() -> void:
@@ -52,10 +54,12 @@ func _hop_to(destination: Vector2, final_step: bool) -> void:
 	)
 
 func _play_squash(final_step: bool) -> void:
+	var squash_in = 0.06 * MOVE_TIME_SCALE
+	var squash_out = 0.16 * MOVE_TIME_SCALE
 	var squash = create_tween()
 	squash.set_parallel(true)
-	squash.tween_property(self, "scale", Vector2(1.22, 0.78), 0.06)
-	squash.tween_property(self, "scale", Vector2(1.0, 1.0), 0.16).set_delay(0.06).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	squash.tween_property(self, "scale", Vector2(1.22, 0.78), squash_in)
+	squash.tween_property(self, "scale", Vector2(1.0, 1.0), squash_out).set_delay(squash_in).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	squash.finished.connect(func() -> void:
 		step_landed.emit(current_index, final_step)
 		steps_left -= 1
