@@ -9,6 +9,8 @@ const EffectResolver = preload("res://scripts/effects/EffectResolver.gd")
 const GameCommand = preload("res://scripts/effects/GameCommand.gd")
 const TurnContext = preload("res://scripts/domain/TurnContext.gd")
 const ResolveContext = preload("res://scripts/domain/ResolveContext.gd")
+const RichDescription = preload("res://scripts/components/RichDescription.gd")
+const TileRuntime = preload("res://scripts/domain/Tile.gd")
 
 var tile_defs: Dictionary
 var relic_defs: Dictionary
@@ -27,6 +29,7 @@ func _ready() -> void:
 	_test_chain_limit()
 	_test_three_dice_order()
 	_test_main_flow_is_not_needed_for_new_tile_effect()
+	_test_rich_description_and_display_copy()
 	print("RULES_OK tests=%d" % passed)
 	get_tree().quit()
 
@@ -166,3 +169,15 @@ func _test_main_flow_is_not_needed_for_new_tile_effect() -> void:
 	run.setup(custom_defs, relic_defs, buff_defs, 14, "T999", 1)
 	TurnResolver.new().resolve_roll(run, ["red"], {"red": 1})
 	_assert(run.round_score == 12, "new data-only tile resolves without changing Main")
+
+func _test_rich_description_and_display_copy() -> void:
+	RichDescription.configure_tile_index(tile_defs)
+	var bbcode = RichDescription.to_bbcode("获得3金币，每销毁一个鬼魂地块，金币永久+1")
+	_assert(bbcode.contains("[url=tile:T021]"), "rich description links tile names")
+	_assert(bbcode.find("[url=tile:T021]", bbcode.find("[url=tile:T021]") + 1) == -1, "rich description does not nest tile links")
+	_assert(bbcode.contains("#ffd84a"), "rich description colors numbers")
+	var definition = tile_defs["T001"].duplicate(true)
+	definition["description"] = "功能描述"
+	definition["displayDescription"] = "文案描述"
+	var tile = TileRuntime.from_definition(definition, 1)
+	_assert(tile.to_display_data()["tile_describe"] == "文案描述" and tile.to_display_data()["description"] == "功能描述", "display copy is separate from functional description")

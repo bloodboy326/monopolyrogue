@@ -1,6 +1,8 @@
 extends Control
 
 signal picked(index: int)
+signal info_hovered(tile_data: Dictionary, anchor_global_pos: Vector2)
+signal info_hidden
 
 const TileCardFrame = preload("res://scripts/components/TileCardFrame.gd")
 const VectorTileIcon = preload("res://scripts/components/VectorTileIcon.gd")
@@ -16,6 +18,7 @@ var glow = 0.0
 var hover = false
 var insert_hint = false
 var delete_hint = false
+var tile_data: Dictionary = {}
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -23,6 +26,7 @@ func _ready() -> void:
 	mouse_exited.connect(_on_mouse_exited)
 
 func setup(index: int, data: Dictionary) -> void:
+	tile_data = data.duplicate(true)
 	tile_index = index
 	tile_name = str(data.get("tile_name", data.get("name", "集市")))
 	tile_kind = str(data.get("kind", "market"))
@@ -73,6 +77,7 @@ func play_reward() -> void:
 
 func _on_mouse_entered() -> void:
 	hover = true
+	info_hovered.emit(tile_data, get_global_mouse_position())
 	if not insert_hint and not delete_hint:
 		set_glow(0.28)
 	var tween = create_tween()
@@ -80,6 +85,7 @@ func _on_mouse_entered() -> void:
 
 func _on_mouse_exited() -> void:
 	hover = false
+	info_hidden.emit()
 	if not insert_hint and not delete_hint:
 		set_glow(0.0)
 	var tween = create_tween()

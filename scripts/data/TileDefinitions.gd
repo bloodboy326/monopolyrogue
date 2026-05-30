@@ -51,6 +51,7 @@ static func _tile(id: String, name: String, type: String, rarity: String, base_c
 		"rarity": rarity,
 		"baseCoin": base_coin,
 		"description": description,
+		"displayDescription": description,
 		"tags": tags,
 		"selectable": selectable,
 		"temporary": temporary,

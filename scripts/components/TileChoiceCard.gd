@@ -1,9 +1,13 @@
 extends Control
 
 signal picked(index: int)
+signal info_hovered(tile_data: Dictionary, anchor_global_pos: Vector2)
+signal info_hidden
+signal reference_hovered(tile_id: String, anchor_global_pos: Vector2)
 
 const TileCardFrame = preload("res://scripts/components/TileCardFrame.gd")
 const VectorTileIcon = preload("res://scripts/components/VectorTileIcon.gd")
+const RichDescription = preload("res://scripts/components/RichDescription.gd")
 
 var tile_index = 0
 var tile_name = ""
@@ -18,6 +22,8 @@ var idle_enabled = false
 var idle_time = 0.0
 var idle_phase = 0.0
 var idle_base_position = Vector2.ZERO
+var tile_data: Dictionary = {}
+var description_text: RichTextLabel
 
 var rare_colors = {
 	"普通": Color(0.45, 0.83, 0.38, 1.0),
@@ -29,18 +35,23 @@ var rare_colors = {
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	_build_description_label()
+	_update_description_label()
 	mouse_entered.connect(func() -> void:
 		hover = true
 		_animate_hover(Vector2(1.035, 1.035))
+		info_hovered.emit(tile_data, get_global_mouse_position())
 		queue_redraw()
 	)
 	mouse_exited.connect(func() -> void:
 		hover = false
 		_animate_hover(Vector2.ONE)
+		info_hidden.emit()
 		queue_redraw()
 	)
 
 func setup(index: int, data: Dictionary) -> void:
+	tile_data = data.duplicate(true)
 	tile_index = index
 	tile_name = str(data.get("tile_name", data.get("name", "")))
 	tile_kind = str(data.get("kind", ""))
@@ -49,6 +60,7 @@ func setup(index: int, data: Dictionary) -> void:
 	tile_describe = str(data.get("tile_describe", ""))
 	base_color = data.get("color", base_color)
 	accent_color = data.get("accent", accent_color)
+	_update_description_label()
 	queue_redraw()
 
 func play_spawn() -> void:
@@ -73,6 +85,7 @@ func _process(delta: float) -> void:
 		return
 	idle_time += delta
 	position = idle_base_position + Vector2(0.0, sin(idle_time * 1.35 + idle_phase) * 5.5)
+	_layout_description_label()
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
@@ -98,18 +111,56 @@ func _draw() -> void:
 	var line_y = tile_rect.end.y + 37
 	draw_line(Vector2(18, line_y), Vector2(size.x - 18, line_y), Color(0.0, 0.0, 0.0, 1.0), 3.0)
 	draw_line(Vector2(19, line_y - 1), Vector2(size.x - 19, line_y - 1), rare_color, 2.0)
-	_draw_description(font, Rect2(Vector2(16, line_y + 15), Vector2(size.x - 32, size.y - line_y - 22)))
+	_layout_description_label()
 
 	if hover:
 		TileCardFrame.draw_rect_outline(self, rect.grow(-5.0), Color.WHITE, 4.0)
 
-func _draw_description(font: Font, rect: Rect2) -> void:
-	var lines = tile_describe.split("\n")
-	var y = rect.position.y + 17
-	for line in lines:
-		draw_string(font, Vector2(rect.position.x, y), line, HORIZONTAL_ALIGNMENT_LEFT, rect.size.x, 14, Color(0.92, 0.95, 1.0, 1.0))
-		y += 18
-
 func _animate_hover(target_scale: Vector2) -> void:
 	var tween = create_tween()
 	tween.tween_property(self, "scale", target_scale, 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+func _build_description_label() -> void:
+	description_text = RichTextLabel.new()
+	description_text.name = "DescriptionText"
+	description_text.bbcode_enabled = true
+	description_text.fit_content = false
+	description_text.scroll_active = false
+	description_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description_text.mouse_filter = Control.MOUSE_FILTER_STOP
+	description_text.add_theme_font_size_override("normal_font_size", 15)
+	description_text.gui_input.connect(_on_description_gui_input)
+	description_text.meta_hover_started.connect(_on_description_meta_hover_started)
+	description_text.meta_hover_ended.connect(_on_description_meta_hover_ended)
+	add_child(description_text)
+
+func _update_description_label() -> void:
+	if description_text == null:
+		return
+	description_text.text = RichDescription.to_bbcode(tile_describe)
+	_layout_description_label()
+
+func _layout_description_label() -> void:
+	if description_text == null or size.x <= 0.0 or size.y <= 0.0:
+		return
+	var tile_side = min(size.x * 0.52, size.y * 0.31)
+	var tile_bottom = 54.0 + tile_side
+	var line_y = tile_bottom + 37.0
+	description_text.position = Vector2(16.0, line_y + 13.0)
+	description_text.size = Vector2(size.x - 32.0, max(44.0, size.y - line_y - 26.0))
+
+func _on_description_meta_hover_started(meta) -> void:
+	var value = str(meta)
+	if value.begins_with("tile:"):
+		reference_hovered.emit(value.substr(5), get_global_mouse_position())
+
+func _on_description_meta_hover_ended(_meta) -> void:
+	if hover:
+		info_hovered.emit(tile_data, get_global_mouse_position())
+	else:
+		info_hidden.emit()
+
+func _on_description_gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		accept_event()
+		picked.emit(tile_index)

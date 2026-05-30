@@ -52,6 +52,7 @@ func is_triggerable() -> bool:
 	return not is_empty() and not bool(runtime_flags.get("temporarily_destroyed", false))
 
 func to_display_data() -> Dictionary:
+	var display_description = str(definition.get("displayDescription", definition.get("地块文案描述", definition.get("tile_display_description", definition.get("description", definition.get("tile_describe", ""))))))
 	return {
 		"id": id,
 		"instance_id": instance_id,
@@ -62,7 +63,9 @@ func to_display_data() -> Dictionary:
 		"tile_icon": int(definition.get("tile_icon", definition.get("icon", 0))),
 		"icon": int(definition.get("tile_icon", definition.get("icon", 0))),
 		"tile_rare": rarity,
-		"tile_describe": str(definition.get("description", definition.get("tile_describe", ""))),
+		"tile_describe": display_description,
+		"description": str(definition.get("description", definition.get("tile_describe", ""))),
+		"displayDescription": display_description,
 		"reward": base_coin,
 		"baseCoin": base_coin,
 		"color": _color_from_config(definition.get("color", [0.95, 0.36, 0.43, 1.0])),

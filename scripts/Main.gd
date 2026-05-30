@@ -12,6 +12,8 @@ const ScreenShake = preload("res://scripts/components/ScreenShake.gd")
 const BoardPath = preload("res://scripts/components/BoardPath.gd")
 const VectorBackground = preload("res://scripts/components/VectorBackground.gd")
 const RoundStartBanner = preload("res://scripts/components/RoundStartBanner.gd")
+const TileInfoTooltip = preload("res://scripts/components/TileInfoTooltip.gd")
+const RichDescription = preload("res://scripts/components/RichDescription.gd")
 const RunState = preload("res://scripts/domain/RunState.gd")
 const TileRuntime = preload("res://scripts/domain/Tile.gd")
 const TileDefinitions = preload("res://scripts/data/TileDefinitions.gd")
@@ -50,6 +52,7 @@ var round_flash: ColorRect
 var choice_overlay: Control
 var fail_overlay: Control
 var round_start_banner: Control
+var info_tooltip: Control
 var shaker: Node
 
 var tiles_data: Array[Dictionary] = []
@@ -97,6 +100,7 @@ func _load_game_definitions() -> void:
 	tile_definitions = TileDefinitions.all()
 	relic_definitions = RelicDefinitions.all()
 	buff_definitions = BuffLibrary.definitions()
+	RichDescription.configure_tile_index(tile_definitions)
 	reward_tile_ids = []
 	for tile_id in tile_definitions.keys():
 		if bool(tile_definitions[tile_id].get("selectable", false)):
@@ -245,6 +249,11 @@ func _build_overlays() -> void:
 	round_start_banner.visible = false
 	round_start_banner.z_index = 260
 	add_child(round_start_banner)
+
+	info_tooltip = TileInfoTooltip.new()
+	info_tooltip.name = "TileInfoTooltip"
+	info_tooltip.z_index = 900
+	add_child(info_tooltip)
 
 func _start_new_game() -> void:
 	round_number = 1
@@ -587,6 +596,9 @@ func _show_choice_overlay() -> void:
 		card.picked.connect(func(_idx: int) -> void:
 			_on_reward_tile_chosen(choice_data)
 		)
+		card.info_hovered.connect(_show_tile_tooltip)
+		card.info_hidden.connect(_hide_tile_tooltip)
+		card.reference_hovered.connect(_show_reference_tooltip)
 		choice_overlay.add_child(card)
 		card.play_spawn()
 		card.start_idle(float(i) * 0.75)
@@ -794,8 +806,22 @@ func _rebuild_board_tiles() -> void:
 		tile.position = tile_positions[i] - tile.size * 0.5
 		tile.pivot_offset = tile.size * 0.5
 		tile.picked.connect(_on_tile_picked)
+		tile.info_hovered.connect(_show_tile_tooltip)
+		tile.info_hidden.connect(_hide_tile_tooltip)
 		tile_layer.add_child(tile)
 		tile_nodes.append(tile)
+
+func _show_tile_tooltip(tile_data: Dictionary, anchor_global_pos: Vector2) -> void:
+	if info_tooltip == null:
+		return
+	info_tooltip.show_tile(tile_data, anchor_global_pos, get_viewport_rect())
+
+func _show_reference_tooltip(tile_id: String, anchor_global_pos: Vector2) -> void:
+	_show_tile_tooltip(_make_tile(tile_id), anchor_global_pos)
+
+func _hide_tile_tooltip() -> void:
+	if info_tooltip != null:
+		info_tooltip.hide_tooltip()
 
 func _position_pawns() -> void:
 	if tile_positions.is_empty():
