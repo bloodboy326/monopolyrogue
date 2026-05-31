@@ -46,7 +46,7 @@ static func _apply_configured(command: Dictionary, context, mode: Dictionary) ->
 		return []
 	if context.run_state.should_cleanup_after_battle(tile) or bool(tile.runtime_flags.get("temporary_tile", false)):
 		return _apply_permanent(command, context, mode)
-	return _apply_temporary(command, context, {"type": "temporary"})
+	return _apply_battle_removal(command, context, {"type": "battleTemporary"})
 
 static func _apply_permanent(command: Dictionary, context, mode: Dictionary) -> Array:
 	var index = _resolve_target_index(command, context)
@@ -62,14 +62,24 @@ static func _apply_permanent(command: Dictionary, context, mode: Dictionary) -> 
 	return _after_destroy_commands(context, destroyed_tile, index, mode)
 
 static func _apply_temporary(command: Dictionary, context, mode: Dictionary) -> Array:
+	return _apply_battle_removal(command, context, mode)
+
+static func _apply_battle_removal(command: Dictionary, context, mode: Dictionary) -> Array:
 	var index = _resolve_target_index(command, context)
 	if index == -1:
 		return []
-	var tile = context.run_state.board.get_tile(index)
-	tile.runtime_flags["temporarily_destroyed"] = true
-	context.turn_context.temporary_destroyed.append(tile.instance_id)
-	context.turn_context.emit_event("tile_temporarily_destroyed", {"tileIndex": index, "tileId": tile.id, "tileInstanceId": tile.instance_id})
-	return _after_destroy_commands(context, tile, index, mode)
+	var destroyed_tile = context.run_state.board.remove_tile(index)
+	if destroyed_tile == null:
+		return []
+	var restore_after_battle = not context.run_state.should_cleanup_after_battle(destroyed_tile) and not bool(destroyed_tile.runtime_flags.get("temporary_tile", false))
+	if restore_after_battle:
+		context.run_state.remember_battle_removed_tile(destroyed_tile, index)
+	else:
+		context.run_state.forget_temporary_tile(destroyed_tile.instance_id)
+	context.run_state.delete_count += 1
+	_reindex_dice_after_remove(context, index)
+	context.turn_context.emit_event("tile_destroyed", {"tileIndex": index, "tileId": destroyed_tile.id, "tileInstanceId": destroyed_tile.instance_id, "mode": mode.get("type", "battleTemporary"), "restoreAfterBattle": restore_after_battle})
+	return _after_destroy_commands(context, destroyed_tile, index, mode)
 
 static func _apply_after_turn(command: Dictionary, context, _mode: Dictionary) -> Array:
 	var index = _resolve_target_index(command, context)

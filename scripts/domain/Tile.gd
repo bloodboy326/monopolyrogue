@@ -75,7 +75,6 @@ func is_triggerable() -> bool:
 
 func to_display_data() -> Dictionary:
 	var display_description = str(definition.get("displayDescription", definition.get("description", definition.get("tile_describe", ""))))
-	var temporarily_destroyed = is_temporarily_destroyed()
 	return {
 		"id": id,
 		"instance_id": instance_id,
@@ -97,10 +96,9 @@ func to_display_data() -> Dictionary:
 		"counters": counters.duplicate(true),
 		"state": state.duplicate(true),
 		"runtime_flags": runtime_flags.duplicate(true),
-		"temporarilyDestroyed": temporarily_destroyed,
 		"durability": durability_remaining(),
 		"maxDurability": max_durability(),
-		"weak": is_weak() or temporarily_destroyed
+		"weak": is_weak()
 	}
 
 func _color_from_config(value) -> Color:

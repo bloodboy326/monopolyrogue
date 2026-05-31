@@ -22,6 +22,7 @@ var relic_definitions: Dictionary = {}
 var buff_definitions: Dictionary = {}
 var temporary_tile_instances: Array[String] = []
 var battle_reverts: Array[Dictionary] = []
+var battle_removed_tiles: Array[Dictionary] = []
 var turn_start_tile_spawns: Array[Dictionary] = []
 var rng = GameRng.new(1)
 var _tile_serial: int = 1
@@ -73,6 +74,7 @@ func setup(p_tile_definitions: Dictionary, p_relic_definitions: Dictionary, p_bu
 	buffs.clear()
 	temporary_tile_instances.clear()
 	battle_reverts.clear()
+	battle_removed_tiles.clear()
 	turn_start_tile_spawns.clear()
 	tile_pool.clear()
 	for id in tile_definitions.keys():
@@ -93,6 +95,7 @@ func _setup_starting_board(tile_ids: Array[String]) -> void:
 		board.tiles.append(create_tile(tile_id))
 
 func start_battle(new_battle_number: int, monster_def: Dictionary) -> void:
+	cleanup_round_temporary_tiles()
 	battle_number = new_battle_number
 	round_number = new_battle_number
 	battle_turn = 1
@@ -107,8 +110,10 @@ func start_battle(new_battle_number: int, monster_def: Dictionary) -> void:
 	all_pawns_next_rolls = 0
 	temporary_tile_instances.clear()
 	battle_reverts.clear()
+	battle_removed_tiles.clear()
 	turn_start_tile_spawns.clear()
 	_reset_battle_tile_state()
+	_assign_battle_restore_slots()
 	monster_id = str(monster_def.get("monster_id", "slime_boss"))
 	monster_name = str(monster_def.get("name", monster_id))
 	monster_max_hp = int(monster_def.get("max_hp", 80))
@@ -186,6 +191,16 @@ func _reset_battle_tile_state() -> void:
 		if tile != null:
 			tile.reset_battle_state()
 
+func _assign_battle_restore_slots() -> void:
+	var slot = 0
+	for tile in board.tiles:
+		if tile == null:
+			continue
+		if bool(tile.runtime_flags.get("temporary_tile", false)):
+			continue
+		tile.runtime_flags["battle_restore_slot"] = slot
+		slot += 1
+
 func should_cleanup_after_battle(tile) -> bool:
 	if tile == null:
 		return false
@@ -249,6 +264,8 @@ func apply_turn_start_tile_spawns() -> Array[Dictionary]:
 			reindex_dice_after_insert(insert_at)
 			if should_cleanup_after_battle(tile):
 				register_temporary_tile(tile)
+			else:
+				register_persistent_battle_tile(tile, insert_at)
 			events.append({"type": "tile_generated", "tileIndex": insert_at, "tileId": tile.id, "tileInstanceId": tile.instance_id, "temporary": bool(tile.runtime_flags.get("temporary_tile", false))})
 	return events
 
@@ -263,6 +280,55 @@ func remember_battle_revert(new_instance_id: String, original_tile_id: String) -
 		if str(item.get("instance_id", "")) == new_instance_id:
 			return
 	battle_reverts.append({"instance_id": new_instance_id, "original_tile_id": original_tile_id})
+
+func remember_battle_removed_tile(tile, current_index: int) -> void:
+	if tile == null:
+		return
+	var restore_slot = int(tile.runtime_flags.get("battle_restore_slot", _persistent_slot_for_index(current_index)))
+	var restore_tile_id = tile.id
+	for item in battle_reverts.duplicate(true):
+		if str(item.get("instance_id", "")) == tile.instance_id:
+			restore_tile_id = str(item.get("original_tile_id", tile.id))
+			battle_reverts.erase(item)
+			break
+	for item in battle_removed_tiles:
+		if str(item.get("instance_id", "")) == tile.instance_id:
+			return
+	battle_removed_tiles.append({
+		"instance_id": tile.instance_id,
+		"tile_id": restore_tile_id,
+		"restore_slot": restore_slot
+	})
+
+func register_persistent_battle_tile(tile, insert_index: int) -> void:
+	if tile == null:
+		return
+	if bool(tile.runtime_flags.get("temporary_tile", false)):
+		return
+	var slot = _persistent_slot_for_index(insert_index)
+	for other in board.tiles:
+		if other == null or other == tile:
+			continue
+		if bool(other.runtime_flags.get("temporary_tile", false)):
+			continue
+		if int(other.runtime_flags.get("battle_restore_slot", -1)) >= slot:
+			other.runtime_flags["battle_restore_slot"] = int(other.runtime_flags.get("battle_restore_slot", 0)) + 1
+	for item in battle_removed_tiles:
+		if int(item.get("restore_slot", 0)) >= slot:
+			item["restore_slot"] = int(item.get("restore_slot", 0)) + 1
+	tile.runtime_flags["battle_restore_slot"] = slot
+
+func _persistent_slot_for_index(index: int) -> int:
+	var slot = 0
+	var limit = clamp(index, 0, board.size())
+	for i in range(limit):
+		var tile = board.get_tile(i)
+		if tile == null:
+			continue
+		if bool(tile.runtime_flags.get("temporary_tile", false)):
+			continue
+		slot += 1
+	return slot
 
 func reindex_dice_after_insert(insert_index: int) -> void:
 	for dice_state in dice.values():
@@ -312,9 +378,31 @@ func cleanup_battle_temporary_tiles() -> Array[Dictionary]:
 	temporary_tile_instances.clear()
 	return removed
 
+func cleanup_battle_removed_tiles() -> Array[Dictionary]:
+	var events: Array[Dictionary] = []
+	battle_removed_tiles.sort_custom(func(a, b): return int(a.get("restore_slot", 0)) < int(b.get("restore_slot", 0)))
+	for item in battle_removed_tiles:
+		var tile_id = str(item.get("tile_id", "T000"))
+		var restore_slot = int(item.get("restore_slot", board.size()))
+		var restored = create_tile(tile_id)
+		var insert_at = clamp(restore_slot, 0, board.size())
+		board.insert_tile(insert_at, restored)
+		reindex_dice_after_insert(insert_at)
+		events.append({
+			"type": "tile_generated",
+			"tileIndex": insert_at,
+			"tileId": restored.id,
+			"tileInstanceId": restored.instance_id,
+			"temporary": false,
+			"restored": true
+		})
+	battle_removed_tiles.clear()
+	return events
+
 func cleanup_round_temporary_tiles() -> Array[Dictionary]:
 	var events = cleanup_battle_reverts()
 	events.append_array(cleanup_battle_temporary_tiles())
+	events.append_array(cleanup_battle_removed_tiles())
 	return events
 
 func cleanup_round_buffs() -> void:

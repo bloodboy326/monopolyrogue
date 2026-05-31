@@ -298,6 +298,8 @@ func _generate_tile(command: Dictionary, context) -> Array:
 	if context.run_state.should_cleanup_after_battle(tile) or bool(command.get("forceTemporary", false)):
 		context.run_state.register_temporary_tile(tile)
 		context.turn_context.temporary_tiles.append(tile.instance_id)
+	else:
+		context.run_state.register_persistent_battle_tile(tile, insert_at)
 	context.turn_context.emit_event("tile_generated", {"tileIndex": insert_at, "tileId": tile.id, "tileInstanceId": tile.instance_id, "temporary": bool(tile.runtime_flags.get("temporary_tile", false))})
 	return HookBus.collect("afterGenerateTile", context, {"tileIndex": insert_at, "tile": tile})
 
@@ -377,6 +379,10 @@ func _copy_tile(command: Dictionary, context) -> Array:
 	var insert_at = clamp(target_index, 0, context.run_state.board.size())
 	context.run_state.board.insert_tile(insert_at, copy)
 	context.run_state.reindex_dice_after_insert(insert_at)
+	if bool(copy.runtime_flags.get("temporary_tile", false)):
+		context.run_state.register_temporary_tile(copy)
+	else:
+		context.run_state.register_persistent_battle_tile(copy, insert_at)
 	context.turn_context.emit_event("tile_copied", {"sourceIndex": source_index, "targetIndex": insert_at, "tileId": source_tile.id})
 	return []
 

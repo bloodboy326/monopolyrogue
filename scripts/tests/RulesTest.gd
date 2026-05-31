@@ -19,7 +19,7 @@ func _ready() -> void:
 	buff_defs = BuffLibrary.definitions()
 	_test_basic_attack_and_block()
 	_test_roll_energy_and_self_destroy()
-	_test_temporary_destroyed_tile_does_not_trigger_again_same_battle()
+	_test_battle_removed_tile_restores_after_battle()
 	_test_combo_damage_counts_this_turn()
 	_test_quick_shot_counters()
 	_test_warp_pass_effects()
@@ -73,19 +73,20 @@ func _test_roll_energy_and_self_destroy() -> void:
 	var run = _new_run(["T012"], 2)
 	_roll(run, 0, 1)
 	_assert(run.turn_rolls_left == 4, "again charge spends 1 roll then adds 2 rolls")
-	_assert(run.board.size() == 1 and not run.board.get_tile(0).is_triggerable(), "non-cleanup self destroy is temporary for the battle")
+	_assert(run.board.size() == 0, "non-cleanup self destroy removes the tile during the battle")
 	run.start_battle(2, {"monster_id": "test", "name": "测试怪", "max_hp": 100, "art_key": "slime"})
 	_assert(run.board.size() == 1 and run.board.get_tile(0).is_triggerable(), "temporary destroyed tile restores next battle")
 
-func _test_temporary_destroyed_tile_does_not_trigger_again_same_battle() -> void:
-	var run = _new_run(["T032", "T014"], 12)
-	var first_turn = _roll(run, 1, 1)
-	_assert(_has_event(first_turn.events, "tile_temporarily_destroyed"), "self destroy emits temporary destroy event")
-	_assert(not run.board.get_tile(0).is_triggerable(), "self destroyed tile cannot trigger again this battle")
-	_assert(bool(run.board.get_tile(0).to_display_data().get("temporarilyDestroyed", false)), "display data exposes temporary destroyed state")
-	_assert(run.board.get_tile(1).durability_remaining() == 6, "charge adds durability once")
-	_roll(run, 1, 1)
-	_assert(run.board.get_tile(1).durability_remaining() == 6, "temporary destroyed tile does not trigger again in the same battle")
+func _test_battle_removed_tile_restores_after_battle() -> void:
+	var run = _new_run(["T032", "T014", "T001"], 12)
+	var first_turn = _roll(run, 2, 1)
+	_assert(_has_event(first_turn.events, "tile_destroyed"), "self destroy emits tile destroyed event")
+	_assert(run.board.size() == 2 and run.board.get_tile(0).id == "T014", "self destroyed tile leaves the board during the battle")
+	_assert(run.board.get_tile(0).durability_remaining() == 6, "charge adds durability once")
+	run.cleanup_round_temporary_tiles()
+	_assert(run.board.size() == 3 and run.board.get_tile(0).id == "T032", "battle removed tile restores at its original slot")
+	run.start_battle(2, {"monster_id": "test", "name": "测试怪", "max_hp": 100, "art_key": "slime"})
+	_assert(run.board.get_tile(1).durability_remaining() == 3, "restored next battle resets durability")
 
 func _test_combo_damage_counts_this_turn() -> void:
 	var run = _new_run(["T006"], 3)
@@ -119,7 +120,7 @@ func _test_destroy_next_tile_triggers_destroy_effect() -> void:
 	_assert(run.get_counter("battle", "destroy_next_tile") == 1, "demolition arms next tile destruction")
 	_roll(run, 0, 1)
 	_assert(run.monster_hp == 80, "destroyed rotten hilt deals destroy damage only")
-	_assert(run.board.size() == 2 and not run.board.get_tile(1).is_triggerable(), "non-cleanup destroyed target stays in place for the battle")
+	_assert(run.board.size() == 1, "non-cleanup destroyed target leaves the board during the battle")
 
 func _test_durability_and_weak_state() -> void:
 	var run = _new_run(["T046"], 8)
@@ -138,11 +139,11 @@ func _test_turn_start_generated_tiles_cleanup() -> void:
 	_roll(run, 0, 1)
 	run.begin_player_turn(3)
 	var events = run.apply_turn_start_tile_spawns()
-	_assert(not events.is_empty() and run.board.size() == 2, "turn start generator adds a tile")
-	var generated = run.board.get_tile(int(events[0].get("tileIndex", 1)))
+	_assert(not events.is_empty() and run.board.size() == 1, "turn start generator adds a tile after source leaves the board")
+	var generated = run.board.get_tile(int(events[0].get("tileIndex", 0)))
 	_assert(generated.id == "T017" and bool(generated.runtime_flags.get("temporary_tile", false)), "turn start generated quick shot is marked for battle cleanup")
 	run.cleanup_round_temporary_tiles()
-	_assert(run.board.size() == 1, "battle cleanup removes generated cleanup tiles")
+	_assert(run.board.size() == 1 and run.board.get_tile(0).id == "T023", "battle cleanup removes generated cleanup tiles and restores source")
 
 func _test_monster_block_expires_and_reports_full_block() -> void:
 	var run = _new_run(["T001"], 10)

@@ -47,16 +47,11 @@ func _ready() -> void:
 	stack.add_child(description_label)
 
 func show_tile(tile_data: Dictionary, anchor_global_pos: Vector2, viewport_rect: Rect2) -> void:
-	var destroyed = bool(tile_data.get("temporarilyDestroyed", false)) or bool(tile_data.get("runtime_flags", {}).get("temporarily_destroyed", false))
-	var title = str(tile_data.get("tile_name", tile_data.get("name", "")))
-	title_label.text = "已销毁 " + title if destroyed else title
+	title_label.text = str(tile_data.get("tile_name", tile_data.get("name", "")))
 	var rarity = str(tile_data.get("tile_rare", tile_data.get("rarity", "普通")))
 	rarity_label.text = rarity
 	rarity_label.add_theme_color_override("font_color", rarity_colors.get(rarity, Color.WHITE))
-	var description = str(tile_data.get("tile_describe", tile_data.get("description", "")))
-	if destroyed:
-		description = "本场战斗已销毁，不会再次触发。下一场战斗会恢复。\n" + description
-	description_label.text = RichDescription.to_bbcode(description)
+	description_label.text = RichDescription.to_bbcode(str(tile_data.get("tile_describe", tile_data.get("description", ""))))
 	var desc_len = description_label.get_parsed_text().length()
 	var estimated_lines = max(2, int(ceil(float(desc_len) / 14.0)))
 	custom_minimum_size = Vector2(276, 88 + estimated_lines * 22)
