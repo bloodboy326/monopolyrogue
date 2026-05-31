@@ -169,8 +169,9 @@ func _test_new_tile_text_is_configured() -> void:
 		_assert(not str(tile.get("name", "")).contains("?") and not str(tile.get("displayDescription", "")).contains("?"), "%s has readable tile text" % tile_id)
 
 func _test_generated_tile_icons_exist() -> void:
-	for i in range(1, 11):
-		var tile_id = "T%03d" % i
+	for tile_id in tile_defs.keys():
+		if tile_id == "T000":
+			continue
 		_assert(GeneratedTileIcon.get_texture(tile_id) != null, "%s generated tile icon exists" % tile_id)
 
 func _test_group_monsters_take_targeted_damage() -> void:
