@@ -2,22 +2,27 @@
   "battles": [
     {
       "battle": 1,
-      "monster_id": "red_louse",
+      "monster_id": "normal_goblin",
       "rolls": 3
     },
     {
       "battle": 2,
-      "monster_id": "jaw_worm",
+      "monster_id": "slime_baby",
       "rolls": 3
     },
     {
       "battle": 3,
-      "monster_id": "clacker",
+      "monster_id": "goblin_group",
       "rolls": 3
     },
     {
       "battle": 4,
-      "monster_id": "slime_boss",
+      "monster_id": "headless_knight",
+      "rolls": 3
+    },
+    {
+      "battle": 5,
+      "monster_id": "void_eye",
       "rolls": 3
     }
   ],
@@ -122,21 +127,21 @@
     },
     {
       "monster_id": "normal_goblin",
-      "name": "?????",
+      "name": "普通哥布林",
       "max_hp": 38,
       "start_phase": "normal_goblin_p1",
       "art_key": "normal_goblin"
     },
     {
       "monster_id": "slime_baby",
-      "name": "?????",
+      "name": "史莱姆宝宝",
       "max_hp": 42,
       "start_phase": "slime_baby_p1",
       "art_key": "slime_baby"
     },
     {
       "monster_id": "goblin_group",
-      "name": "????",
+      "name": "哥布林小队",
       "max_hp": 114,
       "start_phase": "",
       "art_key": "normal_goblin",
@@ -154,14 +159,14 @@
     },
     {
       "monster_id": "headless_knight",
-      "name": "????",
+      "name": "无头骑士",
       "max_hp": 85,
       "start_phase": "headless_knight_p1",
       "art_key": "headless_knight"
     },
     {
       "monster_id": "void_eye",
-      "name": "????",
+      "name": "虚空大眼",
       "max_hp": 180,
       "start_phase": "void_eye_p1",
       "art_key": "void_eye"
@@ -1368,108 +1373,108 @@
       "intent_id": "goblin_stab",
       "intent_type": "ATTACK",
       "intent_role": "DAMAGE",
-      "name": "??",
-      "telegraph": "?? 8",
-      "description": "??8???",
+      "name": "短刀突刺",
+      "telegraph": "攻击 8",
+      "description": "造成8点伤害",
       "threat_level": 1
     },
     {
       "intent_id": "goblin_guard",
       "intent_type": "DEFEND",
       "intent_role": "DEFENSE",
-      "name": "??",
-      "telegraph": "??",
-      "description": "??6???",
+      "name": "举盾",
+      "telegraph": "防御 6",
+      "description": "获得6点护甲",
       "threat_level": 1
     },
     {
       "intent_id": "goblin_rally",
       "intent_type": "SPECIAL",
       "intent_role": "SCALING",
-      "name": "??",
-      "telegraph": "??+3",
-      "description": "??3???",
+      "name": "战吼",
+      "telegraph": "力量 +3",
+      "description": "获得3点力量",
       "threat_level": 2
     },
     {
       "intent_id": "slime_baby_splash",
       "intent_type": "ATTACK",
       "intent_role": "DAMAGE",
-      "name": "????",
-      "telegraph": "?? 10",
-      "description": "??10???",
+      "name": "酸液扑击",
+      "telegraph": "攻击 10",
+      "description": "造成10点伤害",
       "threat_level": 1
     },
     {
       "intent_id": "slime_baby_bubble",
       "intent_type": "DEFEND",
       "intent_role": "DEFENSE",
-      "name": "????",
-      "telegraph": "??",
-      "description": "??5???",
+      "name": "凝胶护壳",
+      "telegraph": "防御 5",
+      "description": "获得5点护甲",
       "threat_level": 1
     },
     {
       "intent_id": "slime_baby_mud",
       "intent_type": "BOARD",
       "intent_role": "CONTROL",
-      "name": "???",
-      "telegraph": "????",
-      "description": "??2?????",
+      "name": "吐出淤泥",
+      "telegraph": "塞入淤泥",
+      "description": "加入2个淤泥地块",
       "threat_level": 2
     },
     {
       "intent_id": "headless_swing",
       "intent_type": "ATTACK",
       "intent_role": "DAMAGE",
-      "name": "??",
-      "telegraph": "?? 22",
-      "description": "??22???",
+      "name": "骑枪横扫",
+      "telegraph": "攻击 22",
+      "description": "造成22点伤害",
       "threat_level": 2
     },
     {
       "intent_id": "headless_flame_combo",
       "intent_type": "ATTACK",
       "intent_role": "DAMAGE",
-      "name": "??",
-      "telegraph": "????",
-      "description": "???????????",
+      "name": "踏火冲锋",
+      "telegraph": "烈火追击",
+      "description": "每个烈火地块造成6点伤害",
       "threat_level": 2
     },
     {
       "intent_id": "headless_wildfire",
       "intent_type": "BOARD",
       "intent_role": "CONTROL",
-      "name": "??",
-      "telegraph": "????",
-      "description": "??2?????",
+      "name": "野火蔓延",
+      "telegraph": "生成烈火",
+      "description": "加入2个烈火地块",
       "threat_level": 2
     },
     {
       "intent_id": "void_gaze",
       "intent_type": "ATTACK",
       "intent_role": "DAMAGE",
-      "name": "??",
-      "telegraph": "?? 18",
-      "description": "??18???",
+      "name": "虚空凝视",
+      "telegraph": "攻击 18",
+      "description": "造成18点伤害",
       "threat_level": 2
     },
     {
       "intent_id": "void_lock",
       "intent_type": "SPECIAL",
       "intent_role": "CONTROL",
-      "name": "??",
-      "telegraph": "????",
-      "description": "??????????????????????",
+      "name": "凝滞瞳光",
+      "telegraph": "封锁骰子",
+      "description": "下回合随机封锁2颗骰子，至少保留1颗可用",
       "threat_level": 3
     },
     {
       "intent_id": "void_stun",
       "intent_type": "BOARD",
       "intent_role": "CONTROL",
-      "name": "??",
-      "telegraph": "????",
-      "description": "??3?????",
+      "name": "眩光污染",
+      "telegraph": "塞入晕眩",
+      "description": "加入3个晕眩地块",
       "threat_level": 2
     }
   ],

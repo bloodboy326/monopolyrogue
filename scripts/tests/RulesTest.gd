@@ -27,9 +27,11 @@ func _ready() -> void:
 	_test_durability_and_weak_state()
 	_test_turn_start_generated_tiles_cleanup()
 	_test_monster_block_expires_and_reports_full_block()
+	_test_new_tile_text_is_configured()
 	_test_group_monsters_take_targeted_damage()
 	_test_group_monsters_keep_independent_block()
 	_test_monster_tables_include_new_flow()
+	_test_new_monster_text_is_configured()
 	_test_act_map_tables_include_first_act()
 	print("RULES_OK tests=%d" % passed)
 	get_tree().quit()
@@ -157,6 +159,13 @@ func _test_monster_block_expires_and_reports_full_block() -> void:
 	run.begin_monster_turn()
 	_assert(run.monster_block == 0, "monster block expires before the monster acts again")
 
+func _test_new_tile_text_is_configured() -> void:
+	for tile_id in ["T059", "T060", "T061", "T062", "T063", "T064", "T065"]:
+		var tile = tile_defs.get(tile_id, {})
+		_assert(not str(tile.get("name", "")).is_empty(), "%s has a configured tile name" % tile_id)
+		_assert(not str(tile.get("displayDescription", "")).is_empty(), "%s has a configured tile description" % tile_id)
+		_assert(not str(tile.get("name", "")).contains("?") and not str(tile.get("displayDescription", "")).contains("?"), "%s has readable tile text" % tile_id)
+
 func _test_group_monsters_take_targeted_damage() -> void:
 	var config = MonsterConfig.load_config()
 	var group_def = MonsterConfig.encounter(config, "goblin_group")
@@ -183,14 +192,24 @@ func _test_group_monsters_keep_independent_block() -> void:
 
 func _test_monster_tables_include_new_flow() -> void:
 	var config = MonsterConfig.load_config()
-	_assert(MonsterConfig.battle_count(config) == 4, "test flow has four configured battles")
-	_assert(str(MonsterConfig.battle_for(config, 1).get("monster_id", "")) == "red_louse", "battle 1 uses red louse")
-	_assert(str(MonsterConfig.battle_for(config, 2).get("monster_id", "")) == "jaw_worm", "battle 2 uses jaw worm")
-	_assert(str(MonsterConfig.battle_for(config, 3).get("monster_id", "")) == "clacker", "battle 3 uses clacker")
-	_assert(str(MonsterConfig.battle_for(config, 4).get("monster_id", "")) == "slime_boss", "battle 4 uses slime boss")
+	_assert(MonsterConfig.battle_count(config) == 5, "test flow has five configured battles")
+	_assert(str(MonsterConfig.battle_for(config, 1).get("monster_id", "")) == "normal_goblin", "battle 1 uses normal goblin")
+	_assert(str(MonsterConfig.battle_for(config, 2).get("monster_id", "")) == "slime_baby", "battle 2 uses slime baby")
+	_assert(str(MonsterConfig.battle_for(config, 3).get("monster_id", "")) == "goblin_group", "battle 3 uses goblin group")
+	_assert(str(MonsterConfig.battle_for(config, 4).get("monster_id", "")) == "headless_knight", "battle 4 uses headless knight")
+	_assert(str(MonsterConfig.battle_for(config, 5).get("monster_id", "")) == "void_eye", "battle 5 uses void eye")
 	_assert(not MonsterConfig.effects_for_intent(config, "clacker_jam").is_empty(), "clacker jam has configured effects")
 	_assert(not MonsterConfig.effects_for_intent(config, "void_lock").is_empty(), "new void eye intent has configured effects")
 	_assert(MonsterConfig.encounter(config, "goblin_group").get("units", []).size() == 3, "goblin group is configured as three enemies")
+
+func _test_new_monster_text_is_configured() -> void:
+	var config = MonsterConfig.load_config()
+	for monster_id in ["normal_goblin", "slime_baby", "goblin_group", "headless_knight", "void_eye"]:
+		var monster = MonsterConfig.monster(config, monster_id)
+		_assert(not str(monster.get("name", "")).contains("?"), "%s has a readable configured name" % monster_id)
+	for intent_id in ["goblin_stab", "slime_baby_mud", "headless_flame_combo", "void_lock", "void_stun"]:
+		var intent = config.get("intents_by_id", {}).get(intent_id, {})
+		_assert(not str(intent.get("name", "")).contains("?") and not str(intent.get("telegraph", "")).contains("?"), "%s has readable configured intent text" % intent_id)
 
 func _test_act_map_tables_include_first_act() -> void:
 	var map_config = MapConfig.load_config()
