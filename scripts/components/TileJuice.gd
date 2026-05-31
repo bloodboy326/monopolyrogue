@@ -5,9 +5,11 @@ signal info_hovered(tile_data: Dictionary, anchor_global_pos: Vector2)
 signal info_hidden
 
 const TileCardFrame = preload("res://scripts/components/TileCardFrame.gd")
+const GeneratedTileIcon = preload("res://scripts/components/GeneratedTileIcon.gd")
 const VectorTileIcon = preload("res://scripts/components/VectorTileIcon.gd")
 
 var tile_index = 0
+var tile_id = "T000"
 var tile_name = "集市"
 var tile_kind = "market"
 var reward = 3
@@ -31,6 +33,7 @@ func _ready() -> void:
 func setup(index: int, data: Dictionary) -> void:
 	tile_data = data.duplicate(true)
 	tile_index = index
+	tile_id = str(data.get("id", "T000"))
 	tile_name = str(data.get("tile_name", data.get("name", "集市")))
 	tile_kind = str(data.get("kind", "market"))
 	reward = int(data.get("reward", 3))
@@ -105,8 +108,9 @@ func _gui_input(event: InputEvent) -> void:
 func _draw() -> void:
 	var r = Rect2(Vector2.ZERO, size)
 	var radius = min(size.x, size.y) * 0.14
-	TileCardFrame.draw_icon_card(self, r.grow(-3.0), base_color, radius)
-	_draw_tile_icon()
+	if not GeneratedTileIcon.draw(self, tile_id, r.grow(-2.0)):
+		TileCardFrame.draw_icon_card(self, r.grow(-3.0), base_color, radius)
+		_draw_tile_icon()
 	if max_durability > 0:
 		_draw_durability_badge(r)
 	if weak:

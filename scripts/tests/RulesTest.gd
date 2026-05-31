@@ -7,6 +7,7 @@ const BuffLibrary = preload("res://scripts/buffs/BuffLibrary.gd")
 const TurnResolver = preload("res://scripts/systems/TurnResolver.gd")
 const MonsterConfig = preload("res://scripts/data/MonsterConfig.gd")
 const MapConfig = preload("res://scripts/data/MapConfig.gd")
+const GeneratedTileIcon = preload("res://scripts/components/GeneratedTileIcon.gd")
 
 var tile_defs: Dictionary
 var relic_defs: Dictionary
@@ -28,6 +29,7 @@ func _ready() -> void:
 	_test_turn_start_generated_tiles_cleanup()
 	_test_monster_block_expires_and_reports_full_block()
 	_test_new_tile_text_is_configured()
+	_test_generated_tile_icons_exist()
 	_test_group_monsters_take_targeted_damage()
 	_test_group_monsters_keep_independent_block()
 	_test_monster_tables_include_new_flow()
@@ -165,6 +167,11 @@ func _test_new_tile_text_is_configured() -> void:
 		_assert(not str(tile.get("name", "")).is_empty(), "%s has a configured tile name" % tile_id)
 		_assert(not str(tile.get("displayDescription", "")).is_empty(), "%s has a configured tile description" % tile_id)
 		_assert(not str(tile.get("name", "")).contains("?") and not str(tile.get("displayDescription", "")).contains("?"), "%s has readable tile text" % tile_id)
+
+func _test_generated_tile_icons_exist() -> void:
+	for i in range(1, 11):
+		var tile_id = "T%03d" % i
+		_assert(GeneratedTileIcon.get_texture(tile_id) != null, "%s generated tile icon exists" % tile_id)
 
 func _test_group_monsters_take_targeted_damage() -> void:
 	var config = MonsterConfig.load_config()

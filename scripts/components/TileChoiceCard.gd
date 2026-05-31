@@ -6,10 +6,12 @@ signal info_hidden
 signal reference_hovered(tile_id: String, anchor_global_pos: Vector2)
 
 const TileCardFrame = preload("res://scripts/components/TileCardFrame.gd")
+const GeneratedTileIcon = preload("res://scripts/components/GeneratedTileIcon.gd")
 const VectorTileIcon = preload("res://scripts/components/VectorTileIcon.gd")
 const RichDescription = preload("res://scripts/components/RichDescription.gd")
 
 var tile_index = 0
+var tile_id = "T000"
 var tile_name = ""
 var tile_kind = ""
 var tile_icon = 0
@@ -52,6 +54,7 @@ func _ready() -> void:
 func setup(index: int, data: Dictionary) -> void:
 	tile_data = data.duplicate(true)
 	tile_index = index
+	tile_id = str(data.get("id", "T000"))
 	tile_name = str(data.get("tile_name", data.get("name", "")))
 	tile_kind = str(data.get("kind", ""))
 	tile_icon = int(data.get("tile_icon", data.get("icon", 0)))
@@ -99,10 +102,11 @@ func _draw() -> void:
 	draw_string(font, Vector2(12, 30), tile_name, HORIZONTAL_ALIGNMENT_LEFT, size.x - 24.0, 20, Color.WHITE)
 	var tile_side = min(size.x * 0.52, size.y * 0.31)
 	var tile_rect = Rect2(Vector2(size.x * 0.5 - tile_side * 0.5, 54), Vector2(tile_side, tile_side))
-	TileCardFrame.draw_icon_card(self, tile_rect, base_color, max(7.0, tile_side * 0.10))
-	var icon_side = tile_side * 0.84
-	var icon_rect = Rect2(tile_rect.get_center() - Vector2(icon_side, icon_side) * 0.5, Vector2(icon_side, icon_side))
-	VectorTileIcon.draw_icon(self, tile_kind, tile_icon, icon_rect, base_color, accent_color)
+	if not GeneratedTileIcon.draw(self, tile_id, tile_rect):
+		TileCardFrame.draw_icon_card(self, tile_rect, base_color, max(7.0, tile_side * 0.10))
+		var icon_side = tile_side * 0.84
+		var icon_rect = Rect2(tile_rect.get_center() - Vector2(icon_side, icon_side) * 0.5, Vector2(icon_side, icon_side))
+		VectorTileIcon.draw_icon(self, tile_kind, tile_icon, icon_rect, base_color, accent_color)
 	draw_string(font, Vector2(0, tile_rect.end.y + 27), tile_rare, HORIZONTAL_ALIGNMENT_CENTER, size.x, 17, rare_color)
 	var line_y = tile_rect.end.y + 37
 	draw_line(Vector2(18, line_y), Vector2(size.x - 18, line_y), Color.BLACK, 3.0)
