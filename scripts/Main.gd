@@ -845,7 +845,7 @@ func _show_run_complete_overlay() -> void:
 	title.position = Vector2(viewport_size.x * 0.5 - 220, viewport_size.y * 0.28)
 	title.size = Vector2(440, 60)
 	fail_overlay.add_child(title)
-	var detail = _make_label("三关史莱姆全部击败，剩余生命 %d / %d" % [run_state.player_hp, run_state.player_max_hp], 24, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
+	var detail = _make_label("%d 关怪物全部击败，剩余生命 %d / %d" % [MonsterConfig.battle_count(monster_config), run_state.player_hp, run_state.player_max_hp], 24, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
 	detail.position = Vector2(viewport_size.x * 0.5 - 340, viewport_size.y * 0.4)
 	detail.size = Vector2(680, 42)
 	fail_overlay.add_child(detail)
