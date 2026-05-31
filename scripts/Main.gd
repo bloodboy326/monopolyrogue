@@ -24,17 +24,20 @@ const TileRuntime = preload("res://scripts/domain/Tile.gd")
 const TileDefinitions = preload("res://scripts/data/TileDefinitions.gd")
 const RelicDefinitions = preload("res://scripts/data/RelicDefinitions.gd")
 const MonsterConfig = preload("res://scripts/data/MonsterConfig.gd")
+const MapConfig = preload("res://scripts/data/MapConfig.gd")
 const BuffLibrary = preload("res://scripts/buffs/BuffLibrary.gd")
 const TurnResolver = preload("res://scripts/systems/TurnResolver.gd")
 const EffectResolver = preload("res://scripts/effects/EffectResolver.gd")
 const TurnContext = preload("res://scripts/domain/TurnContext.gd")
 const ResolveContext = preload("res://scripts/domain/ResolveContext.gd")
+const ActMapOverlay = preload("res://scripts/components/ActMapOverlay.gd")
 
 const BOARD_VIEW_SCALE = 1.0
 const BOARD_START_ANGLE = -PI * 0.5
 
 var rng = RandomNumberGenerator.new()
 var monster_config: Dictionary = {}
+var map_config: Dictionary = {}
 var tile_definitions: Dictionary = {}
 var relic_definitions: Dictionary = {}
 var buff_definitions: Dictionary = {}
@@ -67,6 +70,7 @@ var roll_result_label: Label
 var action_banner: Label
 var cancel_action_button: Button
 var round_flash: ColorRect
+var map_overlay
 var choice_overlay: Control
 var fail_overlay: Control
 var info_tooltip: Control
@@ -92,6 +96,10 @@ var color_defs = {
 var pawn_names = {"red": "红棋", "blue": "蓝棋", "green": "绿棋"}
 
 var battle_number = 1
+var current_battle_rolls = 3
+var act_map: Dictionary = {}
+var current_map_node_id := ""
+var selected_map_node: Dictionary = {}
 var total_rolls = 3
 var rolls_left = 3
 var pending_roll_value = 0
@@ -113,6 +121,7 @@ func _load_game_definitions() -> void:
 	relic_definitions = RelicDefinitions.all()
 	buff_definitions = BuffLibrary.definitions()
 	monster_config = MonsterConfig.load_config()
+	map_config = MapConfig.load_config()
 	RichDescription.configure_tile_index(tile_definitions)
 
 func _build_scene() -> void:
@@ -315,6 +324,14 @@ func _build_pawns() -> void:
 		pawn_layer.add_child(pawn)
 
 func _build_overlays() -> void:
+	map_overlay = ActMapOverlay.new()
+	map_overlay.name = "ActMapOverlay"
+	map_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	map_overlay.visible = false
+	map_overlay.z_index = 180
+	map_overlay.node_selected.connect(_on_map_node_selected)
+	add_child(map_overlay)
+
 	choice_overlay = Control.new()
 	choice_overlay.name = "ChoiceOverlay"
 	choice_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -336,20 +353,69 @@ func _build_overlays() -> void:
 
 func _start_new_game() -> void:
 	battle_number = 1
+	current_battle_rolls = 3
+	current_map_node_id = ""
+	selected_map_node.clear()
+	act_map = MapConfig.generate_act_map(map_config, 1, rng)
 	run_state = RunState.new()
 	run_state.setup(tile_definitions, relic_definitions, buff_definitions, rng.randi(), "T001", 6)
-	_start_battle()
+	_show_map()
+
+func _show_map() -> void:
+	if act_map.is_empty():
+		_start_battle()
+		return
+	mode = "map"
+	roll_locked = true
+	_clear_roll_preview()
+	_set_dice_selectable(false)
+	choice_overlay.visible = false
+	fail_overlay.visible = false
+	map_overlay.visible = true
+	map_overlay.setup(act_map, current_map_node_id)
+	_set_action_banner("")
+	_update_ui()
+
+func _on_map_node_selected(node_id: String) -> void:
+	if not MapConfig.is_node_available(act_map, current_map_node_id, node_id):
+		return
+	var node = MapConfig.node_for(act_map, node_id)
+	if node.is_empty():
+		return
+	_sfx("ui_click", -2.5)
+	selected_map_node = node
+	current_map_node_id = node_id
+	if str(node.get("room_type", "MONSTER")) == "REST":
+		_resolve_rest_node()
+		return
+	var monster_id = MapConfig.pick_monster_for_node(map_config, node, rng)
+	var monster_def = MonsterConfig.monster(monster_config, monster_id)
+	if monster_def.is_empty():
+		monster_def = MonsterConfig.monster(monster_config, "slime_boss")
+	_begin_battle(monster_def, int(node.get("floor", battle_number)), int(node.get("rolls", 3)))
+
+func _resolve_rest_node() -> void:
+	if run_state != null:
+		var heal_amount = max(1, int(ceil(float(run_state.player_max_hp) * 0.18)))
+		run_state.player_hp = min(run_state.player_max_hp, run_state.player_hp + heal_amount)
+		_sfx("player_block", -4.0, 1.05)
+	_show_map()
 
 func _start_battle() -> void:
 	var max_battles = MonsterConfig.battle_count(monster_config)
 	if battle_number > max_battles:
 		_show_run_complete_overlay()
 		return
-	_sfx("turn_start", -4.0)
 	var battle = MonsterConfig.battle_for(monster_config, battle_number)
 	var monster_def = MonsterConfig.monster(monster_config, str(battle.get("monster_id", "slime_boss")))
+	_begin_battle(monster_def, battle_number, int(battle.get("rolls", 3)))
+
+func _begin_battle(monster_def: Dictionary, new_battle_number: int, rolls: int) -> void:
+	_sfx("turn_start", -4.0)
+	battle_number = new_battle_number
+	current_battle_rolls = rolls
 	run_state.start_battle(battle_number, monster_def)
-	run_state.begin_player_turn(int(battle.get("rolls", 3)))
+	run_state.begin_player_turn(current_battle_rolls)
 	total_rolls = run_state.turn_rolls_total
 	rolls_left = run_state.turn_rolls_left
 	mode = "play"
@@ -359,6 +425,7 @@ func _start_battle() -> void:
 	pending_tile.clear()
 	_clear_roll_preview()
 	_set_dice_selectable(false)
+	map_overlay.visible = false
 	choice_overlay.visible = false
 	fail_overlay.visible = false
 	boss_view.set_art_key(run_state.monster_art_key)
@@ -489,7 +556,7 @@ func _on_end_turn_pressed() -> void:
 		return
 	run_state.record_current_intent_used()
 	run_state.battle_turn += 1
-	run_state.begin_player_turn(int(MonsterConfig.battle_for(monster_config, battle_number).get("rolls", 3)))
+	run_state.begin_player_turn(current_battle_rolls)
 	_sfx("turn_start", -5.0)
 	total_rolls = run_state.turn_rolls_total
 	rolls_left = run_state.turn_rolls_left
@@ -671,7 +738,7 @@ func _show_choice_overlay() -> void:
 	_sfx("reward_open", -3.0)
 	var viewport_size = get_viewport_rect().size
 	choice_overlay.add_child(_make_overlay_dim(Color(0.05, 0.10, 0.08, 0.88)))
-	var title = _make_label("第 %d 关胜利：选择一个地块" % battle_number, 34, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
+	var title = _make_label("第 %d 层胜利：选择一个地块" % battle_number, 34, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
 	title.position = Vector2(viewport_size.x * 0.5 - 330, viewport_size.y * 0.13)
 	title.size = Vector2(660, 48)
 	choice_overlay.add_child(title)
@@ -722,6 +789,12 @@ func _on_reward_skipped() -> void:
 	_after_round_reward_done()
 
 func _after_round_reward_done() -> void:
+	if not act_map.is_empty():
+		if str(selected_map_node.get("room_type", "")) == "BOSS":
+			_show_run_complete_overlay()
+		else:
+			_show_map()
+		return
 	battle_number += 1
 	_start_battle()
 
@@ -845,7 +918,8 @@ func _show_run_complete_overlay() -> void:
 	title.position = Vector2(viewport_size.x * 0.5 - 220, viewport_size.y * 0.28)
 	title.size = Vector2(440, 60)
 	fail_overlay.add_child(title)
-	var detail = _make_label("%d 关怪物全部击败，剩余生命 %d / %d" % [MonsterConfig.battle_count(monster_config), run_state.player_hp, run_state.player_max_hp], 24, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
+	var clear_label = "第一层路线完成" if not act_map.is_empty() else "%d 关怪物全部击败" % MonsterConfig.battle_count(monster_config)
+	var detail = _make_label("%s，剩余生命 %d / %d" % [clear_label, run_state.player_hp, run_state.player_max_hp], 24, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
 	detail.position = Vector2(viewport_size.x * 0.5 - 340, viewport_size.y * 0.4)
 	detail.size = Vector2(680, 42)
 	fail_overlay.add_child(detail)
@@ -1086,7 +1160,7 @@ func _update_ui() -> void:
 		_sync_from_run_state()
 		rolls_left = run_state.turn_rolls_left
 		total_rolls = run_state.turn_rolls_total
-		round_label.text = "第 %d 关" % battle_number
+		round_label.text = "第 %d 层" % battle_number
 		if player_hp_bar != null:
 			player_hp_bar.set_values(run_state.player_hp, run_state.player_max_hp)
 		player_hp_label.text = "%d / %d" % [run_state.player_hp, run_state.player_max_hp]

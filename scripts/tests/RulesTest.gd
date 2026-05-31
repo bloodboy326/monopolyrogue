@@ -6,6 +6,7 @@ const RelicDefinitions = preload("res://scripts/data/RelicDefinitions.gd")
 const BuffLibrary = preload("res://scripts/buffs/BuffLibrary.gd")
 const TurnResolver = preload("res://scripts/systems/TurnResolver.gd")
 const MonsterConfig = preload("res://scripts/data/MonsterConfig.gd")
+const MapConfig = preload("res://scripts/data/MapConfig.gd")
 
 var tile_defs: Dictionary
 var relic_defs: Dictionary
@@ -24,6 +25,7 @@ func _ready() -> void:
 	_test_destroy_next_tile_triggers_destroy_effect()
 	_test_monster_block_expires_and_reports_full_block()
 	_test_monster_tables_include_new_flow()
+	_test_act_map_tables_include_first_act()
 	print("RULES_OK tests=%d" % passed)
 	get_tree().quit()
 
@@ -116,3 +118,17 @@ func _test_monster_tables_include_new_flow() -> void:
 	_assert(str(MonsterConfig.battle_for(config, 3).get("monster_id", "")) == "clacker", "battle 3 uses clacker")
 	_assert(str(MonsterConfig.battle_for(config, 4).get("monster_id", "")) == "slime_boss", "battle 4 uses slime boss")
 	_assert(not MonsterConfig.effects_for_intent(config, "clacker_jam").is_empty(), "clacker jam has configured effects")
+
+func _test_act_map_tables_include_first_act() -> void:
+	var map_config = MapConfig.load_config()
+	var local_rng = RandomNumberGenerator.new()
+	local_rng.seed = 99
+	var act_map = MapConfig.generate_act_map(map_config, 1, local_rng)
+	_assert(act_map.get("nodes", []).size() >= 40, "act 1 map has a full path grid")
+	_assert(MapConfig.available_node_ids(act_map, "").size() == 3, "act 1 has three starting route choices")
+	var boss_nodes = act_map.get("nodes", []).filter(func(node): return str(node.get("room_type", "")) == "BOSS")
+	_assert(boss_nodes.size() == 1, "act 1 has one boss node")
+	var monster_id = MapConfig.pick_monster_for_node(map_config, boss_nodes[0], local_rng)
+	_assert(monster_id == "slime_boss", "act 1 boss pool resolves to slime boss")
+	var pool_monsters = map_config.get("monster_pool_entries", []).map(func(entry): return str(entry.get("monster_id", "")))
+	_assert(pool_monsters.has("green_louse") and pool_monsters.has("gremlin_nob"), "act 1 pools include new normal and elite monsters")

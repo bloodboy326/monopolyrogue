@@ -28,6 +28,76 @@
       "art_key": "clacker"
     },
     {
+      "monster_id": "green_louse",
+      "name": "绿虱虫",
+      "max_hp": 32,
+      "start_phase": "green_louse_p1",
+      "art_key": "louse"
+    },
+    {
+      "monster_id": "small_slime",
+      "name": "小史莱姆",
+      "max_hp": 34,
+      "start_phase": "small_slime_p1",
+      "art_key": "slime_small"
+    },
+    {
+      "monster_id": "acid_slime",
+      "name": "酸液史莱姆",
+      "max_hp": 40,
+      "start_phase": "acid_slime_p1",
+      "art_key": "slime_small"
+    },
+    {
+      "monster_id": "fungi_beast",
+      "name": "真菌兽",
+      "max_hp": 44,
+      "start_phase": "fungi_beast_p1",
+      "art_key": "louse"
+    },
+    {
+      "monster_id": "blue_slaver",
+      "name": "蓝奴隶贩",
+      "max_hp": 46,
+      "start_phase": "blue_slaver_p1",
+      "art_key": "jaw_worm"
+    },
+    {
+      "monster_id": "sentry",
+      "name": "哨卫",
+      "max_hp": 46,
+      "start_phase": "sentry_p1",
+      "art_key": "clacker"
+    },
+    {
+      "monster_id": "big_slime",
+      "name": "大型史莱姆",
+      "max_hp": 52,
+      "start_phase": "big_slime_p1",
+      "art_key": "slime"
+    },
+    {
+      "monster_id": "gremlin_nob",
+      "name": "地精头目",
+      "max_hp": 82,
+      "start_phase": "gremlin_nob_p1",
+      "art_key": "jaw_worm"
+    },
+    {
+      "monster_id": "lagavulin",
+      "name": "乐加维林",
+      "max_hp": 88,
+      "start_phase": "lagavulin_p1",
+      "art_key": "clacker"
+    },
+    {
+      "monster_id": "three_sentries",
+      "name": "三哨卫",
+      "max_hp": 76,
+      "start_phase": "three_sentries_p1",
+      "art_key": "clacker"
+    },
+    {
       "monster_id": "slime_boss",
       "name": "沼泽史莱姆",
       "max_hp": 80,
@@ -65,6 +135,76 @@
       "intent_pool": "clacker_pool"
     },
     {
+      "phase_id": "green_louse_p1",
+      "monster_id": "green_louse",
+      "enter_condition": "START",
+      "on_enter_effect": "",
+      "intent_pool": "green_louse_pool"
+    },
+    {
+      "phase_id": "small_slime_p1",
+      "monster_id": "small_slime",
+      "enter_condition": "START",
+      "on_enter_effect": "",
+      "intent_pool": "small_slime_pool"
+    },
+    {
+      "phase_id": "acid_slime_p1",
+      "monster_id": "acid_slime",
+      "enter_condition": "START",
+      "on_enter_effect": "",
+      "intent_pool": "acid_slime_pool"
+    },
+    {
+      "phase_id": "fungi_beast_p1",
+      "monster_id": "fungi_beast",
+      "enter_condition": "START",
+      "on_enter_effect": "",
+      "intent_pool": "fungi_beast_pool"
+    },
+    {
+      "phase_id": "blue_slaver_p1",
+      "monster_id": "blue_slaver",
+      "enter_condition": "START",
+      "on_enter_effect": "",
+      "intent_pool": "blue_slaver_pool"
+    },
+    {
+      "phase_id": "sentry_p1",
+      "monster_id": "sentry",
+      "enter_condition": "START",
+      "on_enter_effect": "",
+      "intent_pool": "sentry_pool"
+    },
+    {
+      "phase_id": "big_slime_p1",
+      "monster_id": "big_slime",
+      "enter_condition": "START",
+      "on_enter_effect": "",
+      "intent_pool": "big_slime_pool"
+    },
+    {
+      "phase_id": "gremlin_nob_p1",
+      "monster_id": "gremlin_nob",
+      "enter_condition": "START",
+      "on_enter_effect": "",
+      "intent_pool": "gremlin_nob_pool"
+    },
+    {
+      "phase_id": "lagavulin_p1",
+      "monster_id": "lagavulin",
+      "enter_condition": "START",
+      "on_enter_effect": "",
+      "intent_pool": "lagavulin_pool"
+    },
+    {
+      "phase_id": "three_sentries_p1",
+      "monster_id": "three_sentries",
+      "enter_condition": "START",
+      "on_enter_effect": "",
+      "intent_pool": "three_sentries_pool"
+    },
+    {
       "phase_id": "slime_p1",
       "monster_id": "slime_boss",
       "enter_condition": "START",
@@ -96,6 +236,46 @@
     {"pool_id": "clacker_pool", "intent_id": "clacker_jam", "weight": 20, "min_turn": 2, "cooldown": 2, "max_repeat": 1, "require": "", "forbid": ""},
     {"pool_id": "clacker_pool", "intent_id": "clacker_shards", "weight": 15, "min_turn": 2, "cooldown": 2, "max_repeat": 1, "require": "", "forbid": ""},
 
+    {"pool_id": "green_louse_pool", "intent_id": "green_louse_bite", "weight": 45, "min_turn": 1, "cooldown": 0, "max_repeat": 2, "require": "", "forbid": ""},
+    {"pool_id": "green_louse_pool", "intent_id": "green_louse_curl", "weight": 30, "min_turn": 1, "cooldown": 1, "max_repeat": 1, "require": "", "forbid": ""},
+    {"pool_id": "green_louse_pool", "intent_id": "green_louse_spit", "weight": 25, "min_turn": 2, "cooldown": 2, "max_repeat": 1, "require": "", "forbid": ""},
+
+    {"pool_id": "small_slime_pool", "intent_id": "small_slime_tackle", "weight": 48, "min_turn": 1, "cooldown": 0, "max_repeat": 2, "require": "", "forbid": ""},
+    {"pool_id": "small_slime_pool", "intent_id": "small_slime_goop", "weight": 32, "min_turn": 1, "cooldown": 2, "max_repeat": 1, "require": "", "forbid": ""},
+    {"pool_id": "small_slime_pool", "intent_id": "small_slime_guard", "weight": 20, "min_turn": 2, "cooldown": 1, "max_repeat": 1, "require": "", "forbid": ""},
+
+    {"pool_id": "acid_slime_pool", "intent_id": "acid_slime_splash", "weight": 42, "min_turn": 1, "cooldown": 0, "max_repeat": 2, "require": "", "forbid": ""},
+    {"pool_id": "acid_slime_pool", "intent_id": "acid_slime_corrode", "weight": 35, "min_turn": 2, "cooldown": 2, "max_repeat": 1, "require": "", "forbid": ""},
+    {"pool_id": "acid_slime_pool", "intent_id": "acid_slime_guard", "weight": 23, "min_turn": 1, "cooldown": 1, "max_repeat": 1, "require": "", "forbid": ""},
+
+    {"pool_id": "fungi_beast_pool", "intent_id": "fungi_claw", "weight": 42, "min_turn": 1, "cooldown": 0, "max_repeat": 2, "require": "", "forbid": ""},
+    {"pool_id": "fungi_beast_pool", "intent_id": "fungi_grow", "weight": 30, "min_turn": 1, "cooldown": 2, "max_repeat": 1, "require": "", "forbid": ""},
+    {"pool_id": "fungi_beast_pool", "intent_id": "fungi_spores", "weight": 28, "min_turn": 2, "cooldown": 2, "max_repeat": 1, "require": "", "forbid": ""},
+
+    {"pool_id": "blue_slaver_pool", "intent_id": "slaver_whip", "weight": 44, "min_turn": 1, "cooldown": 0, "max_repeat": 2, "require": "", "forbid": ""},
+    {"pool_id": "blue_slaver_pool", "intent_id": "slaver_net", "weight": 32, "min_turn": 2, "cooldown": 2, "max_repeat": 1, "require": "", "forbid": ""},
+    {"pool_id": "blue_slaver_pool", "intent_id": "slaver_rally", "weight": 24, "min_turn": 1, "cooldown": 2, "max_repeat": 1, "require": "", "forbid": ""},
+
+    {"pool_id": "sentry_pool", "intent_id": "sentry_beam", "weight": 42, "min_turn": 1, "cooldown": 0, "max_repeat": 2, "require": "", "forbid": ""},
+    {"pool_id": "sentry_pool", "intent_id": "sentry_guard", "weight": 28, "min_turn": 1, "cooldown": 1, "max_repeat": 1, "require": "", "forbid": ""},
+    {"pool_id": "sentry_pool", "intent_id": "sentry_daze", "weight": 30, "min_turn": 2, "cooldown": 2, "max_repeat": 1, "require": "", "forbid": ""},
+
+    {"pool_id": "big_slime_pool", "intent_id": "big_slime_crush", "weight": 45, "min_turn": 1, "cooldown": 0, "max_repeat": 2, "require": "", "forbid": ""},
+    {"pool_id": "big_slime_pool", "intent_id": "big_slime_mud", "weight": 35, "min_turn": 1, "cooldown": 2, "max_repeat": 1, "require": "", "forbid": ""},
+    {"pool_id": "big_slime_pool", "intent_id": "big_slime_split", "weight": 20, "min_turn": 3, "cooldown": 3, "max_repeat": 1, "require": "", "forbid": ""},
+
+    {"pool_id": "gremlin_nob_pool", "intent_id": "nob_smash", "weight": 50, "min_turn": 1, "cooldown": 0, "max_repeat": 2, "require": "", "forbid": ""},
+    {"pool_id": "gremlin_nob_pool", "intent_id": "nob_enrage", "weight": 28, "min_turn": 1, "cooldown": 2, "max_repeat": 1, "require": "", "forbid": ""},
+    {"pool_id": "gremlin_nob_pool", "intent_id": "nob_skull_bash", "weight": 22, "min_turn": 2, "cooldown": 2, "max_repeat": 1, "require": "", "forbid": ""},
+
+    {"pool_id": "lagavulin_pool", "intent_id": "lagavulin_heavy", "weight": 45, "min_turn": 1, "cooldown": 0, "max_repeat": 2, "require": "", "forbid": ""},
+    {"pool_id": "lagavulin_pool", "intent_id": "lagavulin_shell", "weight": 30, "min_turn": 1, "cooldown": 1, "max_repeat": 1, "require": "", "forbid": ""},
+    {"pool_id": "lagavulin_pool", "intent_id": "lagavulin_drain", "weight": 25, "min_turn": 2, "cooldown": 2, "max_repeat": 1, "require": "", "forbid": ""},
+
+    {"pool_id": "three_sentries_pool", "intent_id": "sentries_beam", "weight": 42, "min_turn": 1, "cooldown": 0, "max_repeat": 2, "require": "", "forbid": ""},
+    {"pool_id": "three_sentries_pool", "intent_id": "sentries_daze", "weight": 38, "min_turn": 1, "cooldown": 2, "max_repeat": 1, "require": "", "forbid": ""},
+    {"pool_id": "three_sentries_pool", "intent_id": "sentries_guard", "weight": 20, "min_turn": 2, "cooldown": 1, "max_repeat": 1, "require": "", "forbid": ""},
+
     {"pool_id": "slime_pool_p1", "intent_id": "slime_attack", "weight": 45, "min_turn": 1, "cooldown": 0, "max_repeat": 2, "require": "", "forbid": ""},
     {"pool_id": "slime_pool_p1", "intent_id": "slime_defend", "weight": 25, "min_turn": 1, "cooldown": 1, "max_repeat": 1, "require": "", "forbid": ""},
     {"pool_id": "slime_pool_p1", "intent_id": "slime_add_mud", "weight": 30, "min_turn": 2, "cooldown": 2, "max_repeat": 1, "require": "", "forbid": ""},
@@ -119,6 +299,46 @@
     {"intent_id": "clacker_harden", "intent_type": "DEFEND", "intent_role": "DEFENSE", "name": "硬壳", "telegraph": "防御", "description": "获得12点护甲", "threat_level": 1},
     {"intent_id": "clacker_jam", "intent_type": "SPECIAL", "intent_role": "CONTROL", "name": "卡住齿轮", "telegraph": "下回合-1骰", "description": "玩家下回合骰子机会-1", "threat_level": 2},
     {"intent_id": "clacker_shards", "intent_type": "BOARD", "intent_role": "CONTROL", "name": "碎壳飞散", "telegraph": "加入虚无", "description": "加入1个虚无地块", "threat_level": 2},
+
+    {"intent_id": "green_louse_bite", "intent_type": "ATTACK", "intent_role": "DAMAGE", "name": "毒咬", "telegraph": "攻击 5", "description": "造成5点伤害", "threat_level": 1},
+    {"intent_id": "green_louse_curl", "intent_type": "DEFEND", "intent_role": "DEFENSE", "name": "蜷缩", "telegraph": "防御", "description": "获得6点护甲", "threat_level": 1},
+    {"intent_id": "green_louse_spit", "intent_type": "BOARD", "intent_role": "CONTROL", "name": "酸液飞溅", "telegraph": "加入淤泥", "description": "加入1个淤泥地块", "threat_level": 2},
+
+    {"intent_id": "small_slime_tackle", "intent_type": "ATTACK", "intent_role": "DAMAGE", "name": "扑击", "telegraph": "攻击 7", "description": "造成7点伤害", "threat_level": 1},
+    {"intent_id": "small_slime_goop", "intent_type": "BOARD", "intent_role": "CONTROL", "name": "粘液", "telegraph": "加入淤泥", "description": "加入1个淤泥地块", "threat_level": 1},
+    {"intent_id": "small_slime_guard", "intent_type": "DEFEND", "intent_role": "DEFENSE", "name": "软体防御", "telegraph": "防御", "description": "获得8点护甲", "threat_level": 1},
+
+    {"intent_id": "acid_slime_splash", "intent_type": "ATTACK", "intent_role": "DAMAGE", "name": "酸液撞击", "telegraph": "攻击 8", "description": "造成8点伤害", "threat_level": 1},
+    {"intent_id": "acid_slime_corrode", "intent_type": "BOARD", "intent_role": "CONTROL", "name": "腐蚀", "telegraph": "污染地块", "description": "一个地块本场战斗变成废墟", "threat_level": 2},
+    {"intent_id": "acid_slime_guard", "intent_type": "DEFEND", "intent_role": "DEFENSE", "name": "酸泡护体", "telegraph": "防御", "description": "获得9点护甲", "threat_level": 1},
+
+    {"intent_id": "fungi_claw", "intent_type": "ATTACK", "intent_role": "DAMAGE", "name": "菌爪", "telegraph": "攻击 9", "description": "造成9点伤害", "threat_level": 1},
+    {"intent_id": "fungi_grow", "intent_type": "SPECIAL", "intent_role": "SCALING", "name": "疯长", "telegraph": "力量+2", "description": "获得2点力量", "threat_level": 2},
+    {"intent_id": "fungi_spores", "intent_type": "BOARD", "intent_role": "CONTROL", "name": "孢子云", "telegraph": "加入虚无", "description": "加入1个虚无地块", "threat_level": 2},
+
+    {"intent_id": "slaver_whip", "intent_type": "ATTACK", "intent_role": "DAMAGE", "name": "鞭打", "telegraph": "攻击 10", "description": "造成10点伤害", "threat_level": 1},
+    {"intent_id": "slaver_net", "intent_type": "SPECIAL", "intent_role": "CONTROL", "name": "撒网", "telegraph": "下回合-1骰", "description": "玩家下回合骰子机会-1", "threat_level": 2},
+    {"intent_id": "slaver_rally", "intent_type": "SPECIAL", "intent_role": "SCALING", "name": "鼓动", "telegraph": "力量+2", "description": "获得2点力量", "threat_level": 2},
+
+    {"intent_id": "sentry_beam", "intent_type": "ATTACK", "intent_role": "DAMAGE", "name": "光束", "telegraph": "攻击 10", "description": "造成10点伤害", "threat_level": 1},
+    {"intent_id": "sentry_guard", "intent_type": "DEFEND", "intent_role": "DEFENSE", "name": "装甲校准", "telegraph": "防御", "description": "获得10点护甲", "threat_level": 1},
+    {"intent_id": "sentry_daze", "intent_type": "BOARD", "intent_role": "CONTROL", "name": "眩光", "telegraph": "加入虚无", "description": "加入1个虚无地块", "threat_level": 2},
+
+    {"intent_id": "big_slime_crush", "intent_type": "ATTACK", "intent_role": "DAMAGE", "name": "碾压", "telegraph": "攻击 12", "description": "造成12点伤害", "threat_level": 1},
+    {"intent_id": "big_slime_mud", "intent_type": "BOARD", "intent_role": "CONTROL", "name": "喷吐淤泥", "telegraph": "加入淤泥", "description": "加入2个淤泥地块", "threat_level": 2},
+    {"intent_id": "big_slime_split", "intent_type": "DEFEND", "intent_role": "DEFENSE", "name": "黏液厚壳", "telegraph": "防御", "description": "获得14点护甲", "threat_level": 1},
+
+    {"intent_id": "nob_smash", "intent_type": "ATTACK", "intent_role": "DAMAGE", "name": "重击", "telegraph": "攻击 18", "description": "造成18点伤害", "threat_level": 2},
+    {"intent_id": "nob_enrage", "intent_type": "SPECIAL", "intent_role": "SCALING", "name": "暴怒", "telegraph": "力量+3", "description": "获得3点力量", "threat_level": 2},
+    {"intent_id": "nob_skull_bash", "intent_type": "ATTACK", "intent_role": "CONTROL", "name": "头槌", "telegraph": "攻击+减骰", "description": "造成12点伤害并让玩家下回合骰子机会-1", "threat_level": 3},
+
+    {"intent_id": "lagavulin_heavy", "intent_type": "ATTACK", "intent_role": "DAMAGE", "name": "沉重打击", "telegraph": "攻击 16", "description": "造成16点伤害", "threat_level": 2},
+    {"intent_id": "lagavulin_shell", "intent_type": "DEFEND", "intent_role": "DEFENSE", "name": "石壳", "telegraph": "防御", "description": "获得16点护甲", "threat_level": 1},
+    {"intent_id": "lagavulin_drain", "intent_type": "BOARD", "intent_role": "CONTROL", "name": "吸取", "telegraph": "腐化地块", "description": "一个地块本场战斗变成废墟", "threat_level": 2},
+
+    {"intent_id": "sentries_beam", "intent_type": "ATTACK", "intent_role": "DAMAGE", "name": "交叉光束", "telegraph": "攻击 14", "description": "造成14点伤害", "threat_level": 2},
+    {"intent_id": "sentries_daze", "intent_type": "BOARD", "intent_role": "CONTROL", "name": "眩晕矩阵", "telegraph": "加入虚无", "description": "加入2个虚无地块", "threat_level": 2},
+    {"intent_id": "sentries_guard", "intent_type": "DEFEND", "intent_role": "DEFENSE", "name": "阵列防御", "telegraph": "防御", "description": "获得15点护甲", "threat_level": 1},
 
     {"intent_id": "slime_attack", "intent_type": "ATTACK", "intent_role": "DAMAGE", "name": "拍击", "telegraph": "攻击 12", "description": "造成12点伤害", "threat_level": 1},
     {"intent_id": "slime_defend", "intent_type": "DEFEND", "intent_role": "DEFENSE", "name": "黏液护体", "telegraph": "防御", "description": "获得14点护甲", "threat_level": 1},
@@ -145,6 +365,47 @@
     {"intent_id": "clacker_harden", "order": 1, "effect_type": "BLOCK", "target": "SELF", "value": 12, "duration": 0, "param": ""},
     {"intent_id": "clacker_jam", "order": 1, "effect_type": "LOSE_ROLLS", "target": "PLAYER_NEXT_TURN", "value": 1, "duration": 1, "param": ""},
     {"intent_id": "clacker_shards", "order": 1, "effect_type": "ADD_TILE", "target": "PLAYER_BOARD", "value": 1, "duration": 1, "param": "T014"},
+
+    {"intent_id": "green_louse_bite", "order": 1, "effect_type": "DAMAGE", "target": "PLAYER", "value": 5, "duration": 0, "param": ""},
+    {"intent_id": "green_louse_curl", "order": 1, "effect_type": "BLOCK", "target": "SELF", "value": 6, "duration": 0, "param": ""},
+    {"intent_id": "green_louse_spit", "order": 1, "effect_type": "ADD_TILE", "target": "PLAYER_BOARD", "value": 1, "duration": 1, "param": "T901"},
+
+    {"intent_id": "small_slime_tackle", "order": 1, "effect_type": "DAMAGE", "target": "PLAYER", "value": 7, "duration": 0, "param": ""},
+    {"intent_id": "small_slime_goop", "order": 1, "effect_type": "ADD_TILE", "target": "PLAYER_BOARD", "value": 1, "duration": 1, "param": "T901"},
+    {"intent_id": "small_slime_guard", "order": 1, "effect_type": "BLOCK", "target": "SELF", "value": 8, "duration": 0, "param": ""},
+
+    {"intent_id": "acid_slime_splash", "order": 1, "effect_type": "DAMAGE", "target": "PLAYER", "value": 8, "duration": 0, "param": ""},
+    {"intent_id": "acid_slime_corrode", "order": 1, "effect_type": "CORRUPT_TILE", "target": "RANDOM_PLAYER_TILE", "value": 1, "duration": 1, "param": "T010"},
+    {"intent_id": "acid_slime_guard", "order": 1, "effect_type": "BLOCK", "target": "SELF", "value": 9, "duration": 0, "param": ""},
+
+    {"intent_id": "fungi_claw", "order": 1, "effect_type": "DAMAGE", "target": "PLAYER", "value": 9, "duration": 0, "param": ""},
+    {"intent_id": "fungi_grow", "order": 1, "effect_type": "STRENGTH", "target": "SELF", "value": 2, "duration": 0, "param": ""},
+    {"intent_id": "fungi_spores", "order": 1, "effect_type": "ADD_TILE", "target": "PLAYER_BOARD", "value": 1, "duration": 1, "param": "T014"},
+
+    {"intent_id": "slaver_whip", "order": 1, "effect_type": "DAMAGE", "target": "PLAYER", "value": 10, "duration": 0, "param": ""},
+    {"intent_id": "slaver_net", "order": 1, "effect_type": "LOSE_ROLLS", "target": "PLAYER_NEXT_TURN", "value": 1, "duration": 1, "param": ""},
+    {"intent_id": "slaver_rally", "order": 1, "effect_type": "STRENGTH", "target": "SELF", "value": 2, "duration": 0, "param": ""},
+
+    {"intent_id": "sentry_beam", "order": 1, "effect_type": "DAMAGE", "target": "PLAYER", "value": 10, "duration": 0, "param": ""},
+    {"intent_id": "sentry_guard", "order": 1, "effect_type": "BLOCK", "target": "SELF", "value": 10, "duration": 0, "param": ""},
+    {"intent_id": "sentry_daze", "order": 1, "effect_type": "ADD_TILE", "target": "PLAYER_BOARD", "value": 1, "duration": 1, "param": "T014"},
+
+    {"intent_id": "big_slime_crush", "order": 1, "effect_type": "DAMAGE", "target": "PLAYER", "value": 12, "duration": 0, "param": ""},
+    {"intent_id": "big_slime_mud", "order": 1, "effect_type": "ADD_TILE", "target": "PLAYER_BOARD", "value": 2, "duration": 1, "param": "T901"},
+    {"intent_id": "big_slime_split", "order": 1, "effect_type": "BLOCK", "target": "SELF", "value": 14, "duration": 0, "param": ""},
+
+    {"intent_id": "nob_smash", "order": 1, "effect_type": "DAMAGE", "target": "PLAYER", "value": 18, "duration": 0, "param": ""},
+    {"intent_id": "nob_enrage", "order": 1, "effect_type": "STRENGTH", "target": "SELF", "value": 3, "duration": 0, "param": ""},
+    {"intent_id": "nob_skull_bash", "order": 1, "effect_type": "DAMAGE", "target": "PLAYER", "value": 12, "duration": 0, "param": ""},
+    {"intent_id": "nob_skull_bash", "order": 2, "effect_type": "LOSE_ROLLS", "target": "PLAYER_NEXT_TURN", "value": 1, "duration": 1, "param": ""},
+
+    {"intent_id": "lagavulin_heavy", "order": 1, "effect_type": "DAMAGE", "target": "PLAYER", "value": 16, "duration": 0, "param": ""},
+    {"intent_id": "lagavulin_shell", "order": 1, "effect_type": "BLOCK", "target": "SELF", "value": 16, "duration": 0, "param": ""},
+    {"intent_id": "lagavulin_drain", "order": 1, "effect_type": "CORRUPT_TILE", "target": "RANDOM_PLAYER_TILE", "value": 1, "duration": 1, "param": "T010"},
+
+    {"intent_id": "sentries_beam", "order": 1, "effect_type": "DAMAGE", "target": "PLAYER", "value": 14, "duration": 0, "param": ""},
+    {"intent_id": "sentries_daze", "order": 1, "effect_type": "ADD_TILE", "target": "PLAYER_BOARD", "value": 2, "duration": 1, "param": "T014"},
+    {"intent_id": "sentries_guard", "order": 1, "effect_type": "BLOCK", "target": "SELF", "value": 15, "duration": 0, "param": ""},
 
     {"intent_id": "slime_attack", "order": 1, "effect_type": "DAMAGE", "target": "PLAYER", "value": 12, "duration": 0, "param": ""},
     {"intent_id": "slime_defend", "order": 1, "effect_type": "BLOCK", "target": "SELF", "value": 14, "duration": 0, "param": ""},

@@ -11,7 +11,8 @@ const DEAD = Color(0.34, 0.38, 0.36, 1.0)
 const WHITE = Color(0.96, 0.98, 0.90, 1.0)
 const SPRITE_DRAW_SCALE = {
 	"louse": 1.28,
-	"slime": 1.18
+	"slime": 1.18,
+	"slime_small": 0.84
 }
 
 var state := "normal"
@@ -172,6 +173,8 @@ func _sprite_asset_key() -> String:
 	match art_key:
 		"louse":
 			return "red_louse"
+		"slime_small":
+			return "slime_boss"
 		"jaw_worm":
 			return "jaw_worm"
 		"clacker":

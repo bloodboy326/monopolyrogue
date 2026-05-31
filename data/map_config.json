@@ -1,0 +1,74 @@
+{
+  "acts": [
+    {
+      "act_id": 1,
+      "name": "第一层",
+      "boss_pool": "act1_boss",
+      "layout": [
+        {"floor": 1, "slots": [0.28, 0.50, 0.72], "room_type": "MONSTER"},
+        {"floor": 2, "slots": [0.18, 0.38, 0.62, 0.82]},
+        {"floor": 3, "slots": [0.24, 0.50, 0.76]},
+        {"floor": 4, "slots": [0.14, 0.34, 0.56, 0.78]},
+        {"floor": 5, "slots": [0.22, 0.44, 0.68, 0.86]},
+        {"floor": 6, "slots": [0.18, 0.42, 0.62, 0.82]},
+        {"floor": 7, "slots": [0.24, 0.50, 0.76]},
+        {"floor": 8, "slots": [0.18, 0.36, 0.58, 0.80]},
+        {"floor": 9, "slots": [0.26, 0.50, 0.74]},
+        {"floor": 10, "slots": [0.16, 0.38, 0.62, 0.84]},
+        {"floor": 11, "slots": [0.24, 0.50, 0.76]},
+        {"floor": 12, "slots": [0.18, 0.42, 0.66, 0.84]},
+        {"floor": 13, "slots": [0.30, 0.50, 0.70]},
+        {"floor": 14, "slots": [0.30, 0.50, 0.70], "room_type": "REST"},
+        {"floor": 15, "slots": [0.50], "room_type": "BOSS"}
+      ]
+    }
+  ],
+  "floor_phases": [
+    {"act_id": 1, "phase": "early", "floor_min": 1, "floor_max": 4, "normal_pool": "act1_easy_normal", "elite_pool": "act1_elite", "event_pool": "act1_early_event", "room_weight_set": "act1_early_rooms"},
+    {"act_id": 1, "phase": "mid", "floor_min": 5, "floor_max": 9, "normal_pool": "act1_mid_normal", "elite_pool": "act1_elite", "event_pool": "act1_mid_event", "room_weight_set": "act1_mid_rooms"},
+    {"act_id": 1, "phase": "late", "floor_min": 10, "floor_max": 14, "normal_pool": "act1_late_normal", "elite_pool": "act1_elite", "event_pool": "act1_late_event", "room_weight_set": "act1_late_rooms"},
+    {"act_id": 1, "phase": "boss", "floor_min": 15, "floor_max": 15, "normal_pool": "act1_late_normal", "elite_pool": "act1_elite", "event_pool": "act1_late_event", "room_weight_set": "act1_late_rooms"}
+  ],
+  "room_type_weights": [
+    {"weight_set": "act1_early_rooms", "room_type": "MONSTER", "weight": 78, "min_floor": 1, "max_floor": 4},
+    {"weight_set": "act1_early_rooms", "room_type": "EVENT", "weight": 22, "min_floor": 2, "max_floor": 4},
+    {"weight_set": "act1_mid_rooms", "room_type": "MONSTER", "weight": 48, "min_floor": 5, "max_floor": 9},
+    {"weight_set": "act1_mid_rooms", "room_type": "EVENT", "weight": 24, "min_floor": 5, "max_floor": 9},
+    {"weight_set": "act1_mid_rooms", "room_type": "ELITE", "weight": 18, "min_floor": 6, "max_floor": 9},
+    {"weight_set": "act1_mid_rooms", "room_type": "REST", "weight": 10, "min_floor": 7, "max_floor": 9},
+    {"weight_set": "act1_late_rooms", "room_type": "MONSTER", "weight": 38, "min_floor": 10, "max_floor": 13},
+    {"weight_set": "act1_late_rooms", "room_type": "EVENT", "weight": 20, "min_floor": 10, "max_floor": 13},
+    {"weight_set": "act1_late_rooms", "room_type": "ELITE", "weight": 24, "min_floor": 10, "max_floor": 13},
+    {"weight_set": "act1_late_rooms", "room_type": "REST", "weight": 18, "min_floor": 10, "max_floor": 13}
+  ],
+  "fixed_floor_rules": [
+    {"act_id": 1, "floor": 1, "room_type": "MONSTER"},
+    {"act_id": 1, "floor": 14, "room_type": "REST"},
+    {"act_id": 1, "floor": 15, "room_type": "BOSS"}
+  ],
+  "monster_pool_entries": [
+    {"pool_id": "act1_easy_normal", "monster_id": "red_louse", "weight": 28},
+    {"pool_id": "act1_easy_normal", "monster_id": "green_louse", "weight": 24},
+    {"pool_id": "act1_easy_normal", "monster_id": "small_slime", "weight": 24},
+    {"pool_id": "act1_easy_normal", "monster_id": "acid_slime", "weight": 14},
+    {"pool_id": "act1_easy_normal", "monster_id": "clacker", "weight": 10},
+
+    {"pool_id": "act1_mid_normal", "monster_id": "jaw_worm", "weight": 24},
+    {"pool_id": "act1_mid_normal", "monster_id": "acid_slime", "weight": 20},
+    {"pool_id": "act1_mid_normal", "monster_id": "fungi_beast", "weight": 20},
+    {"pool_id": "act1_mid_normal", "monster_id": "blue_slaver", "weight": 18},
+    {"pool_id": "act1_mid_normal", "monster_id": "clacker", "weight": 18},
+
+    {"pool_id": "act1_late_normal", "monster_id": "jaw_worm", "weight": 20},
+    {"pool_id": "act1_late_normal", "monster_id": "sentry", "weight": 20},
+    {"pool_id": "act1_late_normal", "monster_id": "big_slime", "weight": 20},
+    {"pool_id": "act1_late_normal", "monster_id": "fungi_beast", "weight": 18},
+    {"pool_id": "act1_late_normal", "monster_id": "clacker", "weight": 22},
+
+    {"pool_id": "act1_elite", "monster_id": "gremlin_nob", "weight": 36},
+    {"pool_id": "act1_elite", "monster_id": "lagavulin", "weight": 32},
+    {"pool_id": "act1_elite", "monster_id": "three_sentries", "weight": 32},
+
+    {"pool_id": "act1_boss", "monster_id": "slime_boss", "weight": 100}
+  ]
+}
