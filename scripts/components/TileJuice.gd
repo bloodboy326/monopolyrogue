@@ -20,6 +20,7 @@ var insert_hint = false
 var delete_hint = false
 var tile_data: Dictionary = {}
 var weak = false
+var temporarily_destroyed = false
 var durability = 0
 var max_durability = 0
 
@@ -37,7 +38,8 @@ func setup(index: int, data: Dictionary) -> void:
 	icon = int(data.get("tile_icon", data.get("icon", 0)))
 	base_color = data.get("color", Color(0.95, 0.36, 0.43))
 	accent_color = data.get("accent", Color(1.0, 0.86, 0.22))
-	weak = bool(data.get("weak", false)) or bool(data.get("runtime_flags", {}).get("temporarily_destroyed", false))
+	temporarily_destroyed = bool(data.get("temporarilyDestroyed", false)) or bool(data.get("runtime_flags", {}).get("temporarily_destroyed", false))
+	weak = bool(data.get("weak", false)) or temporarily_destroyed
 	durability = int(data.get("durability", 0))
 	max_durability = int(data.get("maxDurability", 0))
 	queue_redraw()
@@ -109,7 +111,9 @@ func _draw() -> void:
 	_draw_tile_icon()
 	if max_durability > 0:
 		_draw_durability_badge(r)
-	if weak:
+	if temporarily_destroyed:
+		_draw_destroyed_overlay(r)
+	elif weak:
 		_draw_weak_overlay(r)
 	if glow > 0.0:
 		var pulse_color = Color(1.0, 0.94, 0.28, 0.65 * glow)
@@ -142,3 +146,14 @@ func _draw_durability_badge(rect: Rect2) -> void:
 func _draw_weak_overlay(rect: Rect2) -> void:
 	draw_rect(rect.grow(-6.0), Color(0.03, 0.04, 0.06, 0.52), true)
 	TileCardFrame.draw_rect_outline(self, rect.grow(-7.0), Color(0.55, 0.66, 0.78, 0.80), max(2.0, size.x * 0.035))
+
+func _draw_destroyed_overlay(rect: Rect2) -> void:
+	var inner = rect.grow(-6.0)
+	draw_rect(inner, Color(0.02, 0.025, 0.035, 0.82), true)
+	TileCardFrame.draw_rect_outline(self, inner, Color(0.74, 0.82, 0.94, 0.72), max(2.0, size.x * 0.035))
+	var stroke = max(4.0, size.x * 0.07)
+	var color = Color(1.0, 0.23, 0.30, 0.96)
+	draw_line(rect.position + Vector2(size.x * 0.22, size.y * 0.22), rect.position + Vector2(size.x * 0.78, size.y * 0.78), color, stroke)
+	draw_line(rect.position + Vector2(size.x * 0.78, size.y * 0.22), rect.position + Vector2(size.x * 0.22, size.y * 0.78), color, stroke)
+	var font = ThemeDB.fallback_font
+	draw_string(font, rect.position + Vector2(size.x * 0.17, size.y * 0.59), "已销毁", HORIZONTAL_ALIGNMENT_CENTER, size.x * 0.66, int(size.x * 0.17), Color(0.92, 0.96, 1.0, 0.95))

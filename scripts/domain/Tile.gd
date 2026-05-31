@@ -67,11 +67,15 @@ func has_tag(tag: String) -> bool:
 func is_empty() -> bool:
 	return id == "T000" or has_tag("empty")
 
+func is_temporarily_destroyed() -> bool:
+	return bool(runtime_flags.get("temporarily_destroyed", false))
+
 func is_triggerable() -> bool:
-	return not is_empty() and not bool(runtime_flags.get("temporarily_destroyed", false))
+	return not is_empty() and not is_temporarily_destroyed()
 
 func to_display_data() -> Dictionary:
 	var display_description = str(definition.get("displayDescription", definition.get("description", definition.get("tile_describe", ""))))
+	var temporarily_destroyed = is_temporarily_destroyed()
 	return {
 		"id": id,
 		"instance_id": instance_id,
@@ -93,9 +97,10 @@ func to_display_data() -> Dictionary:
 		"counters": counters.duplicate(true),
 		"state": state.duplicate(true),
 		"runtime_flags": runtime_flags.duplicate(true),
+		"temporarilyDestroyed": temporarily_destroyed,
 		"durability": durability_remaining(),
 		"maxDurability": max_durability(),
-		"weak": is_weak()
+		"weak": is_weak() or temporarily_destroyed
 	}
 
 func _color_from_config(value) -> Color:
