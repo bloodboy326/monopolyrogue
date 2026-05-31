@@ -42,6 +42,25 @@ func duplicate_runtime(new_serial: int = -1) -> RefCounted:
 	tile.runtime_flags = runtime_flags.duplicate(true)
 	return tile
 
+func reset_battle_state() -> void:
+	runtime_flags.erase("temporarily_destroyed")
+	runtime_flags.erase("weak")
+	var max_durability = int(definition.get("durability", 0))
+	if max_durability > 0:
+		state["durability"] = max_durability
+
+func max_durability() -> int:
+	return int(definition.get("durability", 0))
+
+func durability_remaining() -> int:
+	var max_value = max_durability()
+	if max_value <= 0:
+		return 0
+	return int(state.get("durability", max_value))
+
+func is_weak() -> bool:
+	return max_durability() > 0 and durability_remaining() <= 0
+
 func has_tag(tag: String) -> bool:
 	return tags.has(tag) or type == tag
 
@@ -73,7 +92,10 @@ func to_display_data() -> Dictionary:
 		"tags": tags.duplicate(true),
 		"counters": counters.duplicate(true),
 		"state": state.duplicate(true),
-		"runtime_flags": runtime_flags.duplicate(true)
+		"runtime_flags": runtime_flags.duplicate(true),
+		"durability": durability_remaining(),
+		"maxDurability": max_durability(),
+		"weak": is_weak()
 	}
 
 func _color_from_config(value) -> Color:

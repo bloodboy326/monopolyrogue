@@ -359,12 +359,12 @@
     {"intent_id": "jaw_scrape", "order": 2, "effect_type": "BLOCK", "target": "SELF", "value": 4, "duration": 0, "param": ""},
     {"intent_id": "jaw_heavy_chomp", "order": 1, "effect_type": "DAMAGE", "target": "PLAYER", "value": 15, "duration": 0, "param": ""},
     {"intent_id": "jaw_thrash", "order": 1, "effect_type": "DAMAGE", "target": "PLAYER", "value": 8, "duration": 0, "param": ""},
-    {"intent_id": "jaw_thrash", "order": 2, "effect_type": "ADD_TILE", "target": "PLAYER_BOARD", "value": 1, "duration": 1, "param": "T014"},
+    {"intent_id": "jaw_thrash", "order": 2, "effect_type": "ADD_TILE", "target": "PLAYER_BOARD", "value": 1, "duration": 1, "param": "T015"},
 
     {"intent_id": "clacker_snap", "order": 1, "effect_type": "DAMAGE", "target": "PLAYER", "value": 9, "duration": 0, "param": ""},
     {"intent_id": "clacker_harden", "order": 1, "effect_type": "BLOCK", "target": "SELF", "value": 12, "duration": 0, "param": ""},
     {"intent_id": "clacker_jam", "order": 1, "effect_type": "LOSE_ROLLS", "target": "PLAYER_NEXT_TURN", "value": 1, "duration": 1, "param": ""},
-    {"intent_id": "clacker_shards", "order": 1, "effect_type": "ADD_TILE", "target": "PLAYER_BOARD", "value": 1, "duration": 1, "param": "T014"},
+    {"intent_id": "clacker_shards", "order": 1, "effect_type": "ADD_TILE", "target": "PLAYER_BOARD", "value": 1, "duration": 1, "param": "T015"},
 
     {"intent_id": "green_louse_bite", "order": 1, "effect_type": "DAMAGE", "target": "PLAYER", "value": 5, "duration": 0, "param": ""},
     {"intent_id": "green_louse_curl", "order": 1, "effect_type": "BLOCK", "target": "SELF", "value": 6, "duration": 0, "param": ""},
@@ -380,7 +380,7 @@
 
     {"intent_id": "fungi_claw", "order": 1, "effect_type": "DAMAGE", "target": "PLAYER", "value": 9, "duration": 0, "param": ""},
     {"intent_id": "fungi_grow", "order": 1, "effect_type": "STRENGTH", "target": "SELF", "value": 2, "duration": 0, "param": ""},
-    {"intent_id": "fungi_spores", "order": 1, "effect_type": "ADD_TILE", "target": "PLAYER_BOARD", "value": 1, "duration": 1, "param": "T014"},
+    {"intent_id": "fungi_spores", "order": 1, "effect_type": "ADD_TILE", "target": "PLAYER_BOARD", "value": 1, "duration": 1, "param": "T015"},
 
     {"intent_id": "slaver_whip", "order": 1, "effect_type": "DAMAGE", "target": "PLAYER", "value": 10, "duration": 0, "param": ""},
     {"intent_id": "slaver_net", "order": 1, "effect_type": "LOSE_ROLLS", "target": "PLAYER_NEXT_TURN", "value": 1, "duration": 1, "param": ""},
@@ -388,7 +388,7 @@
 
     {"intent_id": "sentry_beam", "order": 1, "effect_type": "DAMAGE", "target": "PLAYER", "value": 10, "duration": 0, "param": ""},
     {"intent_id": "sentry_guard", "order": 1, "effect_type": "BLOCK", "target": "SELF", "value": 10, "duration": 0, "param": ""},
-    {"intent_id": "sentry_daze", "order": 1, "effect_type": "ADD_TILE", "target": "PLAYER_BOARD", "value": 1, "duration": 1, "param": "T014"},
+    {"intent_id": "sentry_daze", "order": 1, "effect_type": "ADD_TILE", "target": "PLAYER_BOARD", "value": 1, "duration": 1, "param": "T015"},
 
     {"intent_id": "big_slime_crush", "order": 1, "effect_type": "DAMAGE", "target": "PLAYER", "value": 12, "duration": 0, "param": ""},
     {"intent_id": "big_slime_mud", "order": 1, "effect_type": "ADD_TILE", "target": "PLAYER_BOARD", "value": 2, "duration": 1, "param": "T901"},
@@ -404,7 +404,7 @@
     {"intent_id": "lagavulin_drain", "order": 1, "effect_type": "CORRUPT_TILE", "target": "RANDOM_PLAYER_TILE", "value": 1, "duration": 1, "param": "T010"},
 
     {"intent_id": "sentries_beam", "order": 1, "effect_type": "DAMAGE", "target": "PLAYER", "value": 14, "duration": 0, "param": ""},
-    {"intent_id": "sentries_daze", "order": 1, "effect_type": "ADD_TILE", "target": "PLAYER_BOARD", "value": 2, "duration": 1, "param": "T014"},
+    {"intent_id": "sentries_daze", "order": 1, "effect_type": "ADD_TILE", "target": "PLAYER_BOARD", "value": 2, "duration": 1, "param": "T015"},
     {"intent_id": "sentries_guard", "order": 1, "effect_type": "BLOCK", "target": "SELF", "value": 15, "duration": 0, "param": ""},
 
     {"intent_id": "slime_attack", "order": 1, "effect_type": "DAMAGE", "target": "PLAYER", "value": 12, "duration": 0, "param": ""},

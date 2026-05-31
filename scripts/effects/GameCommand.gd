@@ -12,6 +12,9 @@ static func add_rolls(amount: int, source: String = "") -> Dictionary:
 static func add_next_turn_rolls(amount: int, source: String = "") -> Dictionary:
 	return {"type": "AddNextTurnRolls", "amount": amount, "source": source}
 
+static func add_roll_start_bonus(amount: int, source: String = "") -> Dictionary:
+	return {"type": "AddRollStartBonus", "amount": amount, "source": source}
+
 static func add_next_attack_multiplier(multiplier: float, source: String = "") -> Dictionary:
 	return {"type": "AddNextAttackMultiplier", "multiplier": multiplier, "source": source}
 
@@ -38,6 +41,12 @@ static func destroy_tile_instance(tile_index: int, tile_instance_id: String, des
 
 static func destroy_tiles_by_rule(target_rule: Dictionary, source: String = "", destroy_mode = "permanent") -> Dictionary:
 	return {"type": "DestroyTilesByRule", "targetRule": target_rule, "destroyMode": destroy_mode, "source": source}
+
+static func consume_tile_durability(tile_index: int, tile_instance_id: String, source: String = "") -> Dictionary:
+	return {"type": "ConsumeTileDurability", "tileIndex": tile_index, "tileInstanceId": tile_instance_id, "source": source}
+
+static func add_durability_all(amount: int, source: String = "") -> Dictionary:
+	return {"type": "AddDurabilityAll", "amount": amount, "source": source}
 
 static func transform_tile(tile_index: int, target_tile_id: String, options: Dictionary = {}) -> Dictionary:
 	return {"type": "TransformTile", "tileIndex": tile_index, "targetTileId": target_tile_id, "options": options}
@@ -74,6 +83,12 @@ static func add_relic(relic_id: String) -> Dictionary:
 
 static func add_temporary_tile(tile_id: String, duration_rule: Dictionary, position_rule: Dictionary) -> Dictionary:
 	return {"type": "AddTemporaryTile", "tileId": tile_id, "durationRule": duration_rule, "positionRule": position_rule}
+
+static func add_turn_start_tile(tile_id: String, count: int = 1, source: String = "") -> Dictionary:
+	return {"type": "AddTurnStartTile", "tileId": tile_id, "count": count, "source": source}
+
+static func set_all_pawns_next_roll(source: String = "") -> Dictionary:
+	return {"type": "SetAllPawnsNextRoll", "source": source}
 
 static func schedule_end_of_turn_effect(effect: Dictionary) -> Dictionary:
 	return {"type": "ScheduleEndOfTurnEffect", "effect": effect}

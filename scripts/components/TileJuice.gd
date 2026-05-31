@@ -19,6 +19,9 @@ var hover = false
 var insert_hint = false
 var delete_hint = false
 var tile_data: Dictionary = {}
+var weak = false
+var durability = 0
+var max_durability = 0
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -34,6 +37,9 @@ func setup(index: int, data: Dictionary) -> void:
 	icon = int(data.get("tile_icon", data.get("icon", 0)))
 	base_color = data.get("color", Color(0.95, 0.36, 0.43))
 	accent_color = data.get("accent", Color(1.0, 0.86, 0.22))
+	weak = bool(data.get("weak", false)) or bool(data.get("runtime_flags", {}).get("temporarily_destroyed", false))
+	durability = int(data.get("durability", 0))
+	max_durability = int(data.get("maxDurability", 0))
 	queue_redraw()
 
 func set_insert_hint(value: bool) -> void:
@@ -101,6 +107,10 @@ func _draw() -> void:
 	var radius = min(size.x, size.y) * 0.14
 	TileCardFrame.draw_icon_card(self, r.grow(-3.0), base_color, radius)
 	_draw_tile_icon()
+	if max_durability > 0:
+		_draw_durability_badge(r)
+	if weak:
+		_draw_weak_overlay(r)
 	if glow > 0.0:
 		var pulse_color = Color(1.0, 0.94, 0.28, 0.65 * glow)
 		if delete_hint:
@@ -118,3 +128,17 @@ func _draw_tile_icon() -> void:
 	var icon_side = min(size.x, size.y) * 0.84
 	var icon_rect = Rect2(size * 0.5 - Vector2(icon_side, icon_side) * 0.5, Vector2(icon_side, icon_side))
 	VectorTileIcon.draw_icon(self, tile_kind, icon, icon_rect, base_color, accent_color)
+
+func _draw_durability_badge(rect: Rect2) -> void:
+	var badge_radius = min(size.x, size.y) * 0.17
+	var center = rect.position + Vector2(rect.size.x - badge_radius * 0.95, badge_radius * 1.08)
+	draw_circle(center + Vector2(2, 3), badge_radius, Color(0, 0, 0, 0.38))
+	draw_circle(center, badge_radius, Color(0.05, 0.08, 0.12, 0.96))
+	draw_circle(center, badge_radius * 0.78, Color(0.30, 0.62, 1.0, 0.96) if durability > 0 else Color(0.34, 0.35, 0.39, 0.96))
+	var font = ThemeDB.fallback_font
+	var label = "%d" % durability
+	draw_string(font, center + Vector2(-badge_radius * 0.38, badge_radius * 0.34), label, HORIZONTAL_ALIGNMENT_CENTER, badge_radius * 0.76, int(badge_radius * 0.86), Color.WHITE)
+
+func _draw_weak_overlay(rect: Rect2) -> void:
+	draw_rect(rect.grow(-6.0), Color(0.03, 0.04, 0.06, 0.52), true)
+	TileCardFrame.draw_rect_outline(self, rect.grow(-7.0), Color(0.55, 0.66, 0.78, 0.80), max(2.0, size.x * 0.035))

@@ -1,5 +1,12 @@
 {
-  "start_tiles": ["T001", "T002", "T001", "T002", "T001", "T002"],
+  "start_tiles": [
+    "T001",
+    "T002",
+    "T001",
+    "T002",
+    "T001",
+    "T002"
+  ],
   "tiles": [
     {
       "id": "T000",
@@ -10,10 +17,23 @@
       "displayDescription": "无",
       "selectable": false,
       "temporary": false,
-      "tags": ["empty"],
+      "destroy_after_battle": false,
+      "tags": [
+        "empty"
+      ],
       "icon_kind": "empty",
-      "color": [0.16, 0.17, 0.19, 1.0],
-      "accent": [0.55, 0.58, 0.65, 1.0],
+      "color": [
+        0.16,
+        0.17,
+        0.19,
+        1
+      ],
+      "accent": [
+        0.55,
+        0.58,
+        0.65,
+        1
+      ],
       "effects": []
     },
     {
@@ -25,11 +45,30 @@
       "displayDescription": "造成5点伤害",
       "selectable": false,
       "temporary": false,
-      "tags": ["attack", "basic"],
+      "destroy_after_battle": false,
+      "tags": [
+        "attack",
+        "basic"
+      ],
       "icon_kind": "sword",
-      "color": [0.92, 0.25, 0.32, 1.0],
-      "accent": [1.0, 0.82, 0.22, 1.0],
-      "effects": [{"type": "damage", "value": 5}]
+      "color": [
+        0.92,
+        0.25,
+        0.32,
+        1
+      ],
+      "accent": [
+        1,
+        0.82,
+        0.22,
+        1
+      ],
+      "effects": [
+        {
+          "type": "damage",
+          "value": 5
+        }
+      ]
     },
     {
       "id": "T002",
@@ -40,74 +79,201 @@
       "displayDescription": "获得5点护盾",
       "selectable": false,
       "temporary": false,
-      "tags": ["defense", "basic"],
+      "destroy_after_battle": false,
+      "tags": [
+        "skill",
+        "basic"
+      ],
       "icon_kind": "shield",
-      "color": [0.22, 0.52, 0.90, 1.0],
-      "accent": [0.66, 0.92, 1.0, 1.0],
-      "effects": [{"type": "block", "value": 5}]
+      "color": [
+        0.22,
+        0.52,
+        0.9,
+        1
+      ],
+      "accent": [
+        0.66,
+        0.92,
+        1,
+        1
+      ],
+      "effects": [
+        {
+          "type": "block",
+          "value": 5
+        }
+      ]
     },
     {
       "id": "T003",
       "type": "技能",
       "name": "重装防御",
       "rarity": "普通",
-      "description": "获得8点护盾",
-      "displayDescription": "获得8点护盾",
+      "description": "获得8点护盾,本场战斗每踩中一次，护盾+1",
+      "displayDescription": "获得8点护盾，本场战斗每踩中一次，护盾+1",
       "selectable": true,
       "temporary": false,
-      "tags": ["defense"],
+      "destroy_after_battle": false,
+      "tags": [
+        "skill"
+      ],
       "icon_kind": "shield",
-      "color": [0.18, 0.45, 0.72, 1.0],
-      "accent": [0.78, 0.94, 1.0, 1.0],
-      "effects": [{"type": "block", "value": 8}]
+      "color": [
+        0.22,
+        0.52,
+        0.9,
+        1
+      ],
+      "accent": [
+        0.66,
+        0.92,
+        1,
+        1
+      ],
+      "effects": [
+        {
+          "type": "block",
+          "value": {
+            "type": "source_counter",
+            "scope": "battle",
+            "counter": "hits",
+            "base": 8
+          }
+        },
+        {
+          "type": "increment_source_counter",
+          "scope": "battle",
+          "counter": "hits",
+          "value": 1
+        }
+      ]
     },
     {
       "id": "T004",
       "type": "攻击",
       "name": "重击",
       "rarity": "普通",
-      "description": "造成8点伤害",
-      "displayDescription": "造成8点伤害",
+      "description": "造成8点伤害，本场战斗每踩中一次，伤害+1",
+      "displayDescription": "造成8点伤害，本场战斗每踩中一次，伤害+1",
       "selectable": true,
       "temporary": false,
-      "tags": ["attack"],
+      "destroy_after_battle": false,
+      "tags": [
+        "attack"
+      ],
       "icon_kind": "sword",
-      "color": [0.78, 0.20, 0.24, 1.0],
-      "accent": [1.0, 0.68, 0.18, 1.0],
-      "effects": [{"type": "damage", "value": 8}]
+      "color": [
+        0.92,
+        0.25,
+        0.32,
+        1
+      ],
+      "accent": [
+        1,
+        0.82,
+        0.22,
+        1
+      ],
+      "effects": [
+        {
+          "type": "damage",
+          "value": {
+            "type": "source_counter",
+            "scope": "battle",
+            "counter": "hits",
+            "base": 8
+          }
+        },
+        {
+          "type": "increment_source_counter",
+          "scope": "battle",
+          "counter": "hits",
+          "value": 1
+        }
+      ]
     },
     {
       "id": "T005",
       "type": "攻击",
       "name": "偷袭",
       "rarity": "普通",
-      "description": "造成4点伤害，每经过一次，对敌方造成1点伤害",
-      "displayDescription": "造成4点伤害；本轮每经过一次，对敌方造成1点伤害",
+      "description": "造成4点伤害,每次被棋子经过一次，对敌方造成一点伤害",
+      "displayDescription": "造成4点伤害,每次被棋子经过一次，对敌方造成一点伤害",
       "selectable": true,
       "temporary": false,
-      "tags": ["attack", "pass"],
-      "icon_kind": "combo",
-      "color": [0.88, 0.34, 0.25, 1.0],
-      "accent": [1.0, 0.90, 0.25, 1.0],
-      "effects": [{"type": "damage", "value": 4}],
-      "passEffects": [{"type": "damage", "value": 1, "attack": false}]
+      "destroy_after_battle": false,
+      "tags": [
+        "attack"
+      ],
+      "icon_kind": "sword",
+      "color": [
+        0.92,
+        0.25,
+        0.32,
+        1
+      ],
+      "accent": [
+        1,
+        0.82,
+        0.22,
+        1
+      ],
+      "effects": [
+        {
+          "type": "damage",
+          "value": 4
+        }
+      ],
+      "passEffects": [
+        {
+          "type": "damage",
+          "value": 1,
+          "attack": false
+        }
+      ]
     },
     {
       "id": "T006",
       "type": "攻击",
       "name": "连击",
       "rarity": "普通",
-      "description": "造成（本回合触发过连击地块的次数+1）×5的伤害",
-      "displayDescription": "本回合第几次触发连击，就造成几倍的5点伤害",
+      "description": "造成5点伤害，本回合每踩中一次，伤害+5",
+      "displayDescription": "造成5点伤害，本回合每踩中一次，伤害+5",
       "selectable": true,
       "temporary": false,
-      "tags": ["attack", "combo"],
+      "destroy_after_battle": false,
+      "tags": [
+        "attack"
+      ],
       "icon_kind": "combo",
-      "color": [0.92, 0.28, 0.20, 1.0],
-      "accent": [1.0, 0.92, 0.28, 1.0],
+      "color": [
+        0.92,
+        0.25,
+        0.32,
+        1
+      ],
+      "accent": [
+        1,
+        0.82,
+        0.22,
+        1
+      ],
       "effects": [
-        {"type": "increment_counter", "scope": "turn", "counter": "combo_hits", "value": 1},
-        {"type": "damage", "value": {"type": "counter", "scope": "turn", "counter": "combo_hits", "multiplier": 5}}
+        {
+          "type": "increment_counter",
+          "scope": "turn",
+          "counter": "combo_hits",
+          "value": 1
+        },
+        {
+          "type": "damage",
+          "value": {
+            "type": "counter",
+            "scope": "turn",
+            "counter": "combo_hits",
+            "multiplier": 5
+          }
+        }
       ]
     },
     {
@@ -115,32 +281,69 @@
       "type": "技能",
       "name": "强化",
       "rarity": "稀有",
-      "description": "下一次打击伤害翻倍",
-      "displayDescription": "下一次攻击地块伤害翻倍",
+      "description": "下一次攻击造成的伤害翻倍",
+      "displayDescription": "下一次攻击造成的伤害翻倍",
       "selectable": true,
       "temporary": false,
-      "tags": ["skill", "buff"],
+      "destroy_after_battle": false,
+      "tags": [
+        "skill"
+      ],
       "icon_kind": "power",
-      "color": [0.60, 0.28, 0.88, 1.0],
-      "accent": [1.0, 0.88, 0.22, 1.0],
-      "effects": [{"type": "next_attack_multiplier", "value": 2.0}]
+      "color": [
+        0.6,
+        0.28,
+        0.88,
+        1
+      ],
+      "accent": [
+        1,
+        0.88,
+        0.22,
+        1
+      ],
+      "effects": [
+        {
+          "type": "next_attack_multiplier",
+          "value": 2
+        }
+      ]
     },
     {
       "id": "T008",
       "type": "攻击",
       "name": "陨石撞击",
       "rarity": "稀有",
-      "description": "造成18点伤害，随后本场战斗内变成废墟",
-      "displayDescription": "造成18点伤害；随后本场战斗内变成废墟",
+      "description": "造成20点伤害，随后本场战斗内变成废墟",
+      "displayDescription": "造成20点伤害，本场战斗变成废墟",
       "selectable": true,
       "temporary": false,
-      "tags": ["attack", "exhaust_battle"],
-      "icon_kind": "meteor",
-      "color": [0.80, 0.24, 0.14, 1.0],
-      "accent": [1.0, 0.78, 0.22, 1.0],
+      "destroy_after_battle": false,
+      "tags": [
+        "attack"
+      ],
+      "icon_kind": "sword",
+      "color": [
+        0.92,
+        0.25,
+        0.32,
+        1
+      ],
+      "accent": [
+        1,
+        0.82,
+        0.22,
+        1
+      ],
       "effects": [
-        {"type": "damage", "value": 18},
-        {"type": "transform_self_for_battle", "target": "T010"}
+        {
+          "type": "damage",
+          "value": 20
+        },
+        {
+          "type": "transform_self_for_battle",
+          "target": "T010"
+        }
       ]
     },
     {
@@ -149,16 +352,36 @@
       "name": "地裂",
       "rarity": "稀有",
       "description": "造成12点伤害，本场战斗增加1个废墟地块",
-      "displayDescription": "造成12点伤害；本场战斗增加1个废墟地块",
+      "displayDescription": "造成12点伤害，本场战斗增加1个废墟地块",
       "selectable": true,
       "temporary": false,
-      "tags": ["attack", "board"],
-      "icon_kind": "meteor",
-      "color": [0.64, 0.24, 0.18, 1.0],
-      "accent": [1.0, 0.64, 0.24, 1.0],
+      "destroy_after_battle": false,
+      "tags": [
+        "attack"
+      ],
+      "icon_kind": "sword",
+      "color": [
+        0.92,
+        0.25,
+        0.32,
+        1
+      ],
+      "accent": [
+        1,
+        0.82,
+        0.22,
+        1
+      ],
       "effects": [
-        {"type": "damage", "value": 12},
-        {"type": "generate_tile", "tile": "T010", "count": 1, "temporary": true}
+        {
+          "type": "damage",
+          "value": 12
+        },
+        {
+          "type": "generate_tile",
+          "tile": "T010",
+          "count": 1
+        }
       ]
     },
     {
@@ -167,403 +390,1914 @@
       "name": "废墟",
       "rarity": "诅咒",
       "description": "无",
-      "displayDescription": "无效果",
+      "displayDescription": "无",
       "selectable": false,
-      "temporary": false,
-      "tags": ["curse", "ruin"],
+      "temporary": true,
+      "destroy_after_battle": true,
+      "tags": [
+        "curse",
+        "ruin"
+      ],
       "icon_kind": "ruin",
-      "color": [0.22, 0.22, 0.24, 1.0],
-      "accent": [0.72, 0.72, 0.76, 1.0],
+      "color": [
+        0.22,
+        0.22,
+        0.24,
+        1
+      ],
+      "accent": [
+        0.72,
+        0.72,
+        0.76,
+        1
+      ],
       "effects": []
     },
     {
       "id": "T011",
       "type": "技能",
-      "name": "再次冲锋",
+      "name": "净化",
       "rarity": "稀有",
-      "description": "获得2点能量，踩中后销毁该地块",
-      "displayDescription": "获得2次骰子机会；踩中后销毁该地块",
+      "description": "本场战斗，每次踩中一个诅咒牌，能量+1。消耗",
+      "displayDescription": "本场战斗，每次踩中一个诅咒牌，能量+1。踩中后销毁自身",
       "selectable": true,
       "temporary": false,
-      "tags": ["skill", "energy"],
-      "icon_kind": "charge",
-      "color": [0.15, 0.74, 0.65, 1.0],
-      "accent": [1.0, 0.86, 0.22, 1.0],
+      "destroy_after_battle": false,
+      "tags": [
+        "skill"
+      ],
+      "icon_kind": "lab",
+      "color": [
+        0.18,
+        0.62,
+        0.82,
+        1
+      ],
+      "accent": [
+        1,
+        0.86,
+        0.22,
+        1
+      ],
       "effects": [
-        {"type": "add_rolls", "value": 2},
-        {"type": "destroy_self"}
+        {
+          "type": "increment_counter",
+          "scope": "battle",
+          "counter": "purify_active",
+          "value": 1
+        },
+        {
+          "type": "destroy_self"
+        }
       ]
     },
     {
       "id": "T012",
       "type": "技能",
-      "name": "盾墙",
-      "rarity": "普通",
-      "description": "获得6点护盾，如果怪物意图在攻击，额外获得4点护盾",
-      "displayDescription": "获得6点护盾；如果怪物意图为攻击，额外获得4点护盾",
+      "name": "再次冲锋",
+      "rarity": "稀有",
+      "description": "获得2点能量，消耗",
+      "displayDescription": "获得2点能量，踩中后销毁该地块",
       "selectable": true,
       "temporary": false,
-      "tags": ["defense", "reactive"],
-      "icon_kind": "shield_wall",
-      "color": [0.20, 0.40, 0.70, 1.0],
-      "accent": [0.95, 0.95, 1.0, 1.0],
+      "destroy_after_battle": false,
+      "tags": [
+        "skill",
+        "energy"
+      ],
+      "icon_kind": "charge",
+      "color": [
+        0.15,
+        0.74,
+        0.65,
+        1
+      ],
+      "accent": [
+        1,
+        0.86,
+        0.22,
+        1
+      ],
       "effects": [
-        {"type": "block", "value": 6},
-        {"type": "block_if_monster_attack", "value": 4}
+        {
+          "type": "add_rolls",
+          "value": 2
+        },
+        {
+          "type": "destroy_self"
+        }
       ]
     },
     {
       "id": "T013",
       "type": "技能",
-      "name": "超载",
-      "rarity": "稀有",
-      "description": "获得3点能量，踩中后生成1个虚无地块",
-      "displayDescription": "获得3次骰子机会；踩中后生成1个虚无地块",
+      "name": "盾墙",
+      "rarity": "普通",
+      "description": "获得6点护盾，如果怪物意图在攻击，额外获得4点护盾",
+      "displayDescription": "获得6点护盾，如果怪物意图在攻击，额外获得4点护盾",
       "selectable": true,
       "temporary": false,
-      "tags": ["skill", "energy", "curse"],
-      "icon_kind": "power",
-      "color": [0.55, 0.22, 0.78, 1.0],
-      "accent": [1.0, 0.72, 0.22, 1.0],
+      "destroy_after_battle": false,
+      "tags": [
+        "skill"
+      ],
+      "icon_kind": "shield",
+      "color": [
+        0.22,
+        0.52,
+        0.9,
+        1
+      ],
+      "accent": [
+        0.66,
+        0.92,
+        1,
+        1
+      ],
       "effects": [
-        {"type": "add_rolls", "value": 3},
-        {"type": "generate_tile", "tile": "T014", "count": 1}
+        {
+          "type": "block",
+          "value": 6
+        },
+        {
+          "type": "block_if_monster_attack",
+          "value": 4
+        }
       ]
     },
     {
       "id": "T014",
-      "type": "诅咒",
-      "name": "虚无",
-      "rarity": "诅咒",
-      "description": "获得-1能量，销毁",
-      "displayDescription": "失去1次骰子机会；踩中后销毁该地块",
-      "selectable": false,
-      "temporary": false,
-      "tags": ["curse", "void"],
-      "icon_kind": "ghost",
-      "color": [0.18, 0.18, 0.25, 1.0],
-      "accent": [0.74, 0.78, 1.0, 1.0],
+      "type": "技能",
+      "name": "超载",
+      "rarity": "稀有",
+      "description": "获得3点能量，踩中后生成1个虚空地块，耐久度3  虚弱状态：获得1点能量，踩中后生成1个虚空地块",
+      "displayDescription": "获得3点能量，踩中后生成1个虚空地块，耐久度3 ,虚弱状态：获得1点能量，踩中后生成1个虚空地块",
+      "selectable": true,
+      "temporary": true,
+      "destroy_after_battle": true,
+      "tags": [
+        "skill",
+        "energy"
+      ],
+      "icon_kind": "shield",
+      "color": [
+        0.15,
+        0.74,
+        0.65,
+        1
+      ],
+      "accent": [
+        1,
+        0.86,
+        0.22,
+        1
+      ],
       "effects": [
-        {"type": "lose_rolls", "value": 1},
-        {"type": "destroy_self"}
+        {
+          "type": "add_rolls",
+          "value": 3
+        },
+        {
+          "type": "generate_tile",
+          "tile": "T015",
+          "count": 1
+        }
+      ],
+      "durability": 3,
+      "weakEffects": [
+        {
+          "type": "add_rolls",
+          "value": 1
+        },
+        {
+          "type": "generate_tile",
+          "tile": "T015",
+          "count": 1
+        }
       ]
     },
     {
       "id": "T015",
+      "type": "诅咒",
+      "name": "虚无",
+      "rarity": "诅咒",
+      "description": "获得-1能量，消耗",
+      "displayDescription": "获得-1能量，销毁",
+      "selectable": false,
+      "temporary": true,
+      "destroy_after_battle": true,
+      "tags": [
+        "curse",
+        "void"
+      ],
+      "icon_kind": "ghost",
+      "color": [
+        0.18,
+        0.18,
+        0.25,
+        1
+      ],
+      "accent": [
+        0.74,
+        0.78,
+        1,
+        1
+      ],
+      "effects": [
+        {
+          "type": "lose_rolls",
+          "value": 1
+        },
+        {
+          "type": "destroy_self"
+        }
+      ]
+    },
+    {
+      "id": "T016",
       "type": "技能",
       "name": "快速拔枪",
       "rarity": "普通",
       "description": "生成4个快速射击地块",
-      "displayDescription": "生成4个快速射击地块",
+      "displayDescription": "生成3个快速射击地块",
       "selectable": true,
       "temporary": false,
-      "tags": ["skill", "quick_shot"],
-      "icon_kind": "sword",
-      "color": [0.88, 0.36, 0.34, 1.0],
-      "accent": [1.0, 0.92, 0.30, 1.0],
-      "effects": [{"type": "generate_tile", "tile": "T016", "count": 4, "temporary": true}]
-    },
-    {
-      "id": "T016",
-      "type": "攻击",
-      "name": "快速射击",
-      "rarity": "普通",
-      "description": "获得1点能量，造成4点伤害，踩中后销毁该地块",
-      "displayDescription": "获得1次骰子机会；造成4点伤害；踩中后销毁该地块",
-      "selectable": false,
-      "temporary": true,
-      "tags": ["attack", "quick_shot"],
-      "icon_kind": "sword",
-      "color": [0.96, 0.32, 0.34, 1.0],
-      "accent": [1.0, 0.95, 0.32, 1.0],
-      "effects": [
-        {"type": "add_rolls", "value": 1},
-        {"type": "damage", "value": {"type": "counter_add", "scope": "battle", "counter": "quick_shot_bonus", "base": 4}},
-        {"type": "destroy_self"}
+      "destroy_after_battle": false,
+      "tags": [
+        "skill",
+        "quick_shot"
       ],
-      "destroyEffects": [{"type": "increment_counter", "scope": "battle", "counter": "quick_shot_destroyed", "value": 1}]
+      "icon_kind": "shield",
+      "color": [
+        0.18,
+        0.62,
+        0.82,
+        1
+      ],
+      "accent": [
+        1,
+        0.86,
+        0.22,
+        1
+      ],
+      "effects": [
+        {
+          "type": "generate_tile",
+          "tile": "T017",
+          "count": 3
+        }
+      ]
     },
     {
       "id": "T017",
-      "type": "技能",
-      "name": "掩护射击",
+      "type": "攻击",
+      "name": "快速射击",
       "rarity": "普通",
-      "description": "获得4点护盾，生成2个快速射击地块",
-      "displayDescription": "获得4点护盾；生成2个快速射击地块",
-      "selectable": true,
-      "temporary": false,
-      "tags": ["defense", "quick_shot"],
-      "icon_kind": "shield_wall",
-      "color": [0.24, 0.50, 0.78, 1.0],
-      "accent": [1.0, 0.88, 0.32, 1.0],
+      "description": "获得1点能量，造成4点伤害，消耗",
+      "displayDescription": "获得1点能量，造成4点伤害，踩中后销毁该地块",
+      "selectable": false,
+      "temporary": true,
+      "destroy_after_battle": true,
+      "tags": [
+        "attack",
+        "quick_shot"
+      ],
+      "icon_kind": "sword",
+      "color": [
+        0.92,
+        0.25,
+        0.32,
+        1
+      ],
+      "accent": [
+        1,
+        0.82,
+        0.22,
+        1
+      ],
       "effects": [
-        {"type": "block", "value": 4},
-        {"type": "generate_tile", "tile": "T016", "count": 2, "temporary": true}
+        {
+          "type": "add_rolls",
+          "value": 1
+        },
+        {
+          "type": "damage",
+          "value": {
+            "type": "counter_add",
+            "scope": "battle",
+            "counter": "quick_shot_bonus",
+            "base": 4
+          }
+        },
+        {
+          "type": "destroy_self"
+        }
+      ],
+      "destroyEffects": [
+        {
+          "type": "increment_counter",
+          "scope": "battle",
+          "counter": "quick_shot_destroyed",
+          "value": 1
+        }
       ]
     },
     {
       "id": "T018",
       "type": "技能",
-      "name": "枪术大师",
-      "rarity": "稀有",
-      "description": "本场战斗快速射击地块伤害+4，踩中后销毁该地块",
-      "displayDescription": "本场战斗快速射击地块伤害+4；踩中后销毁该地块",
+      "name": "掩护射击",
+      "rarity": "普通",
+      "description": "获得4点护盾，生成2个快速射击地块",
+      "displayDescription": "获得4点护盾，生成2个快速射击地块",
       "selectable": true,
       "temporary": false,
-      "tags": ["skill", "quick_shot"],
-      "icon_kind": "power",
-      "color": [0.58, 0.28, 0.82, 1.0],
-      "accent": [1.0, 0.92, 0.28, 1.0],
+      "destroy_after_battle": false,
+      "tags": [
+        "skill"
+      ],
+      "icon_kind": "shield_wall",
+      "color": [
+        0.22,
+        0.52,
+        0.9,
+        1
+      ],
+      "accent": [
+        0.66,
+        0.92,
+        1,
+        1
+      ],
       "effects": [
-        {"type": "increment_counter", "scope": "battle", "counter": "quick_shot_bonus", "value": 4},
-        {"type": "destroy_self"}
+        {
+          "type": "block",
+          "value": 4
+        },
+        {
+          "type": "generate_tile",
+          "tile": "T017",
+          "count": 2
+        }
       ]
     },
     {
       "id": "T019",
-      "type": "攻击",
-      "name": "金色子弹",
-      "rarity": "非凡",
-      "description": "造成5×本场战斗中消耗的快速射击地块数量",
-      "displayDescription": "造成5×本场战斗中消耗的快速射击地块数量",
+      "type": "技能",
+      "name": "枪术大师",
+      "rarity": "稀有",
+      "description": "本场战斗快速射击块伤害+4，消耗",
+      "displayDescription": "本场战斗快速射击块伤害+4，踩中后销毁该地块",
       "selectable": true,
       "temporary": false,
-      "tags": ["attack", "quick_shot"],
-      "icon_kind": "coin",
-      "color": [0.96, 0.66, 0.18, 1.0],
-      "accent": [1.0, 0.96, 0.42, 1.0],
-      "effects": [{"type": "damage", "value": {"type": "counter", "scope": "battle", "counter": "quick_shot_destroyed", "multiplier": 5}}]
+      "destroy_after_battle": false,
+      "tags": [
+        "skill",
+        "quick_shot"
+      ],
+      "icon_kind": "power",
+      "color": [
+        0.6,
+        0.28,
+        0.88,
+        1
+      ],
+      "accent": [
+        1,
+        0.88,
+        0.22,
+        1
+      ],
+      "effects": [
+        {
+          "type": "increment_counter",
+          "scope": "battle",
+          "counter": "quick_shot_bonus",
+          "value": 4
+        },
+        {
+          "type": "destroy_self"
+        }
+      ]
     },
     {
       "id": "T020",
-      "type": "技能",
-      "name": "快速跃迁3",
-      "rarity": "稀有",
-      "description": "踩中后棋子继续再次位移3格距离，跃迁能量1",
-      "displayDescription": "踩中后棋子继续位移3格；跃迁能量1",
+      "type": "攻击",
+      "name": "金色子弹",
+      "rarity": "非凡",
+      "description": "造成 5 × 本场战斗中消耗的快速射击地块数量",
+      "displayDescription": "造成 5 × 本场战斗中消耗的快速射击地块数量",
       "selectable": true,
       "temporary": false,
-      "tags": ["skill", "warp"],
-      "icon_kind": "charge",
-      "color": [0.16, 0.70, 0.86, 1.0],
-      "accent": [0.92, 1.0, 0.34, 1.0],
-      "effects": [{"type": "move_self", "steps": 3, "reason": "warp", "condition": {"dice_extra_moves_less_than": {"type": "counter_add", "scope": "turn", "counter": "warp_energy_bonus", "base": 1}}}]
+      "destroy_after_battle": false,
+      "tags": [
+        "attack",
+        "quick_shot"
+      ],
+      "icon_kind": "coin",
+      "color": [
+        0.92,
+        0.25,
+        0.32,
+        1
+      ],
+      "accent": [
+        1,
+        0.82,
+        0.22,
+        1
+      ],
+      "effects": [
+        {
+          "type": "damage",
+          "value": {
+            "type": "counter",
+            "scope": "battle",
+            "counter": "quick_shot_destroyed",
+            "multiplier": 5
+          }
+        }
+      ]
     },
     {
       "id": "T021",
       "type": "技能",
-      "name": "快速跃迁1",
-      "rarity": "稀有",
-      "description": "踩中后棋子继续再次位移1格距离，跃迁能量1",
-      "displayDescription": "踩中后棋子继续位移1格；跃迁能量1",
+      "name": "队友掩护",
+      "rarity": "非凡",
+      "description": "每消耗1个快速射击地块，获得3点护盾，消耗",
+      "displayDescription": "每消耗1个快速射击地块，获得3点护盾，踩中后销毁该地块",
       "selectable": true,
       "temporary": false,
-      "tags": ["skill", "warp"],
-      "icon_kind": "charge",
-      "color": [0.18, 0.62, 0.82, 1.0],
-      "accent": [0.88, 1.0, 0.34, 1.0],
-      "effects": [{"type": "move_self", "steps": 1, "reason": "warp", "condition": {"dice_extra_moves_less_than": {"type": "counter_add", "scope": "turn", "counter": "warp_energy_bonus", "base": 1}}}]
+      "destroy_after_battle": false,
+      "tags": [
+        "skill",
+        "quick_shot"
+      ],
+      "icon_kind": "shield_wall",
+      "color": [
+        0.22,
+        0.52,
+        0.9,
+        1
+      ],
+      "accent": [
+        0.66,
+        0.92,
+        1,
+        1
+      ],
+      "effects": [
+        {
+          "type": "block",
+          "value": {
+            "type": "counter",
+            "scope": "battle",
+            "counter": "quick_shot_destroyed",
+            "multiplier": 3
+          }
+        },
+        {
+          "type": "destroy_self"
+        }
+      ]
     },
     {
       "id": "T022",
       "type": "技能",
-      "name": "快速跃迁5",
-      "rarity": "非凡",
-      "description": "踩中后棋子继续再次位移5格距离，跃迁能量1",
-      "displayDescription": "踩中后棋子继续位移5格；跃迁能量1",
+      "name": "补充",
+      "rarity": "稀有",
+      "description": "每消耗4个快速射击地块，能量+1，消耗",
+      "displayDescription": "每消耗4个快速射击地块，能量+1，踩中后销毁该地块",
       "selectable": true,
       "temporary": false,
-      "tags": ["skill", "warp"],
+      "destroy_after_battle": false,
+      "tags": [
+        "skill",
+        "quick_shot"
+      ],
       "icon_kind": "charge",
-      "color": [0.12, 0.56, 0.82, 1.0],
-      "accent": [1.0, 0.94, 0.30, 1.0],
-      "effects": [{"type": "move_self", "steps": 5, "reason": "warp", "condition": {"dice_extra_moves_less_than": {"type": "counter_add", "scope": "turn", "counter": "warp_energy_bonus", "base": 1}}}]
+      "color": [
+        0.18,
+        0.62,
+        0.82,
+        1
+      ],
+      "accent": [
+        1,
+        0.86,
+        0.22,
+        1
+      ],
+      "effects": [
+        {
+          "type": "add_rolls",
+          "value": {
+            "type": "counter_div",
+            "scope": "battle",
+            "counter": "quick_shot_destroyed",
+            "divisor": 4
+          }
+        },
+        {
+          "type": "destroy_self"
+        }
+      ]
     },
     {
       "id": "T023",
       "type": "技能",
-      "name": "能量回响",
-      "rarity": "非凡",
-      "description": "如果是被跃迁后的棋子踩中，增加2点能量",
-      "displayDescription": "如果是被跃迁后的棋子踩中，增加2次骰子机会",
+      "name": "后援",
+      "rarity": "稀有",
+      "description": "本场战斗每回合开始时生成一格快速射击地块，消耗",
+      "displayDescription": "本场战斗每回合开始时生成一格快速射击地块，踩中后销毁该地块",
       "selectable": true,
       "temporary": false,
-      "tags": ["skill", "warp", "energy"],
-      "icon_kind": "lab",
-      "color": [0.18, 0.58, 0.72, 1.0],
-      "accent": [0.95, 1.0, 0.35, 1.0],
-      "effects": [{"type": "add_rolls", "value": 2, "condition": {"reason": "warp"}}]
+      "destroy_after_battle": false,
+      "tags": [
+        "skill",
+        "quick_shot"
+      ],
+      "icon_kind": "shield",
+      "color": [
+        0.18,
+        0.62,
+        0.82,
+        1
+      ],
+      "accent": [
+        1,
+        0.86,
+        0.22,
+        1
+      ],
+      "effects": [
+        {
+          "type": "add_turn_start_tile",
+          "tile": "T017",
+          "count": 1
+        },
+        {
+          "type": "destroy_self"
+        }
+      ]
     },
     {
       "id": "T024",
       "type": "技能",
-      "name": "跃迁速射",
+      "name": "快速跃迁3",
       "rarity": "稀有",
-      "description": "被跃迁中的棋子经过，造成4点伤害",
-      "displayDescription": "被跃迁中的棋子经过时，造成4点伤害",
+      "description": "踩中后棋子继续再次位移3格距离，耐久度4 虚弱状态:获得5点格挡",
+      "displayDescription": "踩中后棋子继续再次位移3格距离，耐久度4 虚弱状态:获得5点格挡",
       "selectable": true,
       "temporary": false,
-      "tags": ["attack", "warp", "pass"],
-      "icon_kind": "sword",
-      "color": [0.82, 0.30, 0.32, 1.0],
-      "accent": [0.84, 1.0, 0.32, 1.0],
-      "effects": [],
-      "passEffects": [{"type": "damage", "value": 4, "condition": {"reason_in": ["warp_passed"]}}]
+      "destroy_after_battle": false,
+      "tags": [
+        "skill",
+        "warp"
+      ],
+      "icon_kind": "charge",
+      "color": [
+        0.16,
+        0.7,
+        0.86,
+        1
+      ],
+      "accent": [
+        0.92,
+        1,
+        0.34,
+        1
+      ],
+      "effects": [
+        {
+          "type": "move_self",
+          "steps": 3,
+          "reason": "warp"
+        }
+      ],
+      "durability": 4,
+      "weakEffects": [
+        {
+          "type": "block",
+          "value": 5
+        }
+      ]
     },
     {
       "id": "T025",
       "type": "技能",
-      "name": "灵活抖动",
-      "rarity": "稀有",
-      "description": "被跃迁中的棋子经过，获得3点护甲",
-      "displayDescription": "被跃迁中的棋子经过时，获得3点护盾",
+      "name": "快速跃迁1",
+      "rarity": "普通",
+      "description": "踩中后棋子继续再次位移1格距离",
+      "displayDescription": "踩中后棋子继续再次位移1格距离",
       "selectable": true,
       "temporary": false,
-      "tags": ["defense", "warp", "pass"],
-      "icon_kind": "shield",
-      "color": [0.18, 0.52, 0.76, 1.0],
-      "accent": [0.84, 1.0, 0.38, 1.0],
-      "effects": [],
-      "passEffects": [{"type": "block", "value": 3, "condition": {"reason_in": ["warp_passed"]}}]
+      "destroy_after_battle": false,
+      "tags": [
+        "skill",
+        "warp"
+      ],
+      "icon_kind": "charge",
+      "color": [
+        0.16,
+        0.7,
+        0.86,
+        1
+      ],
+      "accent": [
+        0.92,
+        1,
+        0.34,
+        1
+      ],
+      "effects": [
+        {
+          "type": "move_self",
+          "steps": 1,
+          "reason": "warp"
+        }
+      ]
     },
     {
       "id": "T026",
-      "type": "攻击",
-      "name": "超能光速",
+      "type": "技能",
+      "name": "快速跃迁5",
       "rarity": "非凡",
-      "description": "造成10×当前所有能量+1的伤害",
-      "displayDescription": "造成10×（当前剩余骰子机会+1）的伤害",
+      "description": "踩中后棋子继续再次位移1格距离，耐久度3 虚弱状态:获得5点格挡",
+      "displayDescription": "踩中后棋子继续再次位移1格距离，耐久度3 虚弱状态:获得5点格挡",
       "selectable": true,
       "temporary": false,
-      "tags": ["attack", "energy"],
-      "icon_kind": "meteor",
-      "color": [0.78, 0.26, 0.86, 1.0],
-      "accent": [0.98, 1.0, 0.34, 1.0],
-      "effects": [{"type": "damage", "value": {"type": "rolls_left_plus", "add": 1, "multiplier": 10}}]
+      "destroy_after_battle": false,
+      "tags": [
+        "skill",
+        "warp"
+      ],
+      "icon_kind": "charge",
+      "color": [
+        0.16,
+        0.7,
+        0.86,
+        1
+      ],
+      "accent": [
+        0.92,
+        1,
+        0.34,
+        1
+      ],
+      "effects": [
+        {
+          "type": "move_self",
+          "steps": 5,
+          "reason": "warp"
+        }
+      ],
+      "durability": 3,
+      "weakEffects": [
+        {
+          "type": "block",
+          "value": 5
+        }
+      ]
     },
     {
       "id": "T027",
       "type": "技能",
-      "name": "充能",
-      "rarity": "非凡",
-      "description": "本回合，所有跃迁棋子能量+2",
-      "displayDescription": "本回合，所有跃迁地块的跃迁能量+2",
+      "name": "能量回响",
+      "rarity": "稀有",
+      "description": "如果是被跃迁后的棋子踩中，增加两点能量",
+      "displayDescription": "如果是被跃迁后的棋子踩中，增加两点能量",
       "selectable": true,
       "temporary": false,
-      "tags": ["skill", "warp"],
-      "icon_kind": "power",
-      "color": [0.42, 0.36, 0.88, 1.0],
-      "accent": [0.98, 1.0, 0.34, 1.0],
-      "effects": [{"type": "increment_counter", "scope": "turn", "counter": "warp_energy_bonus", "value": 2}]
+      "destroy_after_battle": false,
+      "tags": [
+        "skill",
+        "warp",
+        "energy"
+      ],
+      "icon_kind": "lab",
+      "color": [
+        0.16,
+        0.7,
+        0.86,
+        1
+      ],
+      "accent": [
+        0.92,
+        1,
+        0.34,
+        1
+      ],
+      "effects": [
+        {
+          "type": "add_rolls",
+          "value": 2,
+          "condition": {
+            "reason": "warp"
+          }
+        }
+      ]
     },
     {
       "id": "T028",
-      "type": "攻击",
-      "name": "跃迁之力",
-      "rarity": "非凡",
-      "description": "造成4×本回合跃迁次数的伤害",
-      "displayDescription": "造成4×本回合跃迁次数的伤害",
+      "type": "技能",
+      "name": "跃迁速射",
+      "rarity": "普通",
+      "description": "被跃迁中的棋子经过，造成4点伤害",
+      "displayDescription": "被跃迁中的棋子经过，造成4点伤害",
       "selectable": true,
       "temporary": false,
-      "tags": ["attack", "warp"],
+      "destroy_after_battle": false,
+      "tags": [
+        "skill",
+        "warp"
+      ],
       "icon_kind": "charge",
-      "color": [0.80, 0.28, 0.72, 1.0],
-      "accent": [1.0, 0.92, 0.32, 1.0],
-      "effects": [{"type": "damage", "value": {"type": "counter", "scope": "turn", "counter": "warp_count", "multiplier": 4}}]
+      "color": [
+        0.16,
+        0.7,
+        0.86,
+        1
+      ],
+      "accent": [
+        0.92,
+        1,
+        0.34,
+        1
+      ],
+      "effects": [],
+      "passEffects": [
+        {
+          "type": "damage",
+          "value": 4,
+          "condition": {
+            "reason_in": [
+              "warp_passed"
+            ]
+          }
+        }
+      ]
     },
     {
       "id": "T029",
       "type": "技能",
-      "name": "积蓄力量",
-      "rarity": "稀有",
-      "description": "下回合能量+2",
-      "displayDescription": "下回合骰子机会+2",
+      "name": "灵活抖动",
+      "rarity": "普通",
+      "description": "被跃迁中的棋子经过，获得4点护甲",
+      "displayDescription": "被跃迁中的棋子经过，获得4点护甲",
       "selectable": true,
       "temporary": false,
-      "tags": ["skill", "energy"],
-      "icon_kind": "power",
-      "color": [0.36, 0.58, 0.28, 1.0],
-      "accent": [1.0, 0.90, 0.28, 1.0],
-      "effects": [{"type": "add_next_turn_rolls", "value": 2}]
+      "destroy_after_battle": false,
+      "tags": [
+        "skill"
+      ],
+      "icon_kind": "combo",
+      "color": [
+        0.18,
+        0.62,
+        0.82,
+        1
+      ],
+      "accent": [
+        1,
+        0.86,
+        0.22,
+        1
+      ],
+      "effects": [],
+      "passEffects": [
+        {
+          "type": "block",
+          "value": 4,
+          "condition": {
+            "reason_in": [
+              "warp_passed"
+            ]
+          }
+        }
+      ]
     },
     {
       "id": "T030",
       "type": "技能",
-      "name": "拆迁",
+      "name": "跃迁填补",
       "rarity": "稀有",
-      "description": "销毁下一轮踩到的地块",
-      "displayDescription": "下一次踩到地块时，在触发前销毁它，并触发被销毁效果",
+      "description": "被跃迁中的棋子经过，获得1点能量",
+      "displayDescription": "被跃迁中的棋子经过，获得1点能量",
       "selectable": true,
       "temporary": false,
-      "tags": ["skill", "destroy"],
-      "icon_kind": "bulldozer",
-      "color": [0.76, 0.46, 0.16, 1.0],
-      "accent": [1.0, 0.86, 0.28, 1.0],
-      "effects": [{"type": "set_destroy_next_tile"}]
+      "destroy_after_battle": false,
+      "tags": [
+        "skill",
+        "warp"
+      ],
+      "icon_kind": "charge",
+      "color": [
+        0.16,
+        0.7,
+        0.86,
+        1
+      ],
+      "accent": [
+        0.92,
+        1,
+        0.34,
+        1
+      ],
+      "effects": [],
+      "passEffects": [
+        {
+          "type": "add_rolls",
+          "value": 1,
+          "condition": {
+            "reason_in": [
+              "warp_passed"
+            ]
+          }
+        }
+      ]
     },
     {
       "id": "T031",
       "type": "攻击",
-      "name": "腐烂剑柄",
-      "rarity": "普通",
-      "description": "踩中造成7点伤害，如果是被销毁，造成20点伤害",
-      "displayDescription": "踩中造成7点伤害；如果是被销毁，造成20点伤害",
+      "name": "超能光速",
+      "rarity": "非凡",
+      "description": "造成10 × 当前所有能量+1的伤害，并且当前能量变为0",
+      "displayDescription": "造成10 × 当前所有能量+1的伤害，并且当前能量变为0",
       "selectable": true,
       "temporary": false,
-      "tags": ["attack", "destroy"],
+      "destroy_after_battle": false,
+      "tags": [
+        "attack",
+        "warp"
+      ],
       "icon_kind": "sword",
-      "color": [0.58, 0.34, 0.22, 1.0],
-      "accent": [0.88, 0.96, 0.30, 1.0],
-      "effects": [{"type": "damage", "value": 7}],
-      "destroyEffects": [{"type": "damage", "value": 20}]
+      "color": [
+        0.16,
+        0.7,
+        0.86,
+        1
+      ],
+      "accent": [
+        0.92,
+        1,
+        0.34,
+        1
+      ],
+      "effects": [
+        {
+          "type": "damage",
+          "value": {
+            "type": "rolls_left_plus",
+            "add": 1,
+            "multiplier": 10
+          }
+        },
+        {
+          "type": "lose_rolls",
+          "value": {
+            "type": "rolls_left_plus",
+            "add": 0
+          }
+        }
+      ]
     },
     {
       "id": "T032",
       "type": "技能",
-      "name": "战袍",
+      "name": "充能",
       "rarity": "稀有",
-      "description": "踩中获得7点护盾，如果是被销毁，获得3点能量",
-      "displayDescription": "踩中获得7点护盾；如果是被销毁，获得3次骰子机会",
+      "description": "本场战斗，所有需要耐久度的卡牌本场战斗耐久度+3，消耗",
+      "displayDescription": "本场战斗，所有需要耐久度的卡牌本场战斗耐久度+3，踩中后销毁该地块",
       "selectable": true,
       "temporary": false,
-      "tags": ["defense", "destroy", "energy"],
-      "icon_kind": "shield",
-      "color": [0.26, 0.42, 0.76, 1.0],
-      "accent": [1.0, 0.82, 0.30, 1.0],
-      "effects": [{"type": "block", "value": 7}],
-      "destroyEffects": [{"type": "add_rolls", "value": 3}]
+      "destroy_after_battle": false,
+      "tags": [
+        "skill"
+      ],
+      "icon_kind": "power",
+      "color": [
+        0.6,
+        0.28,
+        0.88,
+        1
+      ],
+      "accent": [
+        1,
+        0.88,
+        0.22,
+        1
+      ],
+      "effects": [
+        {
+          "type": "add_durability_all",
+          "value": 3
+        },
+        {
+          "type": "destroy_self"
+        }
+      ]
     },
     {
       "id": "T033",
+      "type": "攻击",
+      "name": "跃迁之刃",
+      "rarity": "非凡",
+      "description": "造成8点伤害，被跃迁中的棋子经过一次，本场战斗伤害+3",
+      "displayDescription": "造成8点伤害，被跃迁中的棋子经过一次，本场战斗伤害+3",
+      "selectable": true,
+      "temporary": false,
+      "destroy_after_battle": false,
+      "tags": [
+        "attack",
+        "warp"
+      ],
+      "icon_kind": "charge",
+      "color": [
+        0.16,
+        0.7,
+        0.86,
+        1
+      ],
+      "accent": [
+        0.92,
+        1,
+        0.34,
+        1
+      ],
+      "effects": [
+        {
+          "type": "damage",
+          "value": {
+            "type": "source_counter",
+            "scope": "battle",
+            "counter": "warp_passes",
+            "base": 8,
+            "multiplier": 1
+          }
+        }
+      ],
+      "passEffects": [
+        {
+          "type": "increment_source_counter",
+          "scope": "battle",
+          "counter": "warp_passes",
+          "value": 3,
+          "condition": {
+            "reason_in": [
+              "warp_passed"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "T034",
+      "type": "技能",
+      "name": "积蓄力量",
+      "rarity": "普通",
+      "description": "获得7点护盾，下回合能量+1",
+      "displayDescription": "获得7点护盾，下回合能量+1",
+      "selectable": true,
+      "temporary": false,
+      "destroy_after_battle": false,
+      "tags": [
+        "skill"
+      ],
+      "icon_kind": "power",
+      "color": [
+        0.18,
+        0.62,
+        0.82,
+        1
+      ],
+      "accent": [
+        1,
+        0.86,
+        0.22,
+        1
+      ],
+      "effects": [
+        {
+          "type": "block",
+          "value": 7
+        },
+        {
+          "type": "add_next_turn_rolls",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "T035",
+      "type": "技能",
+      "name": "拆迁",
+      "rarity": "稀有",
+      "description": "销毁下一轮踩到的地块",
+      "displayDescription": "销毁下一轮踩到的地块（在触发该地块效果之前就销毁，并检查是否有被销毁效果）",
+      "selectable": true,
+      "temporary": false,
+      "destroy_after_battle": false,
+      "tags": [
+        "skill",
+        "destroy"
+      ],
+      "icon_kind": "bulldozer",
+      "color": [
+        0.5,
+        0.3,
+        0.22,
+        1
+      ],
+      "accent": [
+        0.9,
+        0.96,
+        0.34,
+        1
+      ],
+      "effects": [
+        {
+          "type": "set_destroy_next_tile"
+        }
+      ]
+    },
+    {
+      "id": "T036",
+      "type": "攻击",
+      "name": "腐烂剑柄",
+      "rarity": "普通",
+      "description": "踩中造成7点伤害，如果是被销毁，造成20点伤害",
+      "displayDescription": "踩中造成7点伤害，如果是被销毁，造成20点伤害",
+      "selectable": true,
+      "temporary": false,
+      "destroy_after_battle": false,
+      "tags": [
+        "attack",
+        "destroy"
+      ],
+      "icon_kind": "sword",
+      "color": [
+        0.5,
+        0.3,
+        0.22,
+        1
+      ],
+      "accent": [
+        0.9,
+        0.96,
+        0.34,
+        1
+      ],
+      "effects": [
+        {
+          "type": "damage",
+          "value": 7
+        }
+      ],
+      "destroyEffects": [
+        {
+          "type": "damage",
+          "value": 20
+        }
+      ]
+    },
+    {
+      "id": "T037",
+      "type": "技能",
+      "name": "战袍",
+      "rarity": "稀有",
+      "description": "踩中获得7点护盾，如果是被销毁，获得3点能量",
+      "displayDescription": "踩中获得7点护盾，如果是被销毁，获得3点能量",
+      "selectable": true,
+      "temporary": false,
+      "destroy_after_battle": false,
+      "tags": [
+        "skill",
+        "destroy"
+      ],
+      "icon_kind": "shield",
+      "color": [
+        0.5,
+        0.3,
+        0.22,
+        1
+      ],
+      "accent": [
+        0.9,
+        0.96,
+        0.34,
+        1
+      ],
+      "effects": [
+        {
+          "type": "block",
+          "value": 7
+        }
+      ],
+      "destroyEffects": [
+        {
+          "type": "add_rolls",
+          "value": 3
+        }
+      ]
+    },
+    {
+      "id": "T038",
       "type": "技能",
       "name": "凋谢",
-      "rarity": "非凡",
+      "rarity": "稀有",
       "description": "踩中后销毁左右两边的地块",
       "displayDescription": "踩中后销毁左右两边的地块",
       "selectable": true,
       "temporary": false,
-      "tags": ["skill", "destroy"],
-      "icon_kind": "ruin",
-      "color": [0.36, 0.30, 0.42, 1.0],
-      "accent": [0.86, 0.92, 0.36, 1.0],
-      "effects": [{"type": "destroy_tiles", "targetRule": {"type": "adjacent"}}]
+      "destroy_after_battle": false,
+      "tags": [
+        "skill",
+        "destroy"
+      ],
+      "icon_kind": "shield",
+      "color": [
+        0.5,
+        0.3,
+        0.22,
+        1
+      ],
+      "accent": [
+        0.9,
+        0.96,
+        0.34,
+        1
+      ],
+      "effects": [
+        {
+          "type": "destroy_tiles",
+          "targetRule": {
+            "type": "adjacent"
+          }
+        }
+      ]
     },
     {
-      "id": "T034",
+      "id": "T039",
       "type": "攻击",
       "name": "腐烂之力",
       "rarity": "稀有",
       "description": "造成10点伤害，踩中后随机销毁场上一个地块",
-      "displayDescription": "造成10点伤害；踩中后随机销毁场上一个地块",
+      "displayDescription": "造成10点伤害，踩中后随机销毁场上一个地块",
       "selectable": true,
       "temporary": false,
-      "tags": ["attack", "destroy"],
-      "icon_kind": "power",
-      "color": [0.50, 0.30, 0.22, 1.0],
-      "accent": [0.90, 0.96, 0.34, 1.0],
+      "destroy_after_battle": false,
+      "tags": [
+        "attack",
+        "destroy"
+      ],
+      "icon_kind": "sword",
+      "color": [
+        0.5,
+        0.3,
+        0.22,
+        1
+      ],
+      "accent": [
+        0.9,
+        0.96,
+        0.34,
+        1
+      ],
       "effects": [
-        {"type": "damage", "value": 10},
-        {"type": "destroy_tiles", "targetRule": {"type": "random", "count": 1, "excludeCurrent": true}}
+        {
+          "type": "damage",
+          "value": 10
+        },
+        {
+          "type": "destroy_tiles",
+          "targetRule": {
+            "type": "random",
+            "count": 1,
+            "excludeCurrent": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "T040",
+      "type": "技能",
+      "name": "虚无空间",
+      "rarity": "非凡",
+      "description": "本回合所有对自己的伤害都结算为1，生成一张虚无地块，耐久度3 虚弱状态：无效果",
+      "displayDescription": "本回合所有对自己的伤害都结算为1，生成两张虚无地块，耐久度3 虚弱状态：无效果",
+      "selectable": true,
+      "temporary": false,
+      "destroy_after_battle": false,
+      "tags": [
+        "skill"
+      ],
+      "icon_kind": "power",
+      "color": [
+        0.6,
+        0.28,
+        0.88,
+        1
+      ],
+      "accent": [
+        1,
+        0.88,
+        0.22,
+        1
+      ],
+      "effects": [
+        {
+          "type": "generate_tile",
+          "tile": "T015",
+          "count": 2
+        }
+      ],
+      "durability": 3,
+      "weakEffects": []
+    },
+    {
+      "id": "T041",
+      "type": "技能",
+      "name": "快速反应",
+      "rarity": "普通",
+      "description": "获得3点护盾，能量+1",
+      "displayDescription": "获得3点护盾，能量+1",
+      "selectable": true,
+      "temporary": false,
+      "destroy_after_battle": false,
+      "tags": [
+        "skill"
+      ],
+      "icon_kind": "combo",
+      "color": [
+        0.18,
+        0.62,
+        0.82,
+        1
+      ],
+      "accent": [
+        1,
+        0.86,
+        0.22,
+        1
+      ],
+      "effects": [
+        {
+          "type": "block",
+          "value": 3
+        },
+        {
+          "type": "add_rolls",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "T042",
+      "type": "攻击",
+      "name": "众人之力",
+      "rarity": "非凡",
+      "description": "当触发时如果该地块位置上有3个棋子，则造成50点伤害，否则造成12点伤害。",
+      "displayDescription": "当触发时如果该地块位置上有3个棋子，则造成50点伤害，否则造成12点伤害。",
+      "selectable": true,
+      "temporary": false,
+      "destroy_after_battle": false,
+      "tags": [
+        "attack"
+      ],
+      "icon_kind": "sword",
+      "color": [
+        0.92,
+        0.25,
+        0.32,
+        1
+      ],
+      "accent": [
+        1,
+        0.82,
+        0.22,
+        1
+      ],
+      "effects": [
+        {
+          "type": "damage",
+          "value": 50,
+          "condition": {
+            "pawns_at_tile_at_least": 3
+          }
+        },
+        {
+          "type": "damage",
+          "value": 12,
+          "condition": {
+            "pawns_at_tile_at_most": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "T043",
+      "type": "技能",
+      "name": "逃兵",
+      "rarity": "普通",
+      "description": "当触发时如果该地块位置上只有1个棋子，则获得12点护盾，否则获得5点护盾",
+      "displayDescription": "当触发时如果该地块位置上只有1个棋子，则获得12点护盾，否则获得5点护盾",
+      "selectable": true,
+      "temporary": false,
+      "destroy_after_battle": false,
+      "tags": [
+        "skill"
+      ],
+      "icon_kind": "shield",
+      "color": [
+        0.22,
+        0.52,
+        0.9,
+        1
+      ],
+      "accent": [
+        0.66,
+        0.92,
+        1,
+        1
+      ],
+      "effects": [
+        {
+          "type": "block",
+          "value": 12,
+          "condition": {
+            "pawns_at_tile_at_most": 1
+          }
+        },
+        {
+          "type": "block",
+          "value": 5,
+          "condition": {
+            "pawns_at_tile_at_least": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "T044",
+      "type": "攻击",
+      "name": "趁其不备",
+      "rarity": "普通",
+      "description": "造成3点伤害，能量+1",
+      "displayDescription": "造成3点伤害，能量+1",
+      "selectable": true,
+      "temporary": false,
+      "destroy_after_battle": false,
+      "tags": [
+        "attack"
+      ],
+      "icon_kind": "sword",
+      "color": [
+        0.92,
+        0.25,
+        0.32,
+        1
+      ],
+      "accent": [
+        1,
+        0.82,
+        0.22,
+        1
+      ],
+      "effects": [
+        {
+          "type": "damage",
+          "value": 3
+        },
+        {
+          "type": "add_rolls",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "T045",
+      "type": "技能",
+      "name": "步步为营",
+      "rarity": "非凡",
+      "description": "每一次掷骰子，获得2点能量，消耗",
+      "displayDescription": "每一次掷骰子，获得2点能量。踩中后销毁自身",
+      "selectable": true,
+      "temporary": false,
+      "destroy_after_battle": false,
+      "tags": [
+        "skill",
+        "energy"
+      ],
+      "icon_kind": "power",
+      "color": [
+        0.15,
+        0.74,
+        0.65,
+        1
+      ],
+      "accent": [
+        1,
+        0.86,
+        0.22,
+        1
+      ],
+      "effects": [
+        {
+          "type": "add_roll_start_bonus",
+          "value": 2
+        },
+        {
+          "type": "destroy_self"
+        }
+      ]
+    },
+    {
+      "id": "T046",
+      "type": "技能",
+      "name": "全军出击",
+      "rarity": "非凡",
+      "description": "下一次掷骰子，三个棋子会一起按照格子骰出的数移动，耐久度3  虚弱状态：无效果",
+      "displayDescription": "下一次掷骰子，三个棋子会一起按照格子骰出的数移动，耐久度3  虚弱状态：无效果",
+      "selectable": true,
+      "temporary": false,
+      "destroy_after_battle": false,
+      "tags": [
+        "skill"
+      ],
+      "icon_kind": "power",
+      "color": [
+        0.6,
+        0.28,
+        0.88,
+        1
+      ],
+      "accent": [
+        1,
+        0.88,
+        0.22,
+        1
+      ],
+      "effects": [
+        {
+          "type": "set_all_pawns_next_roll"
+        }
+      ],
+      "durability": 3,
+      "weakEffects": []
+    },
+    {
+      "id": "T047",
+      "type": "技能",
+      "name": "无暇之盾",
+      "rarity": "稀有",
+      "description": "获得13点护盾，如果本场战斗收到一次伤害后，附加效果：骰子-1",
+      "displayDescription": "获得13点护盾，本场战斗收到一次伤害后，附加效果：骰子-1",
+      "selectable": true,
+      "temporary": false,
+      "destroy_after_battle": false,
+      "tags": [
+        "skill"
+      ],
+      "icon_kind": "shield",
+      "color": [
+        0.22,
+        0.52,
+        0.9,
+        1
+      ],
+      "accent": [
+        0.66,
+        0.92,
+        1,
+        1
+      ],
+      "effects": [
+        {
+          "type": "block",
+          "value": 13
+        },
+        {
+          "type": "lose_rolls",
+          "value": 1,
+          "condition": {
+            "player_damaged_in_battle": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "T048",
+      "type": "攻击",
+      "name": "无暇之刃",
+      "rarity": "稀有",
+      "description": "造成14点伤害，如果本场战斗收到一次伤害后，附加效果：骰子-1",
+      "displayDescription": "造成14点伤害，如果本场战斗收到一次伤害后，附加效果：骰子-1",
+      "selectable": true,
+      "temporary": false,
+      "destroy_after_battle": false,
+      "tags": [
+        "attack"
+      ],
+      "icon_kind": "sword",
+      "color": [
+        0.92,
+        0.25,
+        0.32,
+        1
+      ],
+      "accent": [
+        1,
+        0.82,
+        0.22,
+        1
+      ],
+      "effects": [
+        {
+          "type": "damage",
+          "value": 14
+        },
+        {
+          "type": "lose_rolls",
+          "value": 1,
+          "condition": {
+            "player_damaged_in_battle": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "T049",
+      "type": "技能",
+      "name": "修修补补",
+      "rarity": "稀有",
+      "description": "获得6点护盾，所有需要耐久度的卡牌本场战斗耐久度+1",
+      "displayDescription": "获得6点护盾，所有需要耐久度的卡牌本场战斗耐久度+1",
+      "selectable": true,
+      "temporary": false,
+      "destroy_after_battle": false,
+      "tags": [
+        "skill"
+      ],
+      "icon_kind": "power",
+      "color": [
+        0.22,
+        0.52,
+        0.9,
+        1
+      ],
+      "accent": [
+        0.66,
+        0.92,
+        1,
+        1
+      ],
+      "effects": [
+        {
+          "type": "block",
+          "value": 6
+        },
+        {
+          "type": "add_durability_all",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "T050",
+      "type": "技能",
+      "name": "要来喽",
+      "rarity": "非凡",
+      "description": "本场战斗增加1个真要来喽地块，消耗",
+      "displayDescription": "本场战斗增加1个真要来喽地块,踩中后销毁该地块",
+      "selectable": true,
+      "temporary": false,
+      "destroy_after_battle": false,
+      "tags": [
+        "skill"
+      ],
+      "icon_kind": "power",
+      "color": [
+        0.18,
+        0.62,
+        0.82,
+        1
+      ],
+      "accent": [
+        1,
+        0.86,
+        0.22,
+        1
+      ],
+      "effects": [
+        {
+          "type": "generate_tile",
+          "tile": "T051",
+          "count": 1
+        },
+        {
+          "type": "destroy_self"
+        }
+      ]
+    },
+    {
+      "id": "T051",
+      "type": "技能",
+      "name": "真要来喽",
+      "rarity": "非凡",
+      "description": "本场战斗增加1个还不跑吗地块，消耗",
+      "displayDescription": "本场战斗增加1个还不跑吗地块，踩中后销毁该地块",
+      "selectable": false,
+      "temporary": true,
+      "destroy_after_battle": true,
+      "tags": [
+        "skill"
+      ],
+      "icon_kind": "power",
+      "color": [
+        0.18,
+        0.62,
+        0.82,
+        1
+      ],
+      "accent": [
+        1,
+        0.86,
+        0.22,
+        1
+      ],
+      "effects": [
+        {
+          "type": "generate_tile",
+          "tile": "T052",
+          "count": 1
+        },
+        {
+          "type": "destroy_self"
+        }
+      ]
+    },
+    {
+      "id": "T052",
+      "type": "技能",
+      "name": "还不跑吗",
+      "rarity": "非凡",
+      "description": "本场战斗增加1个阿姆斯特朗终极大炮地块，消耗",
+      "displayDescription": "本场战斗增加1个阿姆斯特朗终极大炮地块，踩中后销毁该地块",
+      "selectable": false,
+      "temporary": true,
+      "destroy_after_battle": true,
+      "tags": [
+        "skill"
+      ],
+      "icon_kind": "power",
+      "color": [
+        0.18,
+        0.62,
+        0.82,
+        1
+      ],
+      "accent": [
+        1,
+        0.86,
+        0.22,
+        1
+      ],
+      "effects": [
+        {
+          "type": "generate_tile",
+          "tile": "T053",
+          "count": 1
+        },
+        {
+          "type": "destroy_self"
+        }
+      ]
+    },
+    {
+      "id": "T053",
+      "type": "技能",
+      "name": "阿姆斯特朗终极大炮",
+      "rarity": "非凡",
+      "description": "造成80点伤害，耐久度3 虚弱状态：造成15点伤害",
+      "displayDescription": "造成80点伤害，耐久度3 虚弱状态：造成15点伤害",
+      "selectable": false,
+      "temporary": true,
+      "destroy_after_battle": true,
+      "tags": [
+        "skill"
+      ],
+      "icon_kind": "shield",
+      "color": [
+        0.6,
+        0.28,
+        0.88,
+        1
+      ],
+      "accent": [
+        1,
+        0.88,
+        0.22,
+        1
+      ],
+      "effects": [
+        {
+          "type": "damage",
+          "value": 80
+        }
+      ],
+      "durability": 3,
+      "weakEffects": [
+        {
+          "type": "damage",
+          "value": 15
+        }
+      ]
+    },
+    {
+      "id": "T054",
+      "type": "技能",
+      "name": "补给包",
+      "rarity": "稀有",
+      "description": "生成3个能量点地块，消耗",
+      "displayDescription": "生成4个能量点地块，踩中后销毁该地块",
+      "selectable": true,
+      "temporary": false,
+      "destroy_after_battle": false,
+      "tags": [
+        "skill",
+        "energy"
+      ],
+      "icon_kind": "charge",
+      "color": [
+        0.15,
+        0.74,
+        0.65,
+        1
+      ],
+      "accent": [
+        1,
+        0.86,
+        0.22,
+        1
+      ],
+      "effects": [
+        {
+          "type": "generate_tile",
+          "tile": "T055",
+          "count": 4
+        },
+        {
+          "type": "destroy_self"
+        }
+      ]
+    },
+    {
+      "id": "T055",
+      "type": "技能",
+      "name": "能量点",
+      "rarity": "稀有",
+      "description": "获得1点能量,消耗",
+      "displayDescription": "获得1点能量,踩中后销毁该地块",
+      "selectable": false,
+      "temporary": true,
+      "destroy_after_battle": true,
+      "tags": [
+        "skill",
+        "energy"
+      ],
+      "icon_kind": "coin",
+      "color": [
+        0.15,
+        0.74,
+        0.65,
+        1
+      ],
+      "accent": [
+        1,
+        0.86,
+        0.22,
+        1
+      ],
+      "effects": [
+        {
+          "type": "add_rolls",
+          "value": 1
+        },
+        {
+          "type": "destroy_self"
+        }
+      ]
+    },
+    {
+      "id": "T056",
+      "type": "技能",
+      "name": "补给站",
+      "rarity": "非凡",
+      "description": "每回合开始前，生成一个能量点地块，消耗",
+      "displayDescription": "每回合开始前，生成一个能量点地块，踩中后销毁该地块",
+      "selectable": true,
+      "temporary": false,
+      "destroy_after_battle": false,
+      "tags": [
+        "skill",
+        "energy"
+      ],
+      "icon_kind": "charge",
+      "color": [
+        0.15,
+        0.74,
+        0.65,
+        1
+      ],
+      "accent": [
+        1,
+        0.86,
+        0.22,
+        1
+      ],
+      "effects": [
+        {
+          "type": "add_turn_start_tile",
+          "tile": "T055",
+          "count": 1
+        },
+        {
+          "type": "destroy_self"
+        }
+      ]
+    },
+    {
+      "id": "T057",
+      "type": "技能",
+      "name": "耐久中转站",
+      "rarity": "非凡",
+      "description": "每回合开始前，生成一个耐久点地块，消耗",
+      "displayDescription": "每回合开始前，生成一个耐久点地块，踩中后销毁该地块",
+      "selectable": true,
+      "temporary": false,
+      "destroy_after_battle": false,
+      "tags": [
+        "skill"
+      ],
+      "icon_kind": "charge",
+      "color": [
+        0.18,
+        0.62,
+        0.82,
+        1
+      ],
+      "accent": [
+        1,
+        0.86,
+        0.22,
+        1
+      ],
+      "effects": [
+        {
+          "type": "add_turn_start_tile",
+          "tile": "T058",
+          "count": 1
+        },
+        {
+          "type": "destroy_self"
+        }
+      ]
+    },
+    {
+      "id": "T058",
+      "type": "技能",
+      "name": "耐久点",
+      "rarity": "非凡",
+      "description": "获得2点护盾，所有需要耐久度的卡牌本场战斗耐久度+1",
+      "displayDescription": "获得2点护盾，所有需要耐久度的卡牌本场战斗耐久度+1",
+      "selectable": false,
+      "temporary": true,
+      "destroy_after_battle": true,
+      "tags": [
+        "skill"
+      ],
+      "icon_kind": "coin",
+      "color": [
+        0.18,
+        0.62,
+        0.82,
+        1
+      ],
+      "accent": [
+        1,
+        0.86,
+        0.22,
+        1
+      ],
+      "effects": [
+        {
+          "type": "block",
+          "value": 2
+        },
+        {
+          "type": "add_durability_all",
+          "value": 1
+        }
       ]
     },
     {
@@ -575,11 +2309,31 @@
       "displayDescription": "踩中后失去1次骰子机会；战斗结束后消失",
       "selectable": false,
       "temporary": true,
-      "tags": ["curse", "slime", "mud"],
+      "destroy_after_battle": true,
+      "tags": [
+        "curse",
+        "slime",
+        "mud"
+      ],
       "icon_kind": "slime_mud",
-      "color": [0.20, 0.46, 0.28, 1.0],
-      "accent": [0.60, 0.95, 0.38, 1.0],
-      "effects": [{"type": "lose_rolls", "value": 1}]
+      "color": [
+        0.2,
+        0.46,
+        0.28,
+        1
+      ],
+      "accent": [
+        0.6,
+        0.95,
+        0.38,
+        1
+      ],
+      "effects": [
+        {
+          "type": "lose_rolls",
+          "value": 1
+        }
+      ]
     }
   ]
 }

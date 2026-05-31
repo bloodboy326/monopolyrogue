@@ -23,6 +23,8 @@ func _ready() -> void:
 	_test_quick_shot_counters()
 	_test_warp_pass_effects()
 	_test_destroy_next_tile_triggers_destroy_effect()
+	_test_durability_and_weak_state()
+	_test_turn_start_generated_tiles_cleanup()
 	_test_monster_block_expires_and_reports_full_block()
 	_test_monster_tables_include_new_flow()
 	_test_act_map_tables_include_first_act()
@@ -61,10 +63,12 @@ func _test_basic_attack_and_block() -> void:
 	_assert(run.player_block == 5, "normal defense grants 5 player block")
 
 func _test_roll_energy_and_self_destroy() -> void:
-	var run = _new_run(["T011"], 2)
+	var run = _new_run(["T012"], 2)
 	_roll(run, 0, 1)
 	_assert(run.turn_rolls_left == 4, "again charge spends 1 roll then adds 2 rolls")
-	_assert(run.board.size() == 0, "again charge destroys itself")
+	_assert(run.board.size() == 1 and not run.board.get_tile(0).is_triggerable(), "non-cleanup self destroy is temporary for the battle")
+	run.start_battle(2, {"monster_id": "test", "name": "测试怪", "max_hp": 100, "art_key": "slime"})
+	_assert(run.board.size() == 1 and run.board.get_tile(0).is_triggerable(), "temporary destroyed tile restores next battle")
 
 func _test_combo_damage_counts_this_turn() -> void:
 	var run = _new_run(["T006"], 3)
@@ -74,34 +78,57 @@ func _test_combo_damage_counts_this_turn() -> void:
 	_assert(run.monster_hp == 85, "second combo hit deals 10, hp=%d counter=%d" % [run.monster_hp, run.get_counter("turn", "combo_hits")])
 
 func _test_quick_shot_counters() -> void:
-	var run = _new_run(["T016"], 4)
+	var run = _new_run(["T017"], 4)
 	run.increment_counter("battle", "quick_shot_bonus", 4)
 	_roll(run, 0, 1)
 	_assert(run.monster_hp == 92, "quick shot uses battle damage bonus")
 	_assert(run.get_counter("battle", "quick_shot_destroyed") == 1, "quick shot destruction increments consumed counter")
 
-	run = _new_run(["T019"], 5)
+	run = _new_run(["T020"], 5)
 	run.increment_counter("battle", "quick_shot_destroyed", 2)
 	_roll(run, 0, 1)
 	_assert(run.monster_hp == 90, "golden bullet scales with consumed quick shots")
 
 func _test_warp_pass_effects() -> void:
-	var run = _new_run(["T020", "T024", "T025", "T001"], 6)
+	var run = _new_run(["T024", "T028", "T029", "T001"], 6)
 	_roll(run, 3, 1)
 	_assert(run.get_counter("turn", "warp_count") == 1, "warp movement increments warp count")
 	_assert(run.monster_hp == 91, "warp pass damage plus final attack resolves")
-	_assert(run.player_block == 3, "warp pass block resolves")
+	_assert(run.player_block == 4, "warp pass block resolves")
 
 func _test_destroy_next_tile_triggers_destroy_effect() -> void:
-	var run = _new_run(["T030", "T031"], 7)
+	var run = _new_run(["T035", "T036"], 7)
 	_roll(run, 1, 1)
 	_assert(run.get_counter("battle", "destroy_next_tile") == 1, "demolition arms next tile destruction")
 	_roll(run, 0, 1)
 	_assert(run.monster_hp == 80, "destroyed rotten hilt deals destroy damage only")
-	_assert(run.board.size() == 1, "destroyed target is removed from board")
+	_assert(run.board.size() == 2 and not run.board.get_tile(1).is_triggerable(), "non-cleanup destroyed target stays in place for the battle")
+
+func _test_durability_and_weak_state() -> void:
+	var run = _new_run(["T046"], 8)
+	_roll(run, 0, 1)
+	_roll(run, 0, 1)
+	_roll(run, 0, 1)
+	_assert(run.board.get_tile(0).is_weak(), "durability reaches weak state after three triggers")
+	var before = run.all_pawns_next_rolls
+	_roll(run, 0, 1)
+	_assert(run.all_pawns_next_rolls == before, "weak state uses weak effects instead of normal effects")
+	run.add_durability_to_all(1)
+	_assert(not run.board.get_tile(0).is_weak(), "durability can be replenished out of weak state")
+
+func _test_turn_start_generated_tiles_cleanup() -> void:
+	var run = _new_run(["T023"], 9)
+	_roll(run, 0, 1)
+	run.begin_player_turn(3)
+	var events = run.apply_turn_start_tile_spawns()
+	_assert(not events.is_empty() and run.board.size() == 2, "turn start generator adds a tile")
+	var generated = run.board.get_tile(int(events[0].get("tileIndex", 1)))
+	_assert(generated.id == "T017" and bool(generated.runtime_flags.get("temporary_tile", false)), "turn start generated quick shot is marked for battle cleanup")
+	run.cleanup_round_temporary_tiles()
+	_assert(run.board.size() == 1, "battle cleanup removes generated cleanup tiles")
 
 func _test_monster_block_expires_and_reports_full_block() -> void:
-	var run = _new_run(["T001"], 8)
+	var run = _new_run(["T001"], 10)
 	run.monster_block = 7
 	var turn = _roll(run, 0, 1)
 	var blocked_events = turn.events.filter(func(event): return str(event.get("type", "")) == "monster_damaged" and int(event.get("amount", 0)) == 0 and int(event.get("blocked", 0)) == 5)

@@ -5,7 +5,11 @@ const GameCommand = preload("res://scripts/effects/GameCommand.gd")
 static func resolve_tile(context) -> Array:
 	if context.tile == null:
 		return []
-	return _commands_from_effects(context.tile.definition.get("effects", []), context)
+	var effects = context.tile.definition.get("weakEffects", []) if context.tile.is_weak() else context.tile.definition.get("effects", [])
+	var commands = _commands_from_effects(effects, context)
+	if not context.tile.is_weak() and context.tile.max_durability() > 0:
+		commands.append(GameCommand.consume_tile_durability(context.tile_index, context.tile.instance_id, context.source_id))
+	return commands
 
 static func resolve_pass_tile(context) -> Array:
 	if context.tile == null:
@@ -46,12 +50,24 @@ static func _command_for_effect(effect: Dictionary, context) -> Array:
 			return [GameCommand.add_rolls(-_resolve_amount(effect.get("value", 0), context), source_id)]
 		"add_next_turn_rolls":
 			return [GameCommand.add_next_turn_rolls(_resolve_amount(effect.get("value", 0), context), source_id)]
+		"add_roll_start_bonus":
+			return [GameCommand.add_roll_start_bonus(_resolve_amount(effect.get("value", 0), context), source_id)]
 		"next_attack_multiplier":
 			return [GameCommand.add_next_attack_multiplier(float(effect.get("value", 2.0)), source_id)]
 		"increment_counter":
 			return [GameCommand.increment_counter(str(effect.get("counter", "value")), _resolve_amount(effect.get("value", 1), context), str(effect.get("scope", "turn")), source_id)]
+		"increment_source_counter":
+			return [GameCommand.increment_counter(_source_counter_key(context, str(effect.get("counter", "value"))), _resolve_amount(effect.get("value", 1), context), str(effect.get("scope", "battle")), source_id)]
+		"modify_self_counter":
+			return [GameCommand.modify_tile_counter(context.tile_index, str(effect.get("counter", "value")), _resolve_amount(effect.get("value", 1), context))]
 		"set_destroy_next_tile":
 			return [GameCommand.set_destroy_next_tile(source_id)]
+		"add_durability_all":
+			return [GameCommand.add_durability_all(_resolve_amount(effect.get("value", effect.get("amount", 0)), context), source_id)]
+		"add_turn_start_tile":
+			return [GameCommand.add_turn_start_tile(str(effect.get("tile", effect.get("tile_id", "T000"))), _resolve_amount(effect.get("count", 1), context), source_id)]
+		"set_all_pawns_next_roll":
+			return [GameCommand.set_all_pawns_next_roll(source_id)]
 		"generate_tile":
 			return _generate_tile_commands(effect, source_id, context)
 		"move_self":
@@ -60,13 +76,13 @@ static func _command_for_effect(effect: Dictionary, context) -> Array:
 			return [GameCommand.move_dice(context.dice.id, _resolve_amount(effect.get("steps", effect.get("value", 0)), context), str(effect.get("reason", "effect")))]
 		"destroy_tiles":
 			var rule: Dictionary = effect.get("targetRule", {"type": str(effect.get("target", "random")), "count": int(effect.get("count", 1))})
-			return [GameCommand.destroy_tiles_by_rule(rule, source_id, effect.get("destroyMode", {"type": "permanent"}))]
+			return [GameCommand.destroy_tiles_by_rule(rule, source_id, effect.get("destroyMode", {"type": "configured"}))]
 		"transform_self_for_battle":
 			return [GameCommand.transform_tile_for_battle(context.tile_index, str(effect.get("target", "T010")), source_id)]
 		"destroy_self":
 			if context.tile == null:
 				return []
-			return [GameCommand.destroy_tile_instance(context.tile_index, context.tile.instance_id, {"type": "permanent"}, source_id)]
+			return [GameCommand.destroy_tile_instance(context.tile_index, context.tile.instance_id, effect.get("destroyMode", {"type": "configured"}), source_id)]
 	return []
 
 static func _generate_tile_commands(effect: Dictionary, source_id: String, context) -> Array:
@@ -95,6 +111,15 @@ static func _resolve_amount(raw_value, context) -> int:
 		match str(formula.get("type", "constant")):
 			"counter":
 				return (context.run_state.get_counter(scope, counter) + add) * multiplier
+			"counter_div":
+				var divisor = max(1, int(formula.get("divisor", 1)))
+				return int(floor(float(context.run_state.get_counter(scope, counter) + add) / float(divisor))) * multiplier
+			"source_counter":
+				return (base + context.run_state.get_counter(scope, _source_counter_key(context, counter)) + add) * multiplier
+			"tile_counter":
+				if context.tile == null:
+					return base
+				return (base + int(context.tile.counters.get(counter, 0)) + add) * multiplier
 			"counter_add":
 				return (base + context.run_state.get_counter(scope, counter) + add) * multiplier
 			"rolls_left_plus":
@@ -120,6 +145,14 @@ static func _condition_met(raw_condition, context) -> bool:
 			return false
 	if bool(condition.get("monster_intent_attack", false)) and not context.run_state.is_monster_intent_attack():
 		return false
+	if bool(condition.get("player_damaged_in_battle", false)) and context.run_state.get_counter("battle", "player_damage_taken") <= 0:
+		return false
+	if condition.has("pawns_at_tile_at_least"):
+		if _pawns_at_tile(context) < int(condition.get("pawns_at_tile_at_least", 0)):
+			return false
+	if condition.has("pawns_at_tile_at_most"):
+		if _pawns_at_tile(context) > int(condition.get("pawns_at_tile_at_most", 0)):
+			return false
 	if condition.has("dice_extra_moves_less_than"):
 		if context.dice == null:
 			return false
@@ -127,3 +160,16 @@ static func _condition_met(raw_condition, context) -> bool:
 		if context.dice.extra_move_count >= limit:
 			return false
 	return true
+
+static func _source_counter_key(context, counter: String) -> String:
+	var instance_id = context.tile.instance_id if context.tile != null else context.source_id
+	return "%s:%s" % [instance_id, counter]
+
+static func _pawns_at_tile(context) -> int:
+	if context.run_state == null:
+		return 0
+	var count = 0
+	for dice_state in context.run_state.dice.values():
+		if dice_state.index == context.tile_index:
+			count += 1
+	return count

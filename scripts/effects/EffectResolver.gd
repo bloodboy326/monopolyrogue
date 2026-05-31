@@ -23,9 +23,12 @@ func resolve_tile(context) -> void:
 		return
 	if context.run_state.get_counter("battle", "destroy_next_tile") > 0:
 		context.run_state.increment_counter("battle", "destroy_next_tile", -1)
-		context.turn_context.enqueue(GameCommand.destroy_tile_instance(context.tile_index, context.tile.instance_id, {"type": "permanent"}, "destroy_next_tile"))
+		context.turn_context.enqueue(GameCommand.destroy_tile_instance(context.tile_index, context.tile.instance_id, {"type": "configured"}, "destroy_next_tile"))
 		execute_queue(context)
 		return
+	if context.tile.has_tag("curse") and context.run_state.get_counter("battle", "purify_active") > 0:
+		context.turn_context.enqueue(GameCommand.add_rolls(context.run_state.get_counter("battle", "purify_active"), "purify"))
+		execute_queue(context)
 	context.turn_context.enqueue_many(HookBus.collect("beforeTileResolve", context, {}))
 	execute_queue(context)
 	context.turn_context.enqueue_many(TileEffectLibrary.resolve_tile(context))
@@ -57,6 +60,8 @@ func _execute_command(command: Dictionary, context) -> Array:
 			_add_rolls(command, context)
 		"AddNextTurnRolls":
 			_add_next_turn_rolls(command, context)
+		"AddRollStartBonus":
+			_add_roll_start_bonus(command, context)
 		"AddNextAttackMultiplier":
 			_add_next_attack_multiplier(command, context)
 		"IncrementCounter":
@@ -71,6 +76,10 @@ func _execute_command(command: Dictionary, context) -> Array:
 			return DestroySystemScript.apply(command, context)
 		"DestroyTilesByRule":
 			return _destroy_tiles_by_rule(command, context)
+		"ConsumeTileDurability":
+			_consume_tile_durability(command, context)
+		"AddDurabilityAll":
+			_add_durability_all(command, context)
 		"TransformTile":
 			return _transform_tile(command, context, false)
 		"TransformTileForBattle":
@@ -91,6 +100,10 @@ func _execute_command(command: Dictionary, context) -> Array:
 			return _add_relic(command, context)
 		"AddTemporaryTile":
 			return _add_temporary_tile(command, context)
+		"AddTurnStartTile":
+			_add_turn_start_tile(command, context)
+		"SetAllPawnsNextRoll":
+			_set_all_pawns_next_roll(command, context)
 		"ScheduleEndOfTurnEffect":
 			context.turn_context.scheduled_end_turn.append(command.get("effect", {}))
 		"TriggerTile":
@@ -155,6 +168,11 @@ func _add_next_turn_rolls(command: Dictionary, context) -> void:
 	context.run_state.add_next_turn_roll_bonus(amount)
 	context.turn_context.emit_event("next_turn_rolls_added", {"amount": amount, "sourceId": str(command.get("source", context.source_id)), "sourceIndex": context.tile_index})
 
+func _add_roll_start_bonus(command: Dictionary, context) -> void:
+	var amount = int(command.get("amount", 0))
+	context.run_state.roll_start_bonus += amount
+	context.turn_context.emit_event("roll_start_bonus_added", {"amount": amount, "sourceId": str(command.get("source", context.source_id)), "sourceIndex": context.tile_index})
+
 func _add_next_attack_multiplier(command: Dictionary, context) -> void:
 	var multiplier = max(1.0, float(command.get("multiplier", 2.0)))
 	context.run_state.next_attack_multiplier *= multiplier
@@ -177,6 +195,15 @@ func _increment_counter(command: Dictionary, context) -> void:
 func _set_destroy_next_tile(command: Dictionary, context) -> void:
 	var value = context.run_state.increment_counter("battle", "destroy_next_tile", 1)
 	context.turn_context.emit_event("destroy_next_tile_added", {"value": value, "sourceId": str(command.get("source", context.source_id)), "sourceIndex": context.tile_index})
+
+func _consume_tile_durability(command: Dictionary, context) -> void:
+	var event = context.run_state.consume_tile_durability(int(command.get("tileIndex", context.tile_index)), str(command.get("tileInstanceId", "")))
+	if not event.is_empty():
+		context.turn_context.emit_event(str(event.get("type", "tile_durability_changed")), event)
+
+func _add_durability_all(command: Dictionary, context) -> void:
+	for event in context.run_state.add_durability_to_all(int(command.get("amount", 0))):
+		context.turn_context.emit_event(str(event.get("type", "tile_durability_changed")), event)
 
 func _add_buff(command: Dictionary, context) -> Array:
 	var raw_buff: Dictionary = command.get("buff", {})
@@ -268,7 +295,7 @@ func _generate_tile(command: Dictionary, context) -> Array:
 	var insert_at = clamp(index, 0, context.run_state.board.size())
 	context.run_state.board.insert_tile(insert_at, tile)
 	context.run_state.reindex_dice_after_insert(insert_at)
-	if bool(tile.definition.get("temporary", false)) or bool(command.get("forceTemporary", false)):
+	if context.run_state.should_cleanup_after_battle(tile) or bool(command.get("forceTemporary", false)):
 		context.run_state.register_temporary_tile(tile)
 		context.turn_context.temporary_tiles.append(tile.instance_id)
 	context.turn_context.emit_event("tile_generated", {"tileIndex": insert_at, "tileId": tile.id, "tileInstanceId": tile.instance_id, "temporary": bool(tile.runtime_flags.get("temporary_tile", false))})
@@ -365,6 +392,14 @@ func _add_temporary_tile(command: Dictionary, _context) -> Array:
 	generated["durationRule"] = command.get("durationRule", {"type": "battle"})
 	return [generated]
 
+func _add_turn_start_tile(command: Dictionary, context) -> void:
+	context.run_state.add_turn_start_tile_spawn(str(command.get("tileId", "T000")), int(command.get("count", 1)))
+	context.turn_context.emit_event("turn_start_tile_added", {"tileId": str(command.get("tileId", "T000")), "count": int(command.get("count", 1)), "sourceId": str(command.get("source", context.source_id)), "sourceIndex": context.tile_index})
+
+func _set_all_pawns_next_roll(command: Dictionary, context) -> void:
+	context.run_state.all_pawns_next_rolls += 1
+	context.turn_context.emit_event("all_pawns_next_roll_added", {"sourceId": str(command.get("source", context.source_id)), "sourceIndex": context.tile_index})
+
 func _trigger_tile(command: Dictionary, context) -> void:
 	var dice_state = context.run_state.dice.get(str(command.get("diceId", "")))
 	if dice_state == null:
@@ -378,4 +413,7 @@ func _trigger_tile(command: Dictionary, context) -> void:
 	resolve_tile(nested)
 
 func _modify_run_counter(_command: Dictionary, _context) -> void:
-	pass
+	var counter_key = str(_command.get("counterKey", "value"))
+	var amount = int(_command.get("delta", 0))
+	var value = _context.run_state.increment_counter("battle", counter_key, amount)
+	_context.turn_context.emit_event("counter_changed", {"counterKey": counter_key, "scope": "battle", "amount": amount, "value": value, "sourceId": str(_command.get("source", _context.source_id)), "sourceIndex": _context.tile_index})

@@ -464,6 +464,8 @@ func _on_roll_pressed() -> void:
 	_sfx("dice_roll", -2.0)
 	roll_locked = true
 	mode = "rolling"
+	if run_state.roll_start_bonus > 0:
+		run_state.adjust_rolls(run_state.roll_start_bonus)
 	if not run_state.spend_roll():
 		roll_locked = false
 		mode = "play"
@@ -504,13 +506,15 @@ func _on_dice_picked(color_key: String) -> void:
 	_set_action_banner("%s移动 %d 格" % [pawn_names[color_key], pending_roll_value])
 	_update_ui()
 
-	var order = [color_key]
-	var results = {color_key: pending_roll_value}
+	var move_all_pawns = run_state.consume_all_pawns_next_roll()
+	var order = pawn_order.duplicate() if move_all_pawns else [color_key]
+	var results = current_rolls.duplicate(true) if move_all_pawns else {color_key: pending_roll_value}
 	var plan = turn_resolver.plan_roll(run_state, order, results)
 
-	batch_remaining = 1
-	pawn_nodes[color_key].movement_finished.connect(_on_pawn_movement_finished.bind(color_key), CONNECT_ONE_SHOT)
-	pawn_nodes[color_key].move_steps(tile_positions, pawn_indices[color_key], pending_roll_value)
+	batch_remaining = order.size()
+	for moving_color in order:
+		pawn_nodes[moving_color].movement_finished.connect(_on_pawn_movement_finished.bind(moving_color), CONNECT_ONE_SHOT)
+		pawn_nodes[moving_color].move_steps(tile_positions, pawn_indices[moving_color], int(results[moving_color]))
 	await batch_finished
 
 	var turn = turn_resolver.resolve_planned_roll(run_state, order, results, plan)
@@ -557,6 +561,7 @@ func _on_end_turn_pressed() -> void:
 	run_state.record_current_intent_used()
 	run_state.battle_turn += 1
 	run_state.begin_player_turn(current_battle_rolls)
+	await _apply_turn_start_generated_tiles(true)
 	_sfx("turn_start", -5.0)
 	total_rolls = run_state.turn_rolls_total
 	rolls_left = run_state.turn_rolls_left
@@ -572,6 +577,19 @@ func _on_end_turn_pressed() -> void:
 	_rebuild_board_tiles()
 	_position_pawns()
 	_update_ui()
+
+func _apply_turn_start_generated_tiles(play_feedback: bool) -> void:
+	var events = run_state.apply_turn_start_tile_spawns()
+	if events.is_empty():
+		return
+	_sync_from_run_state()
+	_rebuild_board_tiles()
+	_position_pawns()
+	if play_feedback:
+		await _play_board_change_feedback(events)
+	_sync_from_run_state()
+	_rebuild_board_tiles()
+	_position_pawns()
 
 func _execute_monster_turn() -> void:
 	var intent = run_state.current_intent
@@ -674,6 +692,15 @@ func _play_turn_feedback(turn) -> void:
 			"destroy_next_tile_added":
 				_sfx("tile_buff", -4.0, 0.82)
 				await _floating("拆迁待命", _event_source_position(event), Color(1.0, 0.56, 0.18))
+			"tile_durability_changed":
+				var text = "虚弱" if bool(event.get("weak", false)) else "耐久 %d" % int(event.get("durability", 0))
+				await _floating(text, _event_tile_position(event), Color(0.74, 0.92, 1.0))
+			"roll_start_bonus_added":
+				await _floating("每骰+%d" % int(event.get("amount", 0)), _event_source_position(event), Color(1.0, 0.90, 0.25))
+			"turn_start_tile_added":
+				await _floating("回合补给", _event_source_position(event), Color(0.58, 1.0, 0.72))
+			"all_pawns_next_roll_added":
+				await _floating("全军出击", _event_source_position(event), Color(1.0, 0.78, 0.28))
 	await _play_board_change_feedback(turn.events)
 
 func _play_monster_feedback(events: Array[Dictionary]) -> void:
@@ -933,7 +960,7 @@ func _play_board_change_feedback(events: Array) -> void:
 	var changes: Array[Dictionary] = []
 	for event in events:
 		var event_type = str(event.get("type", ""))
-		if ["tile_generated", "tile_destroyed", "tile_replaced_with_empty", "tile_transformed", "temporary_tile_removed"].has(event_type):
+		if ["tile_generated", "tile_destroyed", "tile_replaced_with_empty", "tile_transformed", "temporary_tile_removed", "tile_temporarily_destroyed"].has(event_type):
 			changes.append(event)
 	if changes.is_empty():
 		return
@@ -947,7 +974,7 @@ func _play_single_board_change(event: Dictionary) -> void:
 	match event_type:
 		"tile_generated":
 			await _play_generated_tile_preview(int(event.get("tileIndex", -1)), str(event.get("tileId", "T000")), bool(event.get("temporary", false)))
-		"tile_destroyed", "tile_replaced_with_empty", "temporary_tile_removed":
+		"tile_destroyed", "tile_replaced_with_empty", "temporary_tile_removed", "tile_temporarily_destroyed":
 			await _play_destroy_tile_preview(index)
 		"tile_transformed":
 			await _play_transform_tile_preview(index, str(event.get("toTileId", "T000")))
@@ -1039,6 +1066,16 @@ func _event_source_position(event: Dictionary) -> Vector2:
 				_sfx("tile_trigger", -8.0)
 				tile.play_reward()
 		return tile_positions[source_index] + Vector2(0, -42)
+	return boss_view.global_position + boss_view.size * 0.5
+
+func _event_tile_position(event: Dictionary) -> Vector2:
+	var index = _event_tile_node_index(event)
+	if index >= 0 and index < tile_nodes.size():
+		var tile = tile_nodes[index] as Control
+		if tile != null:
+			return tile.global_position + tile.size * 0.5
+	if index >= 0 and index < tile_positions.size():
+		return tile_positions[index]
 	return boss_view.global_position + boss_view.size * 0.5
 
 func _floating(text: String, start: Vector2, color: Color) -> void:

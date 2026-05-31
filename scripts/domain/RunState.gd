@@ -22,6 +22,7 @@ var relic_definitions: Dictionary = {}
 var buff_definitions: Dictionary = {}
 var temporary_tile_instances: Array[String] = []
 var battle_reverts: Array[Dictionary] = []
+var turn_start_tile_spawns: Array[Dictionary] = []
 var rng = GameRng.new(1)
 var _tile_serial: int = 1
 var delete_count: int = 0
@@ -34,6 +35,8 @@ var pending_roll_bonus: int = 0
 var turn_rolls_left: int = 3
 var turn_rolls_total: int = 3
 var next_turn_roll_bonus: int = 0
+var roll_start_bonus: int = 0
+var all_pawns_next_rolls: int = 0
 var turn_counters: Dictionary = {}
 var battle_counters: Dictionary = {}
 
@@ -70,6 +73,7 @@ func setup(p_tile_definitions: Dictionary, p_relic_definitions: Dictionary, p_bu
 	buffs.clear()
 	temporary_tile_instances.clear()
 	battle_reverts.clear()
+	turn_start_tile_spawns.clear()
 	tile_pool.clear()
 	for id in tile_definitions.keys():
 		var def: Dictionary = tile_definitions[id]
@@ -99,8 +103,12 @@ func start_battle(new_battle_number: int, monster_def: Dictionary) -> void:
 	turn_counters.clear()
 	battle_counters.clear()
 	next_turn_roll_bonus = 0
+	roll_start_bonus = 0
+	all_pawns_next_rolls = 0
 	temporary_tile_instances.clear()
 	battle_reverts.clear()
+	turn_start_tile_spawns.clear()
+	_reset_battle_tile_state()
 	monster_id = str(monster_def.get("monster_id", "slime_boss"))
 	monster_name = str(monster_def.get("name", monster_id))
 	monster_max_hp = int(monster_def.get("max_hp", 80))
@@ -173,6 +181,16 @@ func create_tile(tile_id: String):
 	_tile_serial += 1
 	return tile
 
+func _reset_battle_tile_state() -> void:
+	for tile in board.tiles:
+		if tile != null:
+			tile.reset_battle_state()
+
+func should_cleanup_after_battle(tile) -> bool:
+	if tile == null:
+		return false
+	return bool(tile.definition.get("destroy_after_battle", false)) or bool(tile.definition.get("temporary", false))
+
 func register_temporary_tile(tile) -> void:
 	if tile == null:
 		return
@@ -182,6 +200,63 @@ func register_temporary_tile(tile) -> void:
 
 func forget_temporary_tile(instance_id: String) -> void:
 	temporary_tile_instances.erase(instance_id)
+
+func consume_tile_durability(tile_index: int, instance_id: String) -> Dictionary:
+	var index = board.find_tile_index_by_instance(instance_id)
+	if index == -1:
+		index = board.normalize_index(tile_index) if not board.is_empty() else -1
+	if index == -1:
+		return {}
+	var tile = board.get_tile(index)
+	if tile == null or tile.max_durability() <= 0 or tile.is_weak():
+		return {}
+	var remaining = max(0, tile.durability_remaining() - 1)
+	tile.state["durability"] = remaining
+	if remaining <= 0:
+		tile.runtime_flags["weak"] = true
+	return {"type": "tile_durability_changed", "tileIndex": index, "tileId": tile.id, "tileInstanceId": tile.instance_id, "durability": remaining, "maxDurability": tile.max_durability(), "weak": tile.is_weak()}
+
+func add_durability_to_all(amount: int) -> Array[Dictionary]:
+	var events: Array[Dictionary] = []
+	for index in range(board.size()):
+		var tile = board.get_tile(index)
+		if tile == null or tile.max_durability() <= 0:
+			continue
+		var current = tile.durability_remaining()
+		var next_value = max(0, current + amount)
+		tile.state["durability"] = next_value
+		if next_value > 0:
+			tile.runtime_flags.erase("weak")
+		else:
+			tile.runtime_flags["weak"] = true
+		events.append({"type": "tile_durability_changed", "tileIndex": index, "tileId": tile.id, "tileInstanceId": tile.instance_id, "durability": next_value, "maxDurability": tile.max_durability(), "weak": tile.is_weak()})
+	return events
+
+func add_turn_start_tile_spawn(tile_id: String, count: int = 1) -> void:
+	if tile_id.is_empty() or count <= 0:
+		return
+	turn_start_tile_spawns.append({"tileId": tile_id, "count": count})
+
+func apply_turn_start_tile_spawns() -> Array[Dictionary]:
+	var events: Array[Dictionary] = []
+	for spawn in turn_start_tile_spawns:
+		var count = max(0, int(spawn.get("count", 1)))
+		var tile_id = str(spawn.get("tileId", "T000"))
+		for _i in range(count):
+			var tile = create_tile(tile_id)
+			var insert_at = rng.randi_range(0, board.size())
+			board.insert_tile(insert_at, tile)
+			reindex_dice_after_insert(insert_at)
+			if should_cleanup_after_battle(tile):
+				register_temporary_tile(tile)
+			events.append({"type": "tile_generated", "tileIndex": insert_at, "tileId": tile.id, "tileInstanceId": tile.instance_id, "temporary": bool(tile.runtime_flags.get("temporary_tile", false))})
+	return events
+
+func consume_all_pawns_next_roll() -> bool:
+	if all_pawns_next_rolls <= 0:
+		return false
+	all_pawns_next_rolls -= 1
+	return true
 
 func remember_battle_revert(new_instance_id: String, original_tile_id: String) -> void:
 	for item in battle_reverts:
@@ -297,6 +372,8 @@ func apply_player_damage(amount: int) -> Dictionary:
 	player_block -= blocked
 	var damage = max(0, amount - blocked)
 	player_hp = max(0, player_hp - damage)
+	if damage > 0:
+		increment_counter("battle", "player_damage_taken", 1)
 	return {"amount": damage, "blocked": blocked, "raw": amount, "playerHp": player_hp, "playerBlock": player_block}
 
 func record_current_intent_used() -> void:

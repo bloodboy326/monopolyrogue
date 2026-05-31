@@ -60,6 +60,8 @@ static func _normalize(raw_tile: Dictionary) -> Dictionary:
 		"tags": raw_tile.get("tags", []).duplicate(true),
 		"selectable": bool(raw_tile.get("selectable", false)),
 		"temporary": bool(raw_tile.get("temporary", false)),
+		"destroy_after_battle": bool(raw_tile.get("destroy_after_battle", raw_tile.get("destroyAfterBattle", raw_tile.get("temporary", false)))),
+		"durability": int(raw_tile.get("durability", 0)),
 		"tile_name": name,
 		"tile_rare": rarity,
 		"tile_describe": display_description,
@@ -72,6 +74,7 @@ static func _normalize(raw_tile: Dictionary) -> Dictionary:
 		"customHandlers": raw_tile.get("customHandlers", []).duplicate(true),
 		"eventHooks": raw_tile.get("eventHooks", []).duplicate(true),
 		"effects": raw_tile.get("effects", []).duplicate(true),
+		"weakEffects": raw_tile.get("weakEffects", []).duplicate(true),
 		"passEffects": raw_tile.get("passEffects", []).duplicate(true),
 		"destroyEffects": raw_tile.get("destroyEffects", []).duplicate(true),
 		"autoAddBaseCoin": false

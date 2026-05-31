@@ -10,6 +10,7 @@ static func apply(command: Dictionary, context) -> Array:
 	var mode: Dictionary = raw_mode if typeof(raw_mode) == TYPE_DICTIONARY else {"type": str(raw_mode)}
 	var handlers = {
 		"permanent": "_apply_permanent",
+		"configured": "_apply_configured",
 		"temporary": "_apply_temporary",
 		"afterTurn": "_apply_after_turn",
 		"onStepImmediate": "_apply_on_step_immediate",
@@ -19,6 +20,8 @@ static func apply(command: Dictionary, context) -> Array:
 	}
 	var mode_type = str(mode.get("type", "permanent"))
 	match handlers.get(mode_type, "_apply_permanent"):
+		"_apply_configured":
+			return _apply_configured(command, context, mode)
 		"_apply_temporary":
 			return _apply_temporary(command, context, mode)
 		"_apply_after_turn":
@@ -33,6 +36,17 @@ static func apply(command: Dictionary, context) -> Array:
 			return _apply_destroy_and_generate(command, context, mode)
 		_:
 			return _apply_permanent(command, context, mode)
+
+static func _apply_configured(command: Dictionary, context, mode: Dictionary) -> Array:
+	var index = _resolve_target_index(command, context)
+	if index == -1:
+		return []
+	var tile = context.run_state.board.get_tile(index)
+	if tile == null:
+		return []
+	if context.run_state.should_cleanup_after_battle(tile) or bool(tile.runtime_flags.get("temporary_tile", false)):
+		return _apply_permanent(command, context, mode)
+	return _apply_temporary(command, context, {"type": "temporary"})
 
 static func _apply_permanent(command: Dictionary, context, mode: Dictionary) -> Array:
 	var index = _resolve_target_index(command, context)
