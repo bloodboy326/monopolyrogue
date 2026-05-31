@@ -48,14 +48,21 @@ func execute_end_of_turn(context) -> void:
 	context.turn_context.scheduled_end_turn.clear()
 	execute_queue(context)
 	BuffSystem.decrement_turn_buffs(context.run_state)
-	context.run_state.cleanup_end_of_turn()
+	for event in context.run_state.cleanup_end_of_turn():
+		context.turn_context.emit_event(str(event.get("type", "tile_destroyed")), event)
 
 func _execute_command(command: Dictionary, context) -> Array:
 	match str(command.get("type", "")):
 		"DamageMonster":
 			return _damage_monster(command, context)
+		"DamagePlayer":
+			_damage_player(command, context)
 		"AddPlayerBlock":
 			_add_player_block(command, context)
+		"AddPlayerStrength":
+			_add_player_strength(command, context)
+		"AddPlayerDexterity":
+			_add_player_dexterity(command, context)
 		"AddRolls":
 			_add_rolls(command, context)
 		"AddNextTurnRolls":
@@ -117,13 +124,19 @@ func _execute_command(command: Dictionary, context) -> Array:
 func _damage_monster(command: Dictionary, context) -> Array:
 	var raw_amount = max(0, _resolve_amount(command.get("amount", 0), context))
 	if bool(command.get("attack", true)):
+		raw_amount += context.run_state.player_strength
 		raw_amount = int(round(float(raw_amount) * context.run_state.consume_next_attack_multiplier()))
-	var blocked = min(context.run_state.monster_block, raw_amount)
-	context.run_state.monster_block -= blocked
-	var amount = max(0, raw_amount - blocked)
-	context.run_state.monster_hp = max(0, context.run_state.monster_hp - amount)
 	var source_id = str(command.get("source", context.source_id))
-	context.turn_context.add_damage(amount, source_id, context.tile_index, context.dice.id if context.dice != null else "", blocked)
+	if context.run_state.needs_damage_target_choice():
+		context.turn_context.emit_event("monster_damage_pending", {
+			"raw": raw_amount,
+			"sourceId": source_id,
+			"sourceIndex": context.tile_index,
+			"diceId": context.dice.id if context.dice != null else ""
+		})
+	else:
+		var event = context.run_state.apply_monster_damage_to_unit(context.run_state.first_alive_enemy_index(), raw_amount, source_id, context.tile_index, context.dice.id if context.dice != null else "")
+		context.turn_context.emit_event(str(event.get("type", "monster_damaged")), event)
 	return []
 
 func _resolve_amount(raw_value, context) -> int:
@@ -148,9 +161,37 @@ func _resolve_amount(raw_value, context) -> int:
 	return int(raw_value)
 
 func _add_player_block(command: Dictionary, context) -> void:
-	var amount = max(0, int(command.get("amount", 0)))
+	var amount = max(0, int(command.get("amount", 0)) + context.run_state.player_dexterity)
 	context.run_state.player_block += amount
 	context.turn_context.add_block(amount, str(command.get("source", context.source_id)), context.tile_index, context.dice.id if context.dice != null else "")
+
+func _damage_player(command: Dictionary, context) -> void:
+	var raw_amount = max(0, int(command.get("amount", 0)))
+	var result: Dictionary
+	if bool(command.get("piercing", false)):
+		var previous_block = context.run_state.player_block
+		context.run_state.player_block = 0
+		result = context.run_state.apply_player_damage(raw_amount)
+		context.run_state.player_block = previous_block
+	else:
+		result = context.run_state.apply_player_damage(raw_amount)
+	context.turn_context.emit_event("player_damaged", {
+		"amount": int(result["amount"]),
+		"blocked": int(result["blocked"]),
+		"raw": int(result["raw"]),
+		"sourceId": str(command.get("source", context.source_id)),
+		"sourceIndex": context.tile_index
+	})
+
+func _add_player_strength(command: Dictionary, context) -> void:
+	var amount = int(command.get("amount", 0))
+	context.run_state.player_strength += amount
+	context.turn_context.emit_event("player_strength_added", {"amount": amount, "strength": context.run_state.player_strength, "sourceId": str(command.get("source", context.source_id)), "sourceIndex": context.tile_index})
+
+func _add_player_dexterity(command: Dictionary, context) -> void:
+	var amount = int(command.get("amount", 0))
+	context.run_state.player_dexterity += amount
+	context.turn_context.emit_event("player_dexterity_added", {"amount": amount, "dexterity": context.run_state.player_dexterity, "sourceId": str(command.get("source", context.source_id)), "sourceIndex": context.tile_index})
 
 func _add_rolls(command: Dictionary, context) -> void:
 	var amount = int(command.get("amount", 0))

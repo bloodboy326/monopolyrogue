@@ -89,6 +89,10 @@ static func draw_icon(canvas: CanvasItem, kind: String, icon_id: int, rect: Rect
 			_draw_orchard(canvas, rect, accent_color)
 		"jam":
 			_draw_jam(canvas, rect, accent_color)
+		"fire":
+			_draw_fire(canvas, rect, accent_color)
+		"void":
+			_draw_void(canvas, rect, accent_color)
 		_:
 			_draw_fallback(canvas, rect, base_color, accent_color)
 
@@ -392,6 +396,17 @@ static func _draw_jam(canvas: CanvasItem, rect: Rect2, accent: Color) -> void:
 	_box(canvas, rect, 0.35, 0.43, 0.30, 0.23, accent)
 	_line(canvas, rect, Vector2(0.38, 0.51), Vector2(0.62, 0.51), WHITE, 0.025)
 	canvas.draw_circle(_pt(rect, 0.42, 0.58), rect.size.x * 0.03, WHITE)
+
+static func _draw_fire(canvas: CanvasItem, rect: Rect2, accent: Color) -> void:
+	_poly(canvas, rect, [Vector2(0.50, 0.13), Vector2(0.69, 0.38), Vector2(0.63, 0.74), Vector2(0.50, 0.86), Vector2(0.33, 0.76), Vector2(0.26, 0.48)], INK)
+	_poly(canvas, rect, [Vector2(0.51, 0.22), Vector2(0.63, 0.43), Vector2(0.57, 0.68), Vector2(0.48, 0.77), Vector2(0.38, 0.66), Vector2(0.34, 0.48)], accent)
+	_poly(canvas, rect, [Vector2(0.50, 0.40), Vector2(0.58, 0.58), Vector2(0.50, 0.72), Vector2(0.42, 0.58)], YELLOW)
+
+static func _draw_void(canvas: CanvasItem, rect: Rect2, accent: Color) -> void:
+	canvas.draw_circle(_pt(rect, 0.50, 0.50), rect.size.x * 0.33, INK)
+	canvas.draw_circle(_pt(rect, 0.50, 0.50), rect.size.x * 0.25, accent.darkened(0.12))
+	_line(canvas, rect, Vector2(0.35, 0.38), Vector2(0.65, 0.62), WHITE, 0.035)
+	_line(canvas, rect, Vector2(0.65, 0.38), Vector2(0.35, 0.62), WHITE, 0.035)
 
 static func _draw_fallback(canvas: CanvasItem, rect: Rect2, base: Color, accent: Color) -> void:
 	canvas.draw_circle(rect.get_center(), rect.size.x * 0.28, INK)

@@ -180,7 +180,7 @@ func _sprite_asset_key() -> String:
 		"clacker":
 			return "clacker"
 		_:
-			return "slime_boss"
+			return art_key
 
 func _sprite_state_key() -> String:
 	match state:

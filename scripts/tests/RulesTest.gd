@@ -27,6 +27,8 @@ func _ready() -> void:
 	_test_durability_and_weak_state()
 	_test_turn_start_generated_tiles_cleanup()
 	_test_monster_block_expires_and_reports_full_block()
+	_test_group_monsters_take_targeted_damage()
+	_test_group_monsters_keep_independent_block()
 	_test_monster_tables_include_new_flow()
 	_test_act_map_tables_include_first_act()
 	print("RULES_OK tests=%d" % passed)
@@ -155,6 +157,30 @@ func _test_monster_block_expires_and_reports_full_block() -> void:
 	run.begin_monster_turn()
 	_assert(run.monster_block == 0, "monster block expires before the monster acts again")
 
+func _test_group_monsters_take_targeted_damage() -> void:
+	var config = MonsterConfig.load_config()
+	var group_def = MonsterConfig.encounter(config, "goblin_group")
+	var run = RunState.new()
+	run.setup(tile_defs, relic_defs, buff_defs, 13, "T001", 3)
+	run.start_battle(1, group_def)
+	_assert(run.enemy_units.size() == 3, "goblin group expands to three units")
+	var event = run.apply_monster_damage_to_unit(1, 9, "test", 0, "red")
+	_assert(int(event.get("unitIndex", -1)) == 1 and int(run.enemy_units[1].get("hp", 0)) == 29, "targeted damage applies to selected unit only")
+	_assert(int(run.enemy_units[0].get("hp", 0)) == 38 and int(run.enemy_units[2].get("hp", 0)) == 38, "other group units keep independent hp")
+
+func _test_group_monsters_keep_independent_block() -> void:
+	var config = MonsterConfig.load_config()
+	var group_def = MonsterConfig.encounter(config, "goblin_group")
+	var run = RunState.new()
+	run.setup(tile_defs, relic_defs, buff_defs, 14, "T001", 3)
+	run.start_battle(1, group_def)
+	run.add_enemy_block(2, 6)
+	var event = run.apply_monster_damage_to_unit(2, 4, "test", 0, "red")
+	_assert(int(event.get("blocked", 0)) == 4 and int(event.get("amount", 0)) == 0, "target unit block absorbs damage independently")
+	_assert(int(run.enemy_units[2].get("block", 0)) == 2 and int(run.enemy_units[0].get("block", 0)) == 0, "other units do not share block")
+	run.begin_monster_turn()
+	_assert(int(run.enemy_units[2].get("block", 0)) == 0, "group monster block clears before the next monster action")
+
 func _test_monster_tables_include_new_flow() -> void:
 	var config = MonsterConfig.load_config()
 	_assert(MonsterConfig.battle_count(config) == 4, "test flow has four configured battles")
@@ -163,6 +189,8 @@ func _test_monster_tables_include_new_flow() -> void:
 	_assert(str(MonsterConfig.battle_for(config, 3).get("monster_id", "")) == "clacker", "battle 3 uses clacker")
 	_assert(str(MonsterConfig.battle_for(config, 4).get("monster_id", "")) == "slime_boss", "battle 4 uses slime boss")
 	_assert(not MonsterConfig.effects_for_intent(config, "clacker_jam").is_empty(), "clacker jam has configured effects")
+	_assert(not MonsterConfig.effects_for_intent(config, "void_lock").is_empty(), "new void eye intent has configured effects")
+	_assert(MonsterConfig.encounter(config, "goblin_group").get("units", []).size() == 3, "goblin group is configured as three enemies")
 
 func _test_act_map_tables_include_first_act() -> void:
 	var map_config = MapConfig.load_config()
@@ -174,6 +202,6 @@ func _test_act_map_tables_include_first_act() -> void:
 	var boss_nodes = act_map.get("nodes", []).filter(func(node): return str(node.get("room_type", "")) == "BOSS")
 	_assert(boss_nodes.size() == 1, "act 1 has one boss node")
 	var monster_id = MapConfig.pick_monster_for_node(map_config, boss_nodes[0], local_rng)
-	_assert(monster_id == "slime_boss", "act 1 boss pool resolves to slime boss")
+	_assert(["slime_boss", "void_eye"].has(monster_id), "act 1 boss pool resolves to a configured boss")
 	var pool_monsters = map_config.get("monster_pool_entries", []).map(func(entry): return str(entry.get("monster_id", "")))
-	_assert(pool_monsters.has("green_louse") and pool_monsters.has("gremlin_nob"), "act 1 pools include new normal and elite monsters")
+	_assert(pool_monsters.has("green_louse") and pool_monsters.has("gremlin_nob") and pool_monsters.has("goblin_group"), "act 1 pools include normal, elite, and group monsters")

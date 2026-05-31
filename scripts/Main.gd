@@ -1,6 +1,7 @@
 extends Control
 
 signal batch_finished
+signal damage_target_chosen(index: int)
 
 const DiceAnimator = preload("res://scripts/components/DiceAnimator.gd")
 const PawnMover = preload("res://scripts/components/PawnMover.gd")
@@ -80,6 +81,13 @@ var music_bus: Node
 var boss_view: Control
 var intent_icon: Control
 var intent_label: Label
+var monster_views: Array = []
+var monster_name_labels: Array = []
+var monster_hp_bars: Array = []
+var monster_hp_labels: Array = []
+var monster_intent_icons: Array = []
+var monster_intent_labels: Array = []
+var monster_hit_areas: Array = []
 
 var tiles_data: Array[Dictionary] = []
 var tile_nodes: Array = []
@@ -105,8 +113,10 @@ var rolls_left = 3
 var pending_roll_value = 0
 var current_rolls: Dictionary = {}
 var roll_preview_target_index := -1
+var roll_preview_tooltip_visible := false
 var mode = "play"
 var roll_locked = false
+var selecting_damage_target := false
 var pending_tile: Dictionary = {}
 var batch_remaining = 0
 
@@ -203,32 +213,54 @@ func _build_scene() -> void:
 	_on_resized()
 
 func _build_boss() -> void:
-	intent_icon = IntentIcon.new()
-	intent_icon.name = "IntentIcon"
-	intent_icon.z_index = 65
-	boss_layer.add_child(intent_icon)
+	for i in range(3):
+		var icon = IntentIcon.new()
+		icon.name = "IntentIcon%d" % i
+		icon.z_index = 65
+		boss_layer.add_child(icon)
+		monster_intent_icons.append(icon)
 
-	intent_label = _make_label("准备中", 18, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
-	intent_label.z_index = 65
-	boss_layer.add_child(intent_label)
+		var label = _make_label("准备中", 16, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
+		label.z_index = 65
+		boss_layer.add_child(label)
+		monster_intent_labels.append(label)
 
-	boss_view = SlimeBossView.new()
-	boss_view.name = "SlimeBoss"
-	boss_view.z_index = 55
-	boss_layer.add_child(boss_view)
+		var view = SlimeBossView.new()
+		view.name = "MonsterView%d" % i
+		view.z_index = 55
+		boss_layer.add_child(view)
+		monster_views.append(view)
 
-	monster_name_label = _make_label("沼泽史莱姆", 20, Color(0.82, 1.0, 0.70), HORIZONTAL_ALIGNMENT_CENTER)
-	monster_name_label.z_index = 70
-	boss_layer.add_child(monster_name_label)
+		var name_label = _make_label("怪物", 18, Color(0.82, 1.0, 0.70), HORIZONTAL_ALIGNMENT_CENTER)
+		name_label.z_index = 70
+		boss_layer.add_child(name_label)
+		monster_name_labels.append(name_label)
 
-	monster_hp_bar = HealthBar.new()
-	monster_hp_bar.name = "MonsterHpBar"
-	monster_hp_bar.z_index = 72
-	boss_layer.add_child(monster_hp_bar)
+		var hp_bar = HealthBar.new()
+		hp_bar.name = "MonsterHpBar%d" % i
+		hp_bar.z_index = 72
+		boss_layer.add_child(hp_bar)
+		monster_hp_bars.append(hp_bar)
 
-	monster_hp_label = _make_label("", 17, Color(0.58, 0.82, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
-	monster_hp_label.z_index = 70
-	boss_layer.add_child(monster_hp_label)
+		var hp_label = _make_label("", 15, Color(0.58, 0.82, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
+		hp_label.z_index = 70
+		boss_layer.add_child(hp_label)
+		monster_hp_labels.append(hp_label)
+
+		var hit_area = Control.new()
+		hit_area.name = "MonsterHitArea%d" % i
+		hit_area.z_index = 95
+		hit_area.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		hit_area.gui_input.connect(_on_monster_hit_area_input.bind(i))
+		boss_layer.add_child(hit_area)
+		monster_hit_areas.append(hit_area)
+
+	boss_view = monster_views[0]
+	intent_icon = monster_intent_icons[0]
+	intent_label = monster_intent_labels[0]
+	monster_name_label = monster_name_labels[0]
+	monster_hp_bar = monster_hp_bars[0]
+	monster_hp_label = monster_hp_labels[0]
 
 func _build_hud() -> void:
 	round_label = _make_label("第 1 关", 32, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
@@ -389,9 +421,9 @@ func _on_map_node_selected(node_id: String) -> void:
 		_resolve_rest_node()
 		return
 	var monster_id = MapConfig.pick_monster_for_node(map_config, node, rng)
-	var monster_def = MonsterConfig.monster(monster_config, monster_id)
+	var monster_def = MonsterConfig.encounter(monster_config, monster_id)
 	if monster_def.is_empty():
-		monster_def = MonsterConfig.monster(monster_config, "slime_boss")
+		monster_def = MonsterConfig.encounter(monster_config, "slime_boss")
 	_begin_battle(monster_def, int(node.get("floor", battle_number)), int(node.get("rolls", 3)))
 
 func _resolve_rest_node() -> void:
@@ -407,7 +439,7 @@ func _start_battle() -> void:
 		_show_run_complete_overlay()
 		return
 	var battle = MonsterConfig.battle_for(monster_config, battle_number)
-	var monster_def = MonsterConfig.monster(monster_config, str(battle.get("monster_id", "slime_boss")))
+	var monster_def = MonsterConfig.encounter(monster_config, str(battle.get("monster_id", "slime_boss")))
 	_begin_battle(monster_def, battle_number, int(battle.get("rolls", 3)))
 
 func _begin_battle(monster_def: Dictionary, new_battle_number: int, rolls: int) -> void:
@@ -428,7 +460,7 @@ func _begin_battle(monster_def: Dictionary, new_battle_number: int, rolls: int) 
 	map_overlay.visible = false
 	choice_overlay.visible = false
 	fail_overlay.visible = false
-	boss_view.set_art_key(run_state.monster_art_key)
+	_setup_monster_views()
 	_choose_next_monster_intent()
 	_set_action_banner("")
 	roll_result_label.text = "你的回合"
@@ -438,15 +470,49 @@ func _begin_battle(monster_def: Dictionary, new_battle_number: int, rolls: int) 
 	_update_ui()
 	_flash(Color(0.55, 1.0, 0.48, 0.16), 0.32)
 
+func _setup_monster_views() -> void:
+	for i in range(monster_views.size()):
+		var visible = run_state != null and i < run_state.enemy_units.size()
+		monster_views[i].visible = visible
+		monster_name_labels[i].visible = visible
+		monster_hp_bars[i].visible = visible
+		monster_hp_labels[i].visible = visible
+		monster_intent_icons[i].visible = visible
+		monster_intent_labels[i].visible = visible
+		monster_hit_areas[i].visible = visible
+		if visible:
+			monster_views[i].set_art_key(str(run_state.enemy_units[i].get("art_key", "slime")))
+
 func _choose_next_monster_intent() -> void:
-	var previous_phase = run_state.current_phase_id
-	run_state.current_intent = MonsterConfig.choose_intent(monster_config, run_state)
-	if run_state.current_phase_id != previous_phase and not run_state.entered_phases.has(run_state.current_phase_id):
-		run_state.entered_phases.append(run_state.current_phase_id)
-		_apply_phase_enter_effect(run_state.current_phase_id)
-	var intent_type = str(run_state.current_intent.get("intent_type", "SPECIAL"))
-	intent_icon.set_intent_type(intent_type)
-	intent_label.text = str(run_state.current_intent.get("telegraph", "未知意图"))
+	for i in range(run_state.enemy_units.size()):
+		var unit: Dictionary = run_state.enemy_units[i]
+		if int(unit.get("hp", 0)) <= 0:
+			continue
+		var previous_phase = str(unit.get("current_phase_id", ""))
+		var intent = MonsterConfig.choose_intent_for_unit(monster_config, run_state, i)
+		unit = run_state.enemy_units[i]
+		unit["current_intent"] = intent
+		if str(unit.get("current_phase_id", "")) != previous_phase and not unit.get("entered_phases", []).has(str(unit.get("current_phase_id", ""))):
+			var entered: Array = unit.get("entered_phases", [])
+			entered.append(str(unit.get("current_phase_id", "")))
+			unit["entered_phases"] = entered
+			_apply_phase_enter_effect(str(unit.get("current_phase_id", "")))
+		run_state.enemy_units[i] = unit
+	run_state.selected_enemy_index = run_state.first_alive_enemy_index()
+	run_state._sync_monster_alias()
+	_update_monster_intent_ui()
+
+func _update_monster_intent_ui() -> void:
+	for i in range(monster_intent_icons.size()):
+		if run_state == null or i >= run_state.enemy_units.size() or int(run_state.enemy_units[i].get("hp", 0)) <= 0:
+			monster_intent_icons[i].visible = false
+			monster_intent_labels[i].visible = false
+			continue
+		var intent: Dictionary = run_state.enemy_units[i].get("current_intent", {})
+		monster_intent_icons[i].visible = true
+		monster_intent_labels[i].visible = true
+		monster_intent_icons[i].set_intent_type(str(intent.get("intent_type", "SPECIAL")))
+		monster_intent_labels[i].text = str(intent.get("telegraph", "未知意图"))
 
 func _apply_phase_enter_effect(phase_id: String) -> void:
 	for phase in monster_config.get("phases", []):
@@ -490,12 +556,18 @@ func _on_roll_pressed() -> void:
 	mode = "choose_dice"
 	roll_locked = false
 	roll_result_label.text = "选择一颗骰子行动"
-	_set_action_banner("点击一颗骰子，移动同色棋子")
+	if run_state.locked_dice.size() > 0:
+		_set_action_banner("部分骰子被封锁，选择可用骰子行动")
+	else:
+		_set_action_banner("点击一颗骰子，移动同色棋子")
 	_set_dice_selectable(true)
 	_update_ui()
 
 func _on_dice_picked(color_key: String) -> void:
 	if mode != "choose_dice" or not current_rolls.has(color_key):
+		return
+	if run_state != null and run_state.is_dice_locked(color_key):
+		_sfx("ui_cancel", -7.0)
 		return
 	_sfx("dice_select", -2.5)
 	_clear_roll_preview()
@@ -528,7 +600,7 @@ func _on_dice_picked(color_key: String) -> void:
 	current_rolls.clear()
 	roll_locked = false
 	_set_action_banner("")
-	if run_state.monster_hp <= 0:
+	if run_state.alive_enemy_count() <= 0:
 		await _finish_battle_victory()
 		return
 	mode = "play"
@@ -538,12 +610,22 @@ func _on_dice_picked(color_key: String) -> void:
 func _on_dice_hovered(color_key: String) -> void:
 	if mode != "choose_dice" or not current_rolls.has(color_key):
 		return
+	if run_state != null and run_state.is_dice_locked(color_key):
+		return
 	_sfx("ui_hover", -8.0, 1.08)
 	_show_roll_preview(color_key)
 
 func _on_dice_unhovered(color_key: String) -> void:
 	if mode == "choose_dice" and current_rolls.has(color_key):
 		_clear_roll_preview()
+
+func _on_monster_hit_area_input(event: InputEvent, unit_index: int) -> void:
+	if not selecting_damage_target:
+		return
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		if run_state != null and unit_index < run_state.enemy_units.size() and int(run_state.enemy_units[unit_index].get("hp", 0)) > 0:
+			accept_event()
+			damage_target_chosen.emit(unit_index)
 
 func _on_end_turn_pressed() -> void:
 	if mode != "play" or roll_locked:
@@ -558,7 +640,7 @@ func _on_end_turn_pressed() -> void:
 	if run_state.player_hp <= 0:
 		_show_fail_overlay()
 		return
-	run_state.record_current_intent_used()
+	run_state.record_current_intents_used()
 	run_state.battle_turn += 1
 	run_state.begin_player_turn(current_battle_rolls)
 	await _apply_turn_start_generated_tiles(true)
@@ -592,40 +674,48 @@ func _apply_turn_start_generated_tiles(play_feedback: bool) -> void:
 	_position_pawns()
 
 func _execute_monster_turn() -> void:
-	var intent = run_state.current_intent
-	roll_result_label.text = "%s：%s" % [run_state.monster_name, str(intent.get("name", "行动"))]
-	if str(intent.get("intent_type", "")) == "ATTACK":
-		_sfx("enemy_attack", -2.0)
-		boss_view.play_attack()
-		await get_tree().create_timer(0.16).timeout
 	var events: Array[Dictionary] = []
-	for effect in intent.get("effects", []):
-		match str(effect.get("effect_type", "")):
-			"DAMAGE":
-				var raw_damage = int(effect.get("value", 0)) + run_state.monster_strength
-				var result = run_state.apply_player_damage(raw_damage)
-				events.append({"type": "player_damaged", "amount": int(result["amount"]), "blocked": int(result["blocked"]), "raw": int(result["raw"])})
-			"BLOCK":
-				var amount = int(effect.get("value", 0))
-				run_state.monster_block += amount
-				events.append({"type": "monster_block_added", "amount": amount})
-			"ADD_TILE":
-				events.append_array(_add_monster_tile(str(effect.get("param", "T901")), int(effect.get("value", 1)), true))
-			"CORRUPT_TILE":
-				events.append_array(_corrupt_tiles(str(effect.get("param", "T010")), int(effect.get("value", 1))))
-			"STRENGTH":
-				var strength_amount = int(effect.get("value", 0))
-				run_state.monster_strength += strength_amount
-				events.append({"type": "monster_strength_added", "amount": strength_amount, "strength": run_state.monster_strength})
-			"NEXT_TURN_ROLLS":
-				var roll_delta = int(effect.get("value", 0))
-				run_state.add_next_turn_roll_bonus(roll_delta)
-				events.append({"type": "next_turn_rolls_changed", "amount": roll_delta})
-			"LOSE_ROLLS":
-				var lost_roll_delta = -abs(int(effect.get("value", 0)))
-				run_state.add_next_turn_roll_bonus(lost_roll_delta)
-				events.append({"type": "next_turn_rolls_changed", "amount": lost_roll_delta})
-	await _play_monster_feedback(events)
+	for unit_index in range(run_state.enemy_units.size()):
+		if int(run_state.enemy_units[unit_index].get("hp", 0)) <= 0:
+			continue
+		var intent: Dictionary = run_state.enemy_units[unit_index].get("current_intent", {})
+		roll_result_label.text = "%s：%s" % [str(run_state.enemy_units[unit_index].get("name", "怪物")), str(intent.get("name", "行动"))]
+		if str(intent.get("intent_type", "")) == "ATTACK":
+			_sfx("enemy_attack", -2.0)
+			monster_views[unit_index].play_attack()
+			await get_tree().create_timer(0.16).timeout
+		for effect in intent.get("effects", []):
+			match str(effect.get("effect_type", "")):
+				"DAMAGE":
+					var raw_damage = int(effect.get("value", 0)) + int(run_state.enemy_units[unit_index].get("strength", 0))
+					var result = run_state.apply_player_damage(raw_damage)
+					events.append({"type": "player_damaged", "amount": int(result["amount"]), "blocked": int(result["blocked"]), "raw": int(result["raw"]), "unitIndex": unit_index})
+				"DAMAGE_PER_TILE":
+					var raw_damage = _count_tiles_by_id(str(effect.get("param", ""))) * int(effect.get("value", 0)) + int(run_state.enemy_units[unit_index].get("strength", 0))
+					var result = run_state.apply_player_damage(raw_damage)
+					events.append({"type": "player_damaged", "amount": int(result["amount"]), "blocked": int(result["blocked"]), "raw": int(result["raw"]), "unitIndex": unit_index})
+				"BLOCK":
+					events.append(run_state.add_enemy_block(unit_index, int(effect.get("value", 0))))
+				"ADD_TILE":
+					events.append_array(_add_monster_tile(str(effect.get("param", "T901")), int(effect.get("value", 1)), true))
+				"CORRUPT_TILE":
+					events.append_array(_corrupt_tiles(str(effect.get("param", "T010")), int(effect.get("value", 1))))
+				"STRENGTH":
+					events.append(run_state.add_enemy_strength(unit_index, int(effect.get("value", 0))))
+				"NEXT_TURN_ROLLS":
+					var roll_delta = int(effect.get("value", 0))
+					run_state.add_next_turn_roll_bonus(roll_delta)
+					events.append({"type": "next_turn_rolls_changed", "amount": roll_delta, "unitIndex": unit_index})
+				"LOSE_ROLLS":
+					var lost_roll_delta = -abs(int(effect.get("value", 0)))
+					run_state.add_next_turn_roll_bonus(lost_roll_delta)
+					events.append({"type": "next_turn_rolls_changed", "amount": lost_roll_delta, "unitIndex": unit_index})
+				"LOCK_DICE":
+					run_state.next_turn_locked_dice_count = max(run_state.next_turn_locked_dice_count, int(effect.get("value", 1)))
+					events.append({"type": "dice_locked_next_turn", "amount": int(effect.get("value", 1)), "unitIndex": unit_index})
+		await _play_monster_feedback(events)
+		events.clear()
+	_update_ui()
 
 func _add_monster_tile(tile_id: String, count: int, collect_events: bool) -> Array[Dictionary]:
 	var events: Array[Dictionary] = []
@@ -652,24 +742,27 @@ func _corrupt_tiles(target_tile_id: String, count: int) -> Array[Dictionary]:
 		events.append({"type": "tile_transformed", "tileIndex": index, "fromTileId": old_tile.id, "toTileId": new_tile.id, "fromTileInstanceId": old_tile.instance_id, "toTileInstanceId": new_tile.instance_id})
 	return events
 
+func _count_tiles_by_id(tile_id: String) -> int:
+	if run_state == null:
+		return 0
+	var count = 0
+	for tile in run_state.board.tiles:
+		if tile != null and tile.id == tile_id:
+			count += 1
+	return count
+
 func _play_turn_feedback(turn) -> void:
 	for event in turn.events:
 		var event_type = str(event.get("type", ""))
 		match event_type:
+			"monster_damage_pending":
+				var resolved = await _choose_monster_damage_target(event)
+				await _play_monster_damage_event(resolved)
+				if run_state.alive_enemy_count() <= 0:
+					_update_ui()
+					continue
 			"monster_damaged":
-				var amount = int(event.get("amount", 0))
-				var blocked = int(event.get("blocked", 0))
-				var start = _event_source_position(event)
-				if amount > 0:
-					_sfx("tile_attack", -3.0)
-					_sfx("enemy_hit", -4.0)
-					await _floating("-%d" % amount, start, Color(1.0, 0.32, 0.38))
-					boss_view.flash_hit()
-					shaker.shake(world, 7.0, 0.18)
-				elif blocked > 0:
-					_play_enemy_block_flash()
-					await _floating("格挡", start, Color(0.60, 0.82, 1.0))
-				_update_ui()
+				await _play_monster_damage_event(event)
 			"player_block_added":
 				var amount = int(event.get("amount", 0))
 				_sfx("tile_block", -3.0)
@@ -701,7 +794,55 @@ func _play_turn_feedback(turn) -> void:
 				await _floating("回合补给", _event_source_position(event), Color(0.58, 1.0, 0.72))
 			"all_pawns_next_roll_added":
 				await _floating("全军出击", _event_source_position(event), Color(1.0, 0.78, 0.28))
+			"player_damaged":
+				_sfx("player_hit", -5.0)
+				await _floating("-%d 生命" % int(event.get("amount", 0)), _event_source_position(event), Color(1.0, 0.25, 0.34))
+				_update_ui()
+			"player_strength_added":
+				await _floating("力量 %+d" % int(event.get("amount", 0)), _event_source_position(event), Color(1.0, 0.62, 0.22))
+			"player_dexterity_added":
+				await _floating("敏捷 %+d" % int(event.get("amount", 0)), _event_source_position(event), Color(0.58, 0.86, 1.0))
 	await _play_board_change_feedback(turn.events)
+
+func _choose_monster_damage_target(event: Dictionary) -> Dictionary:
+	if run_state == null or run_state.alive_enemy_count() <= 1:
+		return run_state.apply_monster_damage_to_unit(run_state.first_alive_enemy_index(), int(event.get("raw", 0)), str(event.get("sourceId", "")), int(event.get("sourceIndex", -1)), str(event.get("diceId", "")))
+	selecting_damage_target = true
+	_set_monster_targeting(true)
+	_set_action_banner("选择一个敌人承受 %d 点伤害" % int(event.get("raw", 0)))
+	var picked = await damage_target_chosen
+	selecting_damage_target = false
+	_set_monster_targeting(false)
+	_set_action_banner("")
+	return run_state.apply_monster_damage_to_unit(int(picked), int(event.get("raw", 0)), str(event.get("sourceId", "")), int(event.get("sourceIndex", -1)), str(event.get("diceId", "")))
+
+func _set_monster_targeting(active: bool) -> void:
+	for i in range(monster_hit_areas.size()):
+		var alive = run_state != null and i < run_state.enemy_units.size() and int(run_state.enemy_units[i].get("hp", 0)) > 0
+		monster_hit_areas[i].mouse_filter = Control.MOUSE_FILTER_STOP if active and alive else Control.MOUSE_FILTER_IGNORE
+		if i < monster_views.size() and alive:
+			monster_views[i].scale = Vector2(1.06, 1.06) if active else Vector2.ONE
+
+func _play_monster_damage_event(event: Dictionary) -> void:
+	var amount = int(event.get("amount", 0))
+	var blocked = int(event.get("blocked", 0))
+	var unit_index = int(event.get("unitIndex", -1))
+	var start = _event_source_position(event)
+	if amount > 0:
+		_sfx("tile_attack", -3.0)
+		_sfx("enemy_hit", -4.0)
+		await _floating("-%d" % amount, start, Color(1.0, 0.32, 0.38))
+		if unit_index >= 0 and unit_index < monster_views.size():
+			monster_views[unit_index].flash_hit()
+			if unit_index < run_state.enemy_units.size() and int(run_state.enemy_units[unit_index].get("hp", 0)) <= 0:
+				monster_views[unit_index].play_death()
+		else:
+			boss_view.flash_hit()
+		shaker.shake(world, 7.0, 0.18)
+	elif blocked > 0:
+		_play_enemy_block_flash(unit_index)
+		await _floating("格挡", start, Color(0.60, 0.82, 1.0))
+	_update_ui()
 
 func _play_monster_feedback(events: Array[Dictionary]) -> void:
 	for event in events:
@@ -719,13 +860,16 @@ func _play_monster_feedback(events: Array[Dictionary]) -> void:
 					await _floating("护盾抵挡", player_block_label.global_position + player_block_label.size * 0.5, Color(0.56, 0.88, 1.0))
 			"monster_block_added":
 				_sfx("monster_block", -3.0)
-				await _floating("+%d 护甲" % int(event.get("amount", 0)), boss_view.global_position + boss_view.size * 0.5, Color(0.58, 0.82, 1.0))
+				await _floating("+%d 护甲" % int(event.get("amount", 0)), _monster_unit_center(int(event.get("unitIndex", -1))), Color(0.58, 0.82, 1.0))
 			"monster_strength_added":
 				_sfx("monster_strength", -2.5)
-				await _floating("+%d 力量" % int(event.get("amount", 0)), boss_view.global_position + boss_view.size * 0.5, Color(1.0, 0.66, 0.20))
+				await _floating("+%d 力量" % int(event.get("amount", 0)), _monster_unit_center(int(event.get("unitIndex", -1))), Color(1.0, 0.66, 0.20))
 			"next_turn_rolls_changed":
 				_sfx("debuff", -3.0)
 				await _floating("下回合%+d骰" % int(event.get("amount", 0)), dice_shell.global_position + Vector2(40, -12), Color(1.0, 0.72, 0.24))
+			"dice_locked_next_turn":
+				_sfx("debuff", -3.0)
+				await _floating("封锁骰子", dice_shell.global_position + Vector2(40, -12), Color(0.78, 0.72, 1.0))
 	await _play_board_change_feedback(events)
 	_sync_from_run_state()
 	_rebuild_board_tiles()
@@ -738,7 +882,9 @@ func _finish_battle_victory() -> void:
 	_update_ui()
 	_sfx("victory", -2.5)
 	roll_result_label.text = "击败 %s" % run_state.monster_name
-	boss_view.play_death()
+	for i in range(monster_views.size()):
+		if i < run_state.enemy_units.size():
+			monster_views[i].play_death()
 	_flash(Color(1.0, 0.86, 0.20, 0.24), 0.5)
 	shaker.shake(world, 8.0, 0.28)
 	await get_tree().create_timer(0.55).timeout
@@ -1078,17 +1224,23 @@ func _event_tile_position(event: Dictionary) -> Vector2:
 		return tile_positions[index]
 	return boss_view.global_position + boss_view.size * 0.5
 
+func _monster_unit_center(unit_index: int = -1) -> Vector2:
+	if unit_index >= 0 and unit_index < monster_views.size() and monster_views[unit_index].visible:
+		return monster_views[unit_index].global_position + monster_views[unit_index].size * 0.5
+	return boss_view.global_position + boss_view.size * 0.5
+
 func _floating(text: String, start: Vector2, color: Color) -> void:
 	var float_text = FloatingText.new()
 	effects_layer.add_child(float_text)
 	float_text.play(text, start, color)
 	await get_tree().create_timer(0.15).timeout
 
-func _play_enemy_block_flash() -> void:
+func _play_enemy_block_flash(unit_index: int = -1) -> void:
 	_sfx("enemy_block_big", -2.0)
 	var burst = BlockShieldBurst.new()
 	effects_layer.add_child(burst)
-	var center = boss_view.global_position + boss_view.size * 0.5 + Vector2(0, -10)
+	var view = monster_views[unit_index] if unit_index >= 0 and unit_index < monster_views.size() else boss_view
+	var center = view.global_position + view.size * 0.5 + Vector2(0, -10)
 	burst.play(center, Vector2(94, 94))
 	shaker.shake(world, 3.2, 0.12)
 
@@ -1202,10 +1354,25 @@ func _update_ui() -> void:
 			player_hp_bar.set_values(run_state.player_hp, run_state.player_max_hp)
 		player_hp_label.text = "%d / %d" % [run_state.player_hp, run_state.player_max_hp]
 		player_block_label.text = "护盾 %d" % run_state.player_block
-		monster_name_label.text = run_state.monster_name
-		if monster_hp_bar != null:
-			monster_hp_bar.set_values(run_state.monster_hp, run_state.monster_max_hp)
-		monster_hp_label.text = "护甲 %d" % run_state.monster_block if run_state.monster_block > 0 else ""
+		for i in range(monster_views.size()):
+			var visible = i < run_state.enemy_units.size()
+			if i < monster_views.size():
+				monster_views[i].visible = visible
+			if i < monster_name_labels.size():
+				monster_name_labels[i].visible = visible
+			if i < monster_hp_bars.size():
+				monster_hp_bars[i].visible = visible
+			if i < monster_hp_labels.size():
+				monster_hp_labels[i].visible = visible
+			if not visible:
+				continue
+			var unit: Dictionary = run_state.enemy_units[i]
+			var alive = int(unit.get("hp", 0)) > 0
+			monster_views[i].modulate = Color(1, 1, 1, 1) if alive else Color(0.42, 0.42, 0.42, 0.55)
+			monster_name_labels[i].text = str(unit.get("name", "怪物"))
+			monster_hp_bars[i].set_values(int(unit.get("hp", 0)), int(unit.get("max_hp", 1)))
+			monster_hp_labels[i].text = "护甲 %d" % int(unit.get("block", 0)) if int(unit.get("block", 0)) > 0 else ""
+		_update_monster_intent_ui()
 	counter_label.text = "%d / %d" % [rolls_left, total_rolls]
 	if roll_counter_badge != null:
 		roll_counter_badge.set_counts(rolls_left, total_rolls)
@@ -1229,12 +1396,19 @@ func _show_roll_preview(color_key: String) -> void:
 		roll_preview_layer.set_preview(tile_positions, path, color_defs.get(color_key, Color.WHITE), pawn_nodes[color_key].position)
 	if roll_preview_target_index >= 0 and roll_preview_target_index < tile_nodes.size():
 		tile_nodes[roll_preview_target_index].set_glow(1.0)
+		var target_node = tile_nodes[roll_preview_target_index] as Control
+		if target_node != null:
+			roll_preview_tooltip_visible = true
+			_show_tile_tooltip(tiles_data[roll_preview_target_index], target_node.global_position + target_node.size * 0.5)
 
 func _clear_roll_preview() -> void:
 	if roll_preview_layer != null:
 		roll_preview_layer.clear_preview()
 	if roll_preview_target_index >= 0 and roll_preview_target_index < tile_nodes.size():
 		tile_nodes[roll_preview_target_index].set_glow(0.0)
+	if roll_preview_tooltip_visible:
+		_hide_tile_tooltip()
+		roll_preview_tooltip_visible = false
 	roll_preview_target_index = -1
 
 func _roll_preview_path_indices(color_key: String, steps: int) -> Array[int]:
@@ -1258,7 +1432,9 @@ func _set_dice_selectable(value: bool) -> void:
 		_clear_roll_preview()
 	for color_key in pawn_order:
 		if dice_nodes.has(color_key):
-			dice_nodes[color_key].set_selectable(value and mode == "choose_dice")
+			var locked = run_state != null and run_state.is_dice_locked(color_key)
+			dice_nodes[color_key].set_selectable(value and mode == "choose_dice" and not locked)
+			dice_nodes[color_key].modulate = Color(0.42, 0.42, 0.46, 0.78) if locked else Color.WHITE
 
 func _make_tile(tile_id: String) -> Dictionary:
 	return TileRuntime.from_definition(tile_definitions.get(tile_id, tile_definitions["T000"]), 0).to_display_data()
@@ -1377,19 +1553,7 @@ func _on_resized() -> void:
 	cancel_action_button.size = Vector2(110, 42)
 
 	var circle = _get_board_circle()
-	var boss_size = Vector2(190, 170)
-	boss_view.position = circle["center"] - boss_size * 0.5 + Vector2(0, -8)
-	boss_view.size = boss_size
-	intent_icon.position = circle["center"] + Vector2(-30, -156)
-	intent_icon.size = Vector2(60, 60)
-	intent_label.position = circle["center"] + Vector2(-100, -98)
-	intent_label.size = Vector2(200, 26)
-	monster_name_label.position = circle["center"] + Vector2(-150, 76)
-	monster_name_label.size = Vector2(300, 28)
-	monster_hp_bar.position = circle["center"] + Vector2(-88, 116)
-	monster_hp_bar.size = Vector2(176, 24)
-	monster_hp_label.position = circle["center"] + Vector2(-100, 141)
-	monster_hp_label.size = Vector2(200, 24)
+	_layout_monster_units(circle["center"])
 
 	var shell_size = Vector2(510, 116)
 	var shell_position = Vector2(viewport_size.x * 0.5 - shell_size.x * 0.5, viewport_size.y - shell_size.y - 28)
@@ -1406,3 +1570,36 @@ func _on_resized() -> void:
 	if not tiles_data.is_empty():
 		_rebuild_board_tiles()
 		_position_pawns()
+
+func _layout_monster_units(center: Vector2) -> void:
+	var count = 1
+	if run_state != null:
+		count = max(1, run_state.enemy_units.size())
+	var offsets = [Vector2.ZERO]
+	var boss_size = Vector2(190, 170)
+	if count == 2:
+		offsets = [Vector2(-92, 0), Vector2(92, 0)]
+		boss_size = Vector2(150, 138)
+	elif count >= 3:
+		offsets = [Vector2(-146, 0), Vector2(0, -4), Vector2(146, 0)]
+		boss_size = Vector2(126, 118)
+	for i in range(monster_views.size()):
+		var visible = i < count
+		var unit_center = center + (offsets[i] if i < offsets.size() else Vector2.ZERO) + Vector2(0, -8)
+		var view = monster_views[i] if i < monster_views.size() else null
+		if view == null:
+			continue
+		view.position = unit_center - boss_size * 0.5
+		view.size = boss_size
+		monster_hit_areas[i].position = view.position
+		monster_hit_areas[i].size = view.size
+		monster_intent_icons[i].position = unit_center + Vector2(-26, -120)
+		monster_intent_icons[i].size = Vector2(52, 52)
+		monster_intent_labels[i].position = unit_center + Vector2(-80, -72)
+		monster_intent_labels[i].size = Vector2(160, 24)
+		monster_name_labels[i].position = unit_center + Vector2(-95, 70)
+		monster_name_labels[i].size = Vector2(190, 24)
+		monster_hp_bars[i].position = unit_center + Vector2(-72, 100)
+		monster_hp_bars[i].size = Vector2(144, 22)
+		monster_hp_labels[i].position = unit_center + Vector2(-80, 123)
+		monster_hp_labels[i].size = Vector2(160, 22)

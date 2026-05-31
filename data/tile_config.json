@@ -2301,6 +2301,271 @@
       ]
     },
     {
+      "id": "T059",
+      "type": "??",
+      "name": "????",
+      "rarity": "??",
+      "description": "??????2??????",
+      "displayDescription": "??2???(??????????????+2)?????????",
+      "selectable": true,
+      "temporary": false,
+      "destroy_after_battle": false,
+      "changed": true,
+      "tags": [
+        "skill"
+      ],
+      "icon_kind": "shield",
+      "color": [
+        0.16,
+        0.48,
+        0.88,
+        1
+      ],
+      "accent": [
+        0.82,
+        0.96,
+        1,
+        1
+      ],
+      "effects": [
+        {
+          "type": "add_player_dexterity",
+          "value": 2
+        },
+        {
+          "type": "destroy_self"
+        }
+      ]
+    },
+    {
+      "id": "T060",
+      "type": "??",
+      "name": "????",
+      "rarity": "??",
+      "description": "??????2??????",
+      "displayDescription": "??2???(??????????????+2)?????????",
+      "selectable": true,
+      "temporary": false,
+      "destroy_after_battle": false,
+      "changed": true,
+      "tags": [
+        "skill"
+      ],
+      "icon_kind": "sword",
+      "color": [
+        0.94,
+        0.24,
+        0.34,
+        1
+      ],
+      "accent": [
+        1,
+        0.86,
+        0.22,
+        1
+      ],
+      "effects": [
+        {
+          "type": "add_player_strength",
+          "value": 2
+        },
+        {
+          "type": "destroy_self"
+        }
+      ]
+    },
+    {
+      "id": "T061",
+      "type": "??",
+      "name": "?????",
+      "rarity": "??",
+      "description": "??3??????????3 ????????",
+      "displayDescription": "??3??????????3 ????????",
+      "selectable": true,
+      "temporary": false,
+      "destroy_after_battle": false,
+      "changed": true,
+      "tags": [
+        "skill"
+      ],
+      "icon_kind": "shield",
+      "color": [
+        0.2,
+        0.66,
+        0.72,
+        1
+      ],
+      "accent": [
+        0.88,
+        1,
+        0.58,
+        1
+      ],
+      "durability": 3,
+      "effects": [
+        {
+          "type": "generate_tile",
+          "tile": "T062",
+          "count": 3
+        }
+      ],
+      "weakEffects": []
+    },
+    {
+      "id": "T062",
+      "type": "??",
+      "name": "???",
+      "rarity": "??",
+      "description": "??8??????+1",
+      "displayDescription": "??8??????+1",
+      "selectable": false,
+      "temporary": true,
+      "destroy_after_battle": true,
+      "changed": true,
+      "tags": [
+        "skill"
+      ],
+      "icon_kind": "shield",
+      "color": [
+        0.14,
+        0.58,
+        0.84,
+        1
+      ],
+      "accent": [
+        0.84,
+        1,
+        0.96,
+        1
+      ],
+      "effects": [
+        {
+          "type": "block",
+          "value": 8
+        },
+        {
+          "type": "add_rolls",
+          "value": 1
+        },
+        {
+          "type": "destroy_self"
+        }
+      ]
+    },
+    {
+      "id": "T063",
+      "type": "??",
+      "name": "???",
+      "rarity": "??",
+      "description": "??28???????2 ???????10???",
+      "displayDescription": "??28???????2 ???????10???",
+      "selectable": true,
+      "temporary": false,
+      "destroy_after_battle": false,
+      "changed": true,
+      "tags": [
+        "attack"
+      ],
+      "icon_kind": "sword",
+      "color": [
+        0.96,
+        0.3,
+        0.36,
+        1
+      ],
+      "accent": [
+        0.4,
+        1,
+        0.96,
+        1
+      ],
+      "durability": 2,
+      "effects": [
+        {
+          "type": "damage",
+          "value": 28
+        }
+      ],
+      "weakEffects": [
+        {
+          "type": "damage",
+          "value": 10
+        }
+      ]
+    },
+    {
+      "id": "T064",
+      "type": "??",
+      "name": "??",
+      "rarity": "??",
+      "description": "????????????????????",
+      "displayDescription": "????????????????????????",
+      "selectable": false,
+      "temporary": true,
+      "destroy_after_battle": true,
+      "changed": true,
+      "tags": [
+        "curse",
+        "fire"
+      ],
+      "icon_kind": "fire",
+      "color": [
+        1.0,
+        0.34,
+        0.16,
+        1
+      ],
+      "accent": [
+        1,
+        0.92,
+        0.2,
+        1
+      ],
+      "passEffects": [
+        {
+          "type": "damage_player",
+          "value": 1,
+          "piercing": true
+        }
+      ],
+      "effects": [
+        {
+          "type": "destroy_self"
+        }
+      ]
+    },
+    {
+      "id": "T065",
+      "type": "??",
+      "name": "??",
+      "rarity": "??",
+      "description": "??????????????",
+      "displayDescription": "??????????????",
+      "selectable": false,
+      "temporary": true,
+      "destroy_after_battle": true,
+      "changed": true,
+      "tags": [
+        "curse",
+        "stun"
+      ],
+      "icon_kind": "void",
+      "color": [
+        0.58,
+        0.54,
+        0.72,
+        1
+      ],
+      "accent": [
+        0.92,
+        0.88,
+        1,
+        1
+      ],
+      "auto_destroy_end_turn": true,
+      "effects": []
+    },
+    {
       "id": "T901",
       "type": "诅咒",
       "name": "淤泥",

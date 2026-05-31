@@ -39,8 +39,14 @@ static func _command_for_effect(effect: Dictionary, context) -> Array:
 	match str(effect.get("type", "")):
 		"damage":
 			return [GameCommand.damage_monster(effect.get("value", effect.get("amount", 0)), source_id, bool(effect.get("attack", true)))]
+		"damage_player":
+			return [GameCommand.damage_player(_resolve_amount(effect.get("value", effect.get("amount", 0)), context), source_id, bool(effect.get("piercing", false)))]
 		"block":
 			return [GameCommand.add_player_block(_resolve_amount(effect.get("value", effect.get("amount", 0)), context), source_id)]
+		"add_player_strength":
+			return [GameCommand.add_player_strength(_resolve_amount(effect.get("value", effect.get("amount", 0)), context), source_id)]
+		"add_player_dexterity":
+			return [GameCommand.add_player_dexterity(_resolve_amount(effect.get("value", effect.get("amount", 0)), context), source_id)]
 		"block_if_monster_attack":
 			if context.run_state.is_monster_intent_attack():
 				return [GameCommand.add_player_block(_resolve_amount(effect.get("value", 0), context), source_id)]

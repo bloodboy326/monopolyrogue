@@ -25,6 +25,26 @@ static func battle_count(config: Dictionary) -> int:
 static func monster(config: Dictionary, monster_id: String) -> Dictionary:
 	return config.get("monsters_by_id", {}).get(monster_id, {})
 
+static func encounter(config: Dictionary, monster_id: String) -> Dictionary:
+	var monster_def = monster(config, monster_id).duplicate(true)
+	if monster_def.is_empty():
+		return monster_def
+	var units: Array = []
+	for raw_unit in monster_def.get("units", []):
+		if typeof(raw_unit) != TYPE_DICTIONARY:
+			continue
+		var unit_id = str(raw_unit.get("monster_id", ""))
+		var base = monster(config, unit_id).duplicate(true)
+		if base.is_empty():
+			base = raw_unit.duplicate(true)
+		else:
+			for key in raw_unit.keys():
+				base[key] = raw_unit[key]
+		units.append(base)
+	if not units.is_empty():
+		monster_def["units"] = units.slice(0, 3)
+	return monster_def
+
 static func choose_intent(config: Dictionary, run_state) -> Dictionary:
 	var phase = phase_for(config, run_state.monster_id, run_state.monster_hp, run_state.monster_max_hp, run_state.battle_turn)
 	var pool_id = str(phase.get("intent_pool", ""))
@@ -32,6 +52,27 @@ static func choose_intent(config: Dictionary, run_state) -> Dictionary:
 	var candidates = _available_pool_entries(config, pool_id, run_state, true)
 	if candidates.is_empty():
 		candidates = _available_pool_entries(config, pool_id, run_state, false)
+	if candidates.is_empty():
+		return {}
+	var picked = run_state.rng.pick_weighted(candidates)
+	if picked == null:
+		return {}
+	var intent_id = str(picked.get("intent_id", ""))
+	var intent = config.get("intents_by_id", {}).get(intent_id, {}).duplicate(true)
+	intent["effects"] = effects_for_intent(config, intent_id)
+	return intent
+
+static func choose_intent_for_unit(config: Dictionary, run_state, unit_index: int) -> Dictionary:
+	if unit_index < 0 or unit_index >= run_state.enemy_units.size():
+		return {}
+	var unit: Dictionary = run_state.enemy_units[unit_index]
+	var phase = phase_for(config, str(unit.get("monster_id", "")), int(unit.get("hp", 0)), int(unit.get("max_hp", 1)), run_state.battle_turn)
+	var pool_id = str(phase.get("intent_pool", ""))
+	unit["current_phase_id"] = str(phase.get("phase_id", ""))
+	run_state.enemy_units[unit_index] = unit
+	var candidates = _available_pool_entries_for_values(config, pool_id, int(unit.get("hp", 0)), int(unit.get("max_hp", 1)), run_state.battle_turn, unit.get("intent_history", []), unit.get("intent_last_used", {}), true)
+	if candidates.is_empty():
+		candidates = _available_pool_entries_for_values(config, pool_id, int(unit.get("hp", 0)), int(unit.get("max_hp", 1)), run_state.battle_turn, unit.get("intent_history", []), unit.get("intent_last_used", {}), false)
 	if candidates.is_empty():
 		return {}
 	var picked = run_state.rng.pick_weighted(candidates)
@@ -77,30 +118,36 @@ static func _index_tables(config: Dictionary) -> Dictionary:
 	return indexed
 
 static func _available_pool_entries(config: Dictionary, pool_id: String, run_state, strict: bool) -> Array:
+	return _available_pool_entries_for_values(config, pool_id, run_state.monster_hp, run_state.monster_max_hp, run_state.battle_turn, run_state.intent_history, run_state.intent_last_used, strict)
+
+static func _available_pool_entries_for_values(config: Dictionary, pool_id: String, hp: int, max_hp: int, turn: int, history: Array, last_used: Dictionary, strict: bool) -> Array:
 	var result = []
 	for entry in config.get("intent_pools", []):
 		if typeof(entry) != TYPE_DICTIONARY or str(entry.get("pool_id", "")) != pool_id:
 			continue
-		if int(entry.get("min_turn", 1)) > run_state.battle_turn:
+		if int(entry.get("min_turn", 1)) > turn:
 			continue
-		if not _condition_met(str(entry.get("require", "")), run_state.monster_hp, run_state.monster_max_hp, run_state.battle_turn):
+		if not _condition_met(str(entry.get("require", "")), hp, max_hp, turn):
 			continue
 		var forbid = str(entry.get("forbid", ""))
-		if not forbid.is_empty() and _condition_met(forbid, run_state.monster_hp, run_state.monster_max_hp, run_state.battle_turn):
+		if not forbid.is_empty() and _condition_met(forbid, hp, max_hp, turn):
 			continue
-		if strict and _is_blocked_by_history(entry, run_state):
+		if strict and _is_blocked_by_history_values(entry, history, last_used, turn):
 			continue
 		result.append(entry)
 	return result
 
 static func _is_blocked_by_history(entry: Dictionary, run_state) -> bool:
+	return _is_blocked_by_history_values(entry, run_state.intent_history, run_state.intent_last_used, run_state.battle_turn)
+
+static func _is_blocked_by_history_values(entry: Dictionary, history: Array, last_used: Dictionary, turn: int) -> bool:
 	var intent_id = str(entry.get("intent_id", ""))
 	var cooldown = int(entry.get("cooldown", 0))
-	if cooldown > 0 and run_state.intent_last_used.has(intent_id):
-		if run_state.battle_turn - int(run_state.intent_last_used[intent_id]) <= cooldown:
+	if cooldown > 0 and last_used.has(intent_id):
+		if turn - int(last_used[intent_id]) <= cooldown:
 			return true
 	var max_repeat = int(entry.get("max_repeat", 99))
-	if max_repeat < 99 and _tail_repeat_count(run_state.intent_history, intent_id) >= max_repeat:
+	if max_repeat < 99 and _tail_repeat_count(history, intent_id) >= max_repeat:
 		return true
 	return false
 

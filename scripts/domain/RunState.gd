@@ -31,6 +31,8 @@ var delete_count: int = 0
 var player_max_hp: int = 80
 var player_hp: int = 80
 var player_block: int = 0
+var player_strength: int = 0
+var player_dexterity: int = 0
 var next_attack_multiplier: float = 1.0
 var pending_roll_bonus: int = 0
 var turn_rolls_left: int = 3
@@ -38,6 +40,8 @@ var turn_rolls_total: int = 3
 var next_turn_roll_bonus: int = 0
 var roll_start_bonus: int = 0
 var all_pawns_next_rolls: int = 0
+var next_turn_locked_dice_count: int = 0
+var locked_dice: Array[String] = []
 var turn_counters: Dictionary = {}
 var battle_counters: Dictionary = {}
 
@@ -53,6 +57,8 @@ var current_intent: Dictionary = {}
 var intent_history: Array[String] = []
 var intent_last_used: Dictionary = {}
 var entered_phases: Array[String] = []
+var enemy_units: Array[Dictionary] = []
+var selected_enemy_index: int = 0
 
 func setup(p_tile_definitions: Dictionary, p_relic_definitions: Dictionary, p_buff_definitions: Dictionary, seed_value: int, _start_tile_id: String = "T001", _start_count: int = 6) -> void:
 	tile_definitions = p_tile_definitions
@@ -62,6 +68,8 @@ func setup(p_tile_definitions: Dictionary, p_relic_definitions: Dictionary, p_bu
 	rng.set_seed(seed_value)
 	player_hp = player_max_hp
 	player_block = 0
+	player_strength = 0
+	player_dexterity = 0
 	next_attack_multiplier = 1.0
 	pending_roll_bonus = 0
 	delete_count = 0
@@ -101,6 +109,8 @@ func start_battle(new_battle_number: int, monster_def: Dictionary) -> void:
 	battle_turn = 1
 	player_block = 0
 	next_attack_multiplier = 1.0
+	player_strength = 0
+	player_dexterity = 0
 	pending_roll_bonus = 0
 	delete_count = 0
 	turn_counters.clear()
@@ -108,40 +118,136 @@ func start_battle(new_battle_number: int, monster_def: Dictionary) -> void:
 	next_turn_roll_bonus = 0
 	roll_start_bonus = 0
 	all_pawns_next_rolls = 0
+	next_turn_locked_dice_count = 0
+	locked_dice.clear()
 	temporary_tile_instances.clear()
 	battle_reverts.clear()
 	battle_removed_tiles.clear()
 	turn_start_tile_spawns.clear()
 	_reset_battle_tile_state()
 	_assign_battle_restore_slots()
-	monster_id = str(monster_def.get("monster_id", "slime_boss"))
-	monster_name = str(monster_def.get("name", monster_id))
-	monster_max_hp = int(monster_def.get("max_hp", 80))
-	monster_hp = monster_max_hp
-	monster_block = 0
-	monster_strength = 0
-	monster_art_key = str(monster_def.get("art_key", "slime"))
-	current_phase_id = str(monster_def.get("start_phase", ""))
-	current_intent.clear()
-	intent_history.clear()
-	intent_last_used.clear()
-	entered_phases.clear()
+	_setup_enemy_units(monster_def)
 	for dice_state in dice.values():
 		dice_state.begin_turn(board.size())
+
+func _setup_enemy_units(monster_def: Dictionary) -> void:
+	enemy_units.clear()
+	var raw_units: Array = monster_def.get("units", [])
+	if raw_units.is_empty():
+		raw_units = [monster_def]
+	for raw_unit in raw_units.slice(0, 3):
+		if typeof(raw_unit) != TYPE_DICTIONARY:
+			continue
+		var unit := {
+			"monster_id": str(raw_unit.get("monster_id", monster_def.get("monster_id", "slime_boss"))),
+			"name": str(raw_unit.get("name", monster_def.get("name", "怪物"))),
+			"max_hp": int(raw_unit.get("max_hp", monster_def.get("max_hp", 80))),
+			"hp": int(raw_unit.get("hp", raw_unit.get("max_hp", monster_def.get("max_hp", 80)))),
+			"block": 0,
+			"strength": 0,
+			"art_key": str(raw_unit.get("art_key", monster_def.get("art_key", "slime"))),
+			"start_phase": str(raw_unit.get("start_phase", monster_def.get("start_phase", ""))),
+			"current_phase_id": str(raw_unit.get("start_phase", monster_def.get("start_phase", ""))),
+			"current_intent": {},
+			"intent_history": [],
+			"intent_last_used": {},
+			"entered_phases": []
+		}
+		enemy_units.append(unit)
+	if enemy_units.is_empty():
+		enemy_units.append({
+			"monster_id": "slime_boss",
+			"name": "怪物",
+			"max_hp": 80,
+			"hp": 80,
+			"block": 0,
+			"strength": 0,
+			"art_key": "slime",
+			"start_phase": "",
+			"current_phase_id": "",
+			"current_intent": {},
+			"intent_history": [],
+			"intent_last_used": {},
+			"entered_phases": []
+		})
+	selected_enemy_index = first_alive_enemy_index()
+	_sync_monster_alias()
+
+func _sync_monster_alias() -> void:
+	var index = selected_enemy_index
+	if index < 0 or index >= enemy_units.size() or int(enemy_units[index].get("hp", 0)) <= 0:
+		index = first_alive_enemy_index()
+	selected_enemy_index = max(0, index)
+	if selected_enemy_index >= enemy_units.size():
+		return
+	var unit: Dictionary = enemy_units[selected_enemy_index]
+	monster_id = str(unit.get("monster_id", ""))
+	monster_name = str(unit.get("name", monster_id))
+	monster_max_hp = int(unit.get("max_hp", 1))
+	monster_hp = int(unit.get("hp", 0))
+	monster_block = int(unit.get("block", 0))
+	monster_strength = int(unit.get("strength", 0))
+	monster_art_key = str(unit.get("art_key", "slime"))
+	current_phase_id = str(unit.get("current_phase_id", ""))
+	current_intent = unit.get("current_intent", {})
+	intent_history.clear()
+	for item in unit.get("intent_history", []):
+		intent_history.append(str(item))
+	intent_last_used = unit.get("intent_last_used", {})
+	entered_phases.clear()
+	for item in unit.get("entered_phases", []):
+		entered_phases.append(str(item))
+
+func first_alive_enemy_index() -> int:
+	for i in range(enemy_units.size()):
+		if int(enemy_units[i].get("hp", 0)) > 0:
+			return i
+	return 0
+
+func alive_enemy_count() -> int:
+	var count = 0
+	for unit in enemy_units:
+		if int(unit.get("hp", 0)) > 0:
+			count += 1
+	return count
+
+func needs_damage_target_choice() -> bool:
+	return alive_enemy_count() > 1
+
+func is_dice_locked(dice_id: String) -> bool:
+	return locked_dice.has(dice_id)
+
+func alive_enemy_indices() -> Array[int]:
+	var result: Array[int] = []
+	for i in range(enemy_units.size()):
+		if int(enemy_units[i].get("hp", 0)) > 0:
+			result.append(i)
+	return result
 
 func begin_player_turn(base_rolls: int = -1) -> void:
 	player_block = 0
 	pending_roll_bonus = 0
 	turn_counters.clear()
+	locked_dice.clear()
 	if base_rolls >= 0:
 		turn_rolls_total = max(0, base_rolls + next_turn_roll_bonus)
 		turn_rolls_left = turn_rolls_total
 		next_turn_roll_bonus = 0
+	if next_turn_locked_dice_count > 0:
+		var dice_ids = dice.keys()
+		while locked_dice.size() < min(next_turn_locked_dice_count, max(0, dice_ids.size() - 1)) and not dice_ids.is_empty():
+			var picked = str(rng.pick_array(dice_ids))
+			locked_dice.append(picked)
+			dice_ids.erase(picked)
+		next_turn_locked_dice_count = 0
 	for dice_state in dice.values():
 		dice_state.begin_turn(board.size())
 
 func begin_monster_turn() -> void:
 	monster_block = 0
+	for i in range(enemy_units.size()):
+		enemy_units[i]["block"] = 0
+	_sync_monster_alias()
 
 func begin_roll() -> void:
 	for dice_state in dice.values():
@@ -428,8 +534,22 @@ func get_active_buffs(dice_id: String = "") -> Array:
 			result.append(buff)
 	return result
 
-func cleanup_end_of_turn() -> void:
+func cleanup_end_of_turn() -> Array[Dictionary]:
+	var events: Array[Dictionary] = []
+	for i in range(board.size() - 1, -1, -1):
+		var tile = board.get_tile(i)
+		if tile == null:
+			continue
+		if not bool(tile.definition.get("auto_destroy_end_turn", false)):
+			continue
+		var removed = board.remove_tile(i)
+		if removed == null:
+			continue
+		forget_temporary_tile(removed.instance_id)
+		reindex_dice_after_remove(i)
+		events.append({"type": "tile_destroyed", "tileIndex": i, "tileId": removed.id, "tileInstanceId": removed.instance_id, "mode": "autoEndTurn"})
 	buffs.clear()
+	return events
 
 func draw_tile_choices(count: int) -> Array[String]:
 	var choices: Array[String] = []
@@ -448,12 +568,63 @@ func draw_relic_choices(_count: int) -> Array[String]:
 	return []
 
 func is_monster_intent_attack() -> bool:
+	for unit in enemy_units:
+		if int(unit.get("hp", 0)) > 0 and str(unit.get("current_intent", {}).get("intent_type", "")) == "ATTACK":
+			return true
 	return str(current_intent.get("intent_type", "")) == "ATTACK"
 
 func consume_next_attack_multiplier() -> float:
 	var multiplier = max(1.0, next_attack_multiplier)
 	next_attack_multiplier = 1.0
 	return multiplier
+
+func apply_monster_damage_to_unit(unit_index: int, raw_amount: int, source_id: String = "", source_index: int = -1, dice_id: String = "") -> Dictionary:
+	if enemy_units.is_empty():
+		return {"type": "monster_damaged", "amount": 0, "blocked": 0, "raw": raw_amount, "unitIndex": -1, "sourceId": source_id, "sourceIndex": source_index, "diceId": dice_id}
+	var index = unit_index
+	if index < 0 or index >= enemy_units.size() or int(enemy_units[index].get("hp", 0)) <= 0:
+		index = first_alive_enemy_index()
+	var unit: Dictionary = enemy_units[index]
+	if enemy_units.size() == 1 and int(unit.get("block", 0)) == 0 and monster_block > 0:
+		unit["block"] = monster_block
+	var blocked = min(int(unit.get("block", 0)), max(0, raw_amount))
+	unit["block"] = int(unit.get("block", 0)) - blocked
+	var amount = max(0, raw_amount - blocked)
+	unit["hp"] = max(0, int(unit.get("hp", 0)) - amount)
+	enemy_units[index] = unit
+	selected_enemy_index = index if int(unit.get("hp", 0)) > 0 else first_alive_enemy_index()
+	_sync_monster_alias()
+	return {
+		"type": "monster_damaged",
+		"amount": amount,
+		"blocked": blocked,
+		"raw": raw_amount,
+		"unitIndex": index,
+		"unitName": str(unit.get("name", "")),
+		"sourceId": source_id,
+		"sourceIndex": source_index,
+		"diceId": dice_id
+	}
+
+func add_enemy_block(unit_index: int, amount: int) -> Dictionary:
+	if unit_index < 0 or unit_index >= enemy_units.size():
+		unit_index = first_alive_enemy_index()
+	var unit: Dictionary = enemy_units[unit_index]
+	unit["block"] = max(0, int(unit.get("block", 0)) + amount)
+	enemy_units[unit_index] = unit
+	selected_enemy_index = unit_index
+	_sync_monster_alias()
+	return {"type": "monster_block_added", "amount": amount, "unitIndex": unit_index, "unitName": str(unit.get("name", "")), "block": int(unit.get("block", 0))}
+
+func add_enemy_strength(unit_index: int, amount: int) -> Dictionary:
+	if unit_index < 0 or unit_index >= enemy_units.size():
+		unit_index = first_alive_enemy_index()
+	var unit: Dictionary = enemy_units[unit_index]
+	unit["strength"] = int(unit.get("strength", 0)) + amount
+	enemy_units[unit_index] = unit
+	selected_enemy_index = unit_index
+	_sync_monster_alias()
+	return {"type": "monster_strength_added", "amount": amount, "unitIndex": unit_index, "unitName": str(unit.get("name", "")), "strength": int(unit.get("strength", 0))}
 
 func apply_player_damage(amount: int) -> Dictionary:
 	var blocked = min(player_block, max(0, amount))
@@ -470,6 +641,24 @@ func record_current_intent_used() -> void:
 		return
 	intent_history.append(intent_id)
 	intent_last_used[intent_id] = battle_turn
+
+func record_current_intents_used() -> void:
+	for i in range(enemy_units.size()):
+		var unit: Dictionary = enemy_units[i]
+		if int(unit.get("hp", 0)) <= 0:
+			continue
+		var intent: Dictionary = unit.get("current_intent", {})
+		var intent_id = str(intent.get("intent_id", ""))
+		if intent_id.is_empty():
+			continue
+		var history: Array = unit.get("intent_history", [])
+		var last_used: Dictionary = unit.get("intent_last_used", {})
+		history.append(intent_id)
+		last_used[intent_id] = battle_turn
+		unit["intent_history"] = history
+		unit["intent_last_used"] = last_used
+		enemy_units[i] = unit
+	_sync_monster_alias()
 
 func pick_corruptible_tile_index() -> int:
 	var candidates: Array[int] = []

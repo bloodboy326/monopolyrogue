@@ -3,8 +3,17 @@ extends RefCounted
 static func damage_monster(amount, source: String = "", attack: bool = true) -> Dictionary:
 	return {"type": "DamageMonster", "amount": amount, "source": source, "attack": attack}
 
+static func damage_player(amount: int, source: String = "", piercing: bool = false) -> Dictionary:
+	return {"type": "DamagePlayer", "amount": amount, "source": source, "piercing": piercing}
+
 static func add_player_block(amount: int, source: String = "") -> Dictionary:
 	return {"type": "AddPlayerBlock", "amount": amount, "source": source}
+
+static func add_player_strength(amount: int, source: String = "") -> Dictionary:
+	return {"type": "AddPlayerStrength", "amount": amount, "source": source}
+
+static func add_player_dexterity(amount: int, source: String = "") -> Dictionary:
+	return {"type": "AddPlayerDexterity", "amount": amount, "source": source}
 
 static func add_rolls(amount: int, source: String = "") -> Dictionary:
 	return {"type": "AddRolls", "amount": amount, "source": source}
