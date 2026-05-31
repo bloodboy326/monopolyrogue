@@ -9,6 +9,10 @@ const LOUSE = Color(0.72, 0.22, 0.28, 1.0)
 const HIT = Color(0.80, 0.92, 0.34, 1.0)
 const DEAD = Color(0.34, 0.38, 0.36, 1.0)
 const WHITE = Color(0.96, 0.98, 0.90, 1.0)
+const SPRITE_DRAW_SCALE = {
+	"louse": 1.28,
+	"slime": 1.18
+}
 
 var state := "normal"
 var art_key := "slime"
@@ -191,7 +195,7 @@ func _draw_sprite_texture(texture: Texture2D) -> void:
 	if tex_size.x <= 0.0 or tex_size.y <= 0.0:
 		return
 	var scale_factor = min(size.x / tex_size.x, size.y / tex_size.y)
-	var draw_size = tex_size * scale_factor
+	var draw_size = tex_size * scale_factor * float(SPRITE_DRAW_SCALE.get(art_key, 1.0))
 	if _sprite_state_key() == "idle":
 		var breath = 1.0 + sin(wobble * 2.4) * 0.035
 		draw_size *= breath
