@@ -423,7 +423,7 @@ func _on_map_node_selected(node_id: String) -> void:
 	var monster_id = MapConfig.pick_monster_for_node(map_config, node, rng)
 	var monster_def = MonsterConfig.encounter(monster_config, monster_id)
 	if monster_def.is_empty():
-		monster_def = MonsterConfig.encounter(monster_config, "slime_boss")
+		monster_def = MonsterConfig.encounter(monster_config, "slime")
 	_begin_battle(monster_def, int(node.get("floor", battle_number)), int(node.get("rolls", 3)))
 
 func _resolve_rest_node() -> void:
@@ -439,7 +439,7 @@ func _start_battle() -> void:
 		_show_run_complete_overlay()
 		return
 	var battle = MonsterConfig.battle_for(monster_config, battle_number)
-	var monster_def = MonsterConfig.encounter(monster_config, str(battle.get("monster_id", "slime_boss")))
+	var monster_def = MonsterConfig.encounter(monster_config, str(battle.get("monster_id", "slime")))
 	_begin_battle(monster_def, battle_number, int(battle.get("rolls", 3)))
 
 func _begin_battle(monster_def: Dictionary, new_battle_number: int, rolls: int) -> void:
@@ -455,6 +455,8 @@ func _begin_battle(monster_def: Dictionary, new_battle_number: int, rolls: int) 
 	pending_roll_value = 0
 	current_rolls.clear()
 	pending_tile.clear()
+	for dice in dice_nodes.values():
+		dice.set_concealed(false)
 	_clear_roll_preview()
 	_set_dice_selectable(false)
 	map_overlay.visible = false
@@ -538,6 +540,10 @@ func _on_roll_pressed() -> void:
 		return
 	rolls_left = run_state.turn_rolls_left
 	run_state.begin_roll()
+	var start_events = run_state.advance_moon_counters(1)
+	start_events.append_array(_apply_player_roll_passives())
+	if not start_events.is_empty():
+		await _play_monster_feedback(start_events)
 	pending_roll_value = 0
 	current_rolls.clear()
 	_set_dice_selectable(false)
@@ -546,11 +552,15 @@ func _on_roll_pressed() -> void:
 	_pulse_node(roll_button, Vector2(0.96, 0.96), Vector2.ONE)
 
 	batch_remaining = pawn_order.size()
+	var concealed_roll = run_state.is_dice_fogged()
 	for color_key in pawn_order:
-		current_rolls[color_key] = run_state.rng.randi_range(1, 6)
+		current_rolls[color_key] = run_state.roll_die_value()
+		dice_nodes[color_key].set_concealed(false)
 		dice_nodes[color_key].roll_finished.connect(_mark_batch_item_done, CONNECT_ONE_SHOT)
 		dice_nodes[color_key].roll_to(int(current_rolls[color_key]))
 	await batch_finished
+	for color_key in pawn_order:
+		dice_nodes[color_key].set_concealed(concealed_roll)
 	_sfx("dice_land", -3.0)
 
 	mode = "choose_dice"
@@ -586,7 +596,8 @@ func _on_dice_picked(color_key: String) -> void:
 	batch_remaining = order.size()
 	for moving_color in order:
 		pawn_nodes[moving_color].movement_finished.connect(_on_pawn_movement_finished.bind(moving_color), CONNECT_ONE_SHOT)
-		pawn_nodes[moving_color].move_steps(tile_positions, pawn_indices[moving_color], int(results[moving_color]))
+		var visual_steps = plan.get("paths", {}).get(moving_color, []).size()
+		pawn_nodes[moving_color].move_steps(tile_positions, pawn_indices[moving_color], visual_steps)
 	await batch_finished
 
 	var turn = turn_resolver.resolve_planned_roll(run_state, order, results, plan)
@@ -612,6 +623,8 @@ func _on_dice_hovered(color_key: String) -> void:
 		return
 	if run_state != null and run_state.is_dice_locked(color_key):
 		return
+	if run_state != null and run_state.is_dice_fogged():
+		return
 	_sfx("ui_hover", -8.0, 1.08)
 	_show_roll_preview(color_key)
 
@@ -635,6 +648,7 @@ func _on_end_turn_pressed() -> void:
 	roll_locked = true
 	_clear_roll_preview()
 	_update_ui()
+	run_state.end_player_turn_statuses()
 	run_state.begin_monster_turn()
 	await _execute_monster_turn()
 	if run_state.player_hp <= 0:
@@ -687,21 +701,41 @@ func _execute_monster_turn() -> void:
 		for effect in intent.get("effects", []):
 			match str(effect.get("effect_type", "")):
 				"DAMAGE":
-					var raw_damage = int(effect.get("value", 0)) + int(run_state.enemy_units[unit_index].get("strength", 0))
+					var hits = max(1, int(effect.get("hits", 1)))
+					var raw_damage = (int(effect.get("value", 0)) + int(run_state.enemy_units[unit_index].get("strength", 0))) * hits
 					var result = run_state.apply_player_damage(raw_damage)
 					events.append({"type": "player_damaged", "amount": int(result["amount"]), "blocked": int(result["blocked"]), "raw": int(result["raw"]), "unitIndex": unit_index})
 				"DAMAGE_PER_TILE":
 					var raw_damage = _count_tiles_by_id(str(effect.get("param", ""))) * int(effect.get("value", 0)) + int(run_state.enemy_units[unit_index].get("strength", 0))
 					var result = run_state.apply_player_damage(raw_damage)
 					events.append({"type": "player_damaged", "amount": int(result["amount"]), "blocked": int(result["blocked"]), "raw": int(result["raw"]), "unitIndex": unit_index})
+				"DAMAGE_BY_TILE_COUNT":
+					var tile_count = _count_tiles_by_id(str(effect.get("param", "")))
+					var hits_by_tile = max(1, int(effect.get("hits", 1)))
+					var raw_by_tile = (int(effect.get("base", 0)) + tile_count * int(effect.get("value", 0)) + int(run_state.enemy_units[unit_index].get("strength", 0))) * hits_by_tile
+					var result_by_tile = run_state.apply_player_damage(raw_by_tile)
+					events.append({"type": "player_damaged", "amount": int(result_by_tile["amount"]), "blocked": int(result_by_tile["blocked"]), "raw": int(result_by_tile["raw"]), "unitIndex": unit_index})
 				"BLOCK":
 					events.append(run_state.add_enemy_block(unit_index, int(effect.get("value", 0))))
+				"HEAL":
+					events.append(run_state.add_enemy_heal(unit_index, int(effect.get("value", 0))))
 				"ADD_TILE":
 					events.append_array(_add_monster_tile(str(effect.get("param", "T901")), int(effect.get("value", 1)), true))
+				"DESTROY_TILES":
+					events.append_array(_destroy_random_tiles(int(effect.get("value", 1)), str(effect.get("param", ""))))
+				"DESTROY_TILE_ID":
+					events.append_array(_destroy_tiles_by_id(str(effect.get("param", ""))))
 				"CORRUPT_TILE":
 					events.append_array(_corrupt_tiles(str(effect.get("param", "T010")), int(effect.get("value", 1))))
 				"STRENGTH":
 					events.append(run_state.add_enemy_strength(unit_index, int(effect.get("value", 0))))
+				"SET_DICE_RANGE":
+					var parts = str(effect.get("param", "1-6")).split("-")
+					var min_value = int(parts[0]) if parts.size() >= 1 else 1
+					var max_value = int(parts[1]) if parts.size() >= 2 else min_value
+					events.append(run_state.set_forced_roll_range(min_value, max_value, max(1, int(effect.get("duration", effect.get("value", 1))))))
+				"SET_DICE_FOG":
+					events.append(run_state.set_dice_fog(max(1, int(effect.get("duration", effect.get("value", 1))))))
 				"NEXT_TURN_ROLLS":
 					var roll_delta = int(effect.get("value", 0))
 					run_state.add_next_turn_roll_bonus(roll_delta)
@@ -742,14 +776,69 @@ func _corrupt_tiles(target_tile_id: String, count: int) -> Array[Dictionary]:
 		events.append({"type": "tile_transformed", "tileIndex": index, "fromTileId": old_tile.id, "toTileId": new_tile.id, "fromTileInstanceId": old_tile.instance_id, "toTileInstanceId": new_tile.instance_id})
 	return events
 
+func _destroy_random_tiles(count: int, rule: String) -> Array[Dictionary]:
+	var candidates: Array[int] = []
+	for i in range(run_state.board.size()):
+		var tile = run_state.board.get_tile(i)
+		if tile == null or tile.id == "T000":
+			continue
+		if rule == "non_curse" and tile.has_tag("curse"):
+			continue
+		candidates.append(i)
+	var picked_indices: Array[int] = []
+	while picked_indices.size() < count and not candidates.is_empty():
+		var picked = int(run_state.rng.pick_array(candidates))
+		picked_indices.append(picked)
+		candidates.erase(picked)
+	picked_indices.sort()
+	picked_indices.reverse()
+	return _remove_tile_indices(picked_indices, "monsterDestroy")
+
+func _destroy_tiles_by_id(tile_id: String) -> Array[Dictionary]:
+	var indices: Array[int] = []
+	for i in range(run_state.board.size()):
+		var tile = run_state.board.get_tile(i)
+		if tile != null and tile.id == tile_id:
+			indices.append(i)
+	indices.sort()
+	indices.reverse()
+	return _remove_tile_indices(indices, "monsterDestroyId")
+
+func _remove_tile_indices(indices: Array[int], mode_name: String) -> Array[Dictionary]:
+	var events: Array[Dictionary] = []
+	for index in indices:
+		if index < 0 or index >= run_state.board.size():
+			continue
+		var tile = run_state.board.remove_tile(index)
+		if tile == null:
+			continue
+		var restore_after_battle = not run_state.should_cleanup_after_battle(tile) and not bool(tile.runtime_flags.get("temporary_tile", false))
+		if restore_after_battle:
+			run_state.remember_battle_removed_tile(tile, index)
+		else:
+			run_state.forget_temporary_tile(tile.instance_id)
+		run_state.reindex_dice_after_remove(index)
+		events.append({"type": "tile_destroyed", "tileIndex": index, "tileId": tile.id, "tileInstanceId": tile.instance_id, "mode": mode_name, "restoreAfterBattle": restore_after_battle})
+	return events
+
+func _apply_player_roll_passives() -> Array[Dictionary]:
+	var events: Array[Dictionary] = []
+	run_state.increment_counter("battle", "player_rolls", 1)
+	var roll_count = run_state.get_counter("battle", "player_rolls")
+	for i in range(run_state.enemy_units.size()):
+		var unit: Dictionary = run_state.enemy_units[i]
+		if int(unit.get("hp", 0)) <= 0:
+			continue
+		var passive: Dictionary = unit.get("passive", {})
+		var threshold = int(passive.get("strength_per_player_rolls", 0))
+		if threshold > 0 and roll_count % threshold == 0:
+			events.append(run_state.add_enemy_strength(i, int(passive.get("strength_amount", 1))))
+	return events
+
 func _count_tiles_by_id(tile_id: String) -> int:
 	if run_state == null:
 		return 0
-	var count = 0
-	for tile in run_state.board.tiles:
-		if tile != null and tile.id == tile_id:
-			count += 1
-	return count
+	return run_state.count_tiles_by_id(tile_id)
 
 func _play_turn_feedback(turn) -> void:
 	for event in turn.events:
@@ -798,6 +887,10 @@ func _play_turn_feedback(turn) -> void:
 				_sfx("player_hit", -5.0)
 				await _floating("-%d 生命" % int(event.get("amount", 0)), _event_source_position(event), Color(1.0, 0.25, 0.34))
 				_update_ui()
+			"player_healed":
+				_sfx("player_block", -4.0, 1.08)
+				await _floating("+%d HP" % int(event.get("amount", 0)), _event_source_position(event), Color(0.48, 1.0, 0.54))
+				_update_ui()
 			"player_strength_added":
 				await _floating("力量 %+d" % int(event.get("amount", 0)), _event_source_position(event), Color(1.0, 0.62, 0.22))
 			"player_dexterity_added":
@@ -839,6 +932,9 @@ func _play_monster_damage_event(event: Dictionary) -> void:
 		else:
 			boss_view.flash_hit()
 		shaker.shake(world, 7.0, 0.18)
+		if event.has("passiveTileId"):
+			var passive_events = _add_monster_tile(str(event.get("passiveTileId", "T000")), int(event.get("passiveTileCount", 1)), true)
+			await _play_board_change_feedback(passive_events)
 	elif blocked > 0:
 		_play_enemy_block_flash(unit_index)
 		await _floating("格挡", start, Color(0.60, 0.82, 1.0))
@@ -864,6 +960,17 @@ func _play_monster_feedback(events: Array[Dictionary]) -> void:
 			"monster_strength_added":
 				_sfx("monster_strength", -2.5)
 				await _floating("+%d 力量" % int(event.get("amount", 0)), _monster_unit_center(int(event.get("unitIndex", -1))), Color(1.0, 0.66, 0.20))
+			"monster_healed":
+				_sfx("player_block", -4.0, 0.92)
+				await _floating("+%d HP" % int(event.get("amount", 0)), _monster_unit_center(int(event.get("unitIndex", -1))), Color(0.50, 1.0, 0.54))
+			"dice_range_changed":
+				_sfx("debuff", -3.0)
+				await _floating("骰子 %d-%d" % [int(event.get("min", 1)), int(event.get("max", 6))], dice_shell.global_position + Vector2(40, -12), Color(0.64, 0.88, 1.0))
+			"dice_fog_changed":
+				_sfx("debuff", -3.0)
+				await _floating("骰子迷雾", dice_shell.global_position + Vector2(40, -12), Color(0.78, 0.72, 1.0))
+			"tile_counter_changed":
+				pass
 			"next_turn_rolls_changed":
 				_sfx("debuff", -3.0)
 				await _floating("下回合%+d骰" % int(event.get("amount", 0)), dice_shell.global_position + Vector2(40, -12), Color(1.0, 0.72, 0.24))
@@ -1387,6 +1494,8 @@ func _clear_board_hints() -> void:
 func _show_roll_preview(color_key: String) -> void:
 	if tile_positions.is_empty() or not current_rolls.has(color_key):
 		return
+	if run_state != null and run_state.is_dice_fogged():
+		return
 	_clear_roll_preview()
 	var path = _roll_preview_path_indices(color_key, int(current_rolls[color_key]))
 	if path.is_empty():
@@ -1415,11 +1524,9 @@ func _roll_preview_path_indices(color_key: String, steps: int) -> Array[int]:
 	var result: Array[int] = []
 	if run_state == null or run_state.board.is_empty():
 		return result
-	var start_index = int(pawn_indices.get(color_key, 0))
-	if run_state.dice.has(color_key):
-		start_index = run_state.dice[color_key].index
-	for step in range(1, max(0, steps) + 1):
-		result.append(run_state.board.normalize_index(start_index + step))
+	var plan = turn_resolver.plan_roll(run_state, [color_key], {color_key: steps})
+	for index in plan.get("paths", {}).get(color_key, []):
+		result.append(int(index))
 	return result
 
 func _set_action_banner(message: String) -> void:

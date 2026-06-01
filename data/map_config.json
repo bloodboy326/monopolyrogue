@@ -270,133 +270,88 @@
   "monster_pool_entries": [
     {
       "pool_id": "act1_easy_normal",
-      "monster_id": "red_louse",
-      "weight": 14
+      "monster_id": "goblin",
+      "weight": 34
     },
     {
       "pool_id": "act1_easy_normal",
-      "monster_id": "green_louse",
-      "weight": 12
-    },
-    {
-      "pool_id": "act1_easy_normal",
-      "monster_id": "small_slime",
-      "weight": 12
-    },
-    {
-      "pool_id": "act1_easy_normal",
-      "monster_id": "acid_slime",
-      "weight": 8
-    },
-    {
-      "pool_id": "act1_easy_normal",
-      "monster_id": "clacker",
-      "weight": 8
-    },
-    {
-      "pool_id": "act1_mid_normal",
-      "monster_id": "jaw_worm",
-      "weight": 14
-    },
-    {
-      "pool_id": "act1_mid_normal",
-      "monster_id": "acid_slime",
-      "weight": 12
-    },
-    {
-      "pool_id": "act1_mid_normal",
-      "monster_id": "fungi_beast",
-      "weight": 12
-    },
-    {
-      "pool_id": "act1_mid_normal",
-      "monster_id": "blue_slaver",
-      "weight": 10
-    },
-    {
-      "pool_id": "act1_mid_normal",
-      "monster_id": "clacker",
-      "weight": 12
-    },
-    {
-      "pool_id": "act1_late_normal",
-      "monster_id": "jaw_worm",
-      "weight": 12
-    },
-    {
-      "pool_id": "act1_late_normal",
-      "monster_id": "sentry",
-      "weight": 12
-    },
-    {
-      "pool_id": "act1_late_normal",
-      "monster_id": "big_slime",
-      "weight": 12
-    },
-    {
-      "pool_id": "act1_late_normal",
-      "monster_id": "fungi_beast",
-      "weight": 10
-    },
-    {
-      "pool_id": "act1_late_normal",
-      "monster_id": "clacker",
-      "weight": 12
-    },
-    {
-      "pool_id": "act1_elite",
-      "monster_id": "gremlin_nob",
-      "weight": 24
-    },
-    {
-      "pool_id": "act1_elite",
-      "monster_id": "lagavulin",
-      "weight": 22
-    },
-    {
-      "pool_id": "act1_elite",
-      "monster_id": "three_sentries",
-      "weight": 22
-    },
-    {
-      "pool_id": "act1_boss",
-      "monster_id": "slime_boss",
-      "weight": 70
-    },
-    {
-      "pool_id": "act1_easy_normal",
-      "monster_id": "normal_goblin",
-      "weight": 36
-    },
-    {
-      "pool_id": "act1_easy_normal",
-      "monster_id": "slime_baby",
+      "monster_id": "slime",
       "weight": 32
     },
     {
+      "pool_id": "act1_easy_normal",
+      "monster_id": "skeleton_soldier",
+      "weight": 28
+    },
+    {
       "pool_id": "act1_mid_normal",
-      "monster_id": "normal_goblin",
+      "monster_id": "skeleton_archer",
+      "weight": 26
+    },
+    {
+      "pool_id": "act1_mid_normal",
+      "monster_id": "murloc",
       "weight": 24
     },
     {
       "pool_id": "act1_mid_normal",
-      "monster_id": "slime_baby",
-      "weight": 26
+      "monster_id": "frost_giant",
+      "weight": 18
+    },
+    {
+      "pool_id": "act1_mid_normal",
+      "monster_id": "goblin",
+      "weight": 12
     },
     {
       "pool_id": "act1_late_normal",
-      "monster_id": "goblin_group",
-      "weight": 46
+      "monster_id": "skeleton_pair",
+      "weight": 28
+    },
+    {
+      "pool_id": "act1_late_normal",
+      "monster_id": "guard_pair",
+      "weight": 28
+    },
+    {
+      "pool_id": "act1_late_normal",
+      "monster_id": "baby_dragon",
+      "weight": 24
+    },
+    {
+      "pool_id": "act1_late_normal",
+      "monster_id": "frost_giant",
+      "weight": 16
+    },
+    {
+      "pool_id": "act1_elite",
+      "monster_id": "skeleton_king",
+      "weight": 32
+    },
+    {
+      "pool_id": "act1_elite",
+      "monster_id": "werewolf",
+      "weight": 30
     },
     {
       "pool_id": "act1_elite",
       "monster_id": "headless_knight",
-      "weight": 52
+      "weight": 30
+    },
+    {
+      "pool_id": "act1_boss",
+      "monster_id": "medusa",
+      "weight": 34
     },
     {
       "pool_id": "act1_boss",
       "monster_id": "void_eye",
-      "weight": 70
+      "weight": 34
+    },
+    {
+      "pool_id": "act1_boss",
+      "monster_id": "dice_demon",
+      "weight": 32
     }
   ]
 }

@@ -530,27 +530,28 @@
       "type": "技能",
       "name": "超载",
       "rarity": "稀有",
-      "description": "获得3点能量，踩中后生成1个虚空地块，耐久度3  虚弱状态：获得1点能量，踩中后生成1个虚空地块",
-      "displayDescription": "获得3点能量，踩中后生成1个虚空地块，耐久度3 ,虚弱状态：获得1点能量，踩中后生成1个虚空地块",
+      "description": "获得3点能量，踩中后生成1个虚空地块，耐久度2 虚弱状态：获得1点能量，踩中后生成1个虚空地块",
+      "displayDescription": "获得3点能量，踩中后生成1个虚空地块，耐久度2 ,虚弱状态：获得1点能量，踩中后生成1个虚空地块",
       "selectable": true,
       "temporary": true,
       "destroy_after_battle": true,
       "tags": [
         "skill",
-        "energy"
+        "energy",
+        "void"
       ],
-      "icon_kind": "shield",
+      "icon_kind": "charge",
       "color": [
         0.15,
         0.74,
         0.65,
-        1
+        1.0
       ],
       "accent": [
-        1,
+        1.0,
         0.86,
         0.22,
-        1
+        1.0
       ],
       "effects": [
         {
@@ -559,11 +560,11 @@
         },
         {
           "type": "generate_tile",
-          "tile": "T015",
+          "tile": "T072",
           "count": 1
         }
       ],
-      "durability": 3,
+      "durability": 2,
       "weakEffects": [
         {
           "type": "add_rolls",
@@ -571,10 +572,11 @@
         },
         {
           "type": "generate_tile",
-          "tile": "T015",
+          "tile": "T072",
           "count": 1
         }
-      ]
+      ],
+      "changed": true
     },
     {
       "id": "T015",
@@ -1064,8 +1066,8 @@
       "type": "技能",
       "name": "能量回响",
       "rarity": "稀有",
-      "description": "如果是被跃迁后的棋子踩中，增加两点能量",
-      "displayDescription": "如果是被跃迁后的棋子踩中，增加两点能量",
+      "description": "如果是被跃迁后的棋子踩中，增加3点能量",
+      "displayDescription": "如果是被跃迁后的棋子踩中，增加3点能量",
       "selectable": true,
       "temporary": false,
       "destroy_after_battle": false,
@@ -1090,26 +1092,28 @@
       "effects": [
         {
           "type": "add_rolls",
-          "value": 2,
+          "value": 3,
           "condition": {
             "reason": "warp"
           }
         }
-      ]
+      ],
+      "changed": true
     },
     {
       "id": "T028",
       "type": "技能",
       "name": "跃迁速射",
       "rarity": "普通",
-      "description": "被跃迁中的棋子经过，造成4点伤害",
-      "displayDescription": "被跃迁中的棋子经过，造成4点伤害",
+      "description": "造成5点伤害，如果被跃迁中的棋子经过，造成4点伤害",
+      "displayDescription": "造成3点伤害，如果被跃迁中的棋子经过，造成4点伤害",
       "selectable": true,
       "temporary": false,
       "destroy_after_battle": false,
       "tags": [
         "skill",
-        "warp"
+        "warp",
+        "attack"
       ],
       "icon_kind": "charge",
       "color": [
@@ -1124,7 +1128,12 @@
         0.34,
         1
       ],
-      "effects": [],
+      "effects": [
+        {
+          "type": "damage",
+          "value": 3
+        }
+      ],
       "passEffects": [
         {
           "type": "damage",
@@ -1135,20 +1144,23 @@
             ]
           }
         }
-      ]
+      ],
+      "changed": true
     },
     {
       "id": "T029",
       "type": "技能",
       "name": "灵活抖动",
       "rarity": "普通",
-      "description": "被跃迁中的棋子经过，获得4点护甲",
-      "displayDescription": "被跃迁中的棋子经过，获得4点护甲",
+      "description": "获得5点护甲，如果被跃迁中的棋子经过，获得4点护甲",
+      "displayDescription": "获得5点护甲，被跃迁中的棋子经过，获得4点护甲",
       "selectable": true,
       "temporary": false,
       "destroy_after_battle": false,
       "tags": [
-        "skill"
+        "skill",
+        "warp",
+        "defense"
       ],
       "icon_kind": "combo",
       "color": [
@@ -1163,7 +1175,12 @@
         0.22,
         1
       ],
-      "effects": [],
+      "effects": [
+        {
+          "type": "block",
+          "value": 5
+        }
+      ],
       "passEffects": [
         {
           "type": "block",
@@ -1174,7 +1191,8 @@
             ]
           }
         }
-      ]
+      ],
+      "changed": true
     },
     {
       "id": "T030",
@@ -2563,6 +2581,253 @@
         1
       ],
       "auto_destroy_end_turn": true,
+      "effects": []
+    },
+    {
+      "id": "T066",
+      "type": "技能",
+      "name": "及时救难",
+      "rarity": "普通",
+      "description": "恢复7滴血，消耗",
+      "displayDescription": "恢复7滴血，踩中后销毁该地块",
+      "selectable": true,
+      "temporary": false,
+      "destroy_after_battle": false,
+      "changed": true,
+      "tags": [
+        "skill",
+        "heal"
+      ],
+      "icon_kind": "heal",
+      "color": [
+        0.15,
+        0.74,
+        0.42,
+        1.0
+      ],
+      "accent": [
+        1.0,
+        0.92,
+        0.28,
+        1.0
+      ],
+      "effects": [
+        {
+          "type": "heal_player",
+          "value": 7
+        },
+        {
+          "type": "destroy_self"
+        }
+      ]
+    },
+    {
+      "id": "T067",
+      "type": "诅咒",
+      "name": "鼻涕液",
+      "rarity": "普通",
+      "description": "当棋子经过时，会强行黏住该棋子，消耗",
+      "displayDescription": "当棋子经过时，会强行黏住该棋子（无法到达目的地，在粘液这里就停住了,结束回合）,踩中后销毁该地块",
+      "selectable": false,
+      "temporary": true,
+      "destroy_after_battle": true,
+      "changed": true,
+      "tags": [
+        "curse",
+        "sticky"
+      ],
+      "icon_kind": "slime_mud",
+      "color": [
+        0.34,
+        0.84,
+        0.3,
+        1.0
+      ],
+      "accent": [
+        0.9,
+        1.0,
+        0.3,
+        1.0
+      ],
+      "passEffects": [
+        {
+          "type": "stop_movement"
+        }
+      ],
+      "effects": [
+        {
+          "type": "destroy_self"
+        }
+      ]
+    },
+    {
+      "id": "T068",
+      "type": "诅咒",
+      "name": "淤泥",
+      "rarity": "普通",
+      "description": "踩中消耗",
+      "displayDescription": "踩中后销毁该地块",
+      "selectable": false,
+      "temporary": true,
+      "destroy_after_battle": true,
+      "changed": true,
+      "tags": [
+        "curse",
+        "slime",
+        "mud"
+      ],
+      "icon_kind": "slime_mud",
+      "color": [
+        0.2,
+        0.46,
+        0.28,
+        1.0
+      ],
+      "accent": [
+        0.6,
+        0.95,
+        0.38,
+        1.0
+      ],
+      "effects": [
+        {
+          "type": "destroy_self"
+        }
+      ]
+    },
+    {
+      "id": "T069",
+      "type": "诅咒",
+      "name": "骨头",
+      "rarity": "普通",
+      "description": "无效果",
+      "displayDescription": "无效果",
+      "selectable": false,
+      "temporary": true,
+      "destroy_after_battle": true,
+      "changed": true,
+      "tags": [
+        "curse",
+        "bone"
+      ],
+      "icon_kind": "bone",
+      "color": [
+        0.58,
+        0.56,
+        0.5,
+        1.0
+      ],
+      "accent": [
+        0.95,
+        0.92,
+        0.75,
+        1.0
+      ],
+      "effects": []
+    },
+    {
+      "id": "T070",
+      "type": "诅咒",
+      "name": "月圆",
+      "rarity": "普通",
+      "description": "玩家每骰一次骰子，记数+1，玩家每踩到地块一次，记数-2， 当记数=10时，该地块自动销毁",
+      "displayDescription": "玩家每骰一次骰子，记数+1，玩家每踩到地块一次，记数-2， 当记数=10时，该地块自动销毁",
+      "selectable": false,
+      "temporary": true,
+      "destroy_after_battle": true,
+      "changed": true,
+      "tags": [
+        "curse",
+        "moon"
+      ],
+      "icon_kind": "moon",
+      "color": [
+        0.2,
+        0.2,
+        0.4,
+        1.0
+      ],
+      "accent": [
+        0.78,
+        0.88,
+        1.0,
+        1.0
+      ],
+      "counters": {
+        "moon": 0
+      },
+      "eventHooks": [
+        "moon_counter"
+      ],
+      "effects": []
+    },
+    {
+      "id": "T071",
+      "type": "诅咒",
+      "name": "分裂箭",
+      "rarity": "普通",
+      "description": "踩中对玩家造成5点无法被格挡的伤害 ,消耗",
+      "displayDescription": "踩中对玩家造成5点无法被格挡的伤害，踩中后销毁该地块",
+      "selectable": false,
+      "temporary": true,
+      "destroy_after_battle": true,
+      "changed": true,
+      "tags": [
+        "curse",
+        "arrow"
+      ],
+      "icon_kind": "arrow",
+      "color": [
+        0.78,
+        0.2,
+        0.3,
+        1.0
+      ],
+      "accent": [
+        1.0,
+        0.78,
+        0.28,
+        1.0
+      ],
+      "effects": [
+        {
+          "type": "damage_player",
+          "value": 5,
+          "piercing": true
+        },
+        {
+          "type": "destroy_self"
+        }
+      ]
+    },
+    {
+      "id": "T072",
+      "type": "诅咒",
+      "name": "虚空",
+      "rarity": "普通",
+      "description": "无效果",
+      "displayDescription": "无效果",
+      "selectable": false,
+      "temporary": true,
+      "destroy_after_battle": true,
+      "changed": true,
+      "tags": [
+        "curse",
+        "void"
+      ],
+      "icon_kind": "void",
+      "color": [
+        0.28,
+        0.18,
+        0.46,
+        1.0
+      ],
+      "accent": [
+        0.86,
+        0.46,
+        1.0,
+        1.0
+      ],
       "effects": []
     },
     {

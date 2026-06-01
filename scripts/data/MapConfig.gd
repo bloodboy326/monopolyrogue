@@ -123,7 +123,7 @@ static func pick_monster_for_node(config: Dictionary, node: Dictionary, rng: Ran
 		if typeof(entry) == TYPE_DICTIONARY and str(entry.get("pool_id", "")) == pool_id and int(entry.get("weight", 0)) > 0:
 			entries.append(entry)
 	var picked = _weighted_pick(entries, rng)
-	return str(picked.get("monster_id", "slime_boss")) if not picked.is_empty() else "slime_boss"
+	return str(picked.get("monster_id", "slime")) if not picked.is_empty() else "slime"
 
 static func _generate_edges(rows: Array, rng: RandomNumberGenerator) -> Array:
 	var edges: Array = []

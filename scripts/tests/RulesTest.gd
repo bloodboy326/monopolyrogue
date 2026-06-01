@@ -88,11 +88,11 @@ func _test_battle_removed_tile_restores_after_battle() -> void:
 	var first_turn = _roll(run, 2, 1)
 	_assert(_has_event(first_turn.events, "tile_destroyed"), "self destroy emits tile destroyed event")
 	_assert(run.board.size() == 2 and run.board.get_tile(0).id == "T014", "self destroyed tile leaves the board during the battle")
-	_assert(run.board.get_tile(0).durability_remaining() == 6, "charge adds durability once")
+	_assert(run.board.get_tile(0).durability_remaining() == 5, "charge adds durability once")
 	run.cleanup_round_temporary_tiles()
 	_assert(run.board.size() == 3 and run.board.get_tile(0).id == "T032", "battle removed tile restores at its original slot")
 	run.start_battle(2, {"monster_id": "test", "name": "测试怪", "max_hp": 100, "art_key": "slime"})
-	_assert(run.board.get_tile(1).durability_remaining() == 3, "restored next battle resets durability")
+	_assert(run.board.get_tile(1).durability_remaining() == 2, "restored next battle resets durability")
 
 func _test_combo_damage_counts_this_turn() -> void:
 	var run = _new_run(["T006"], 3)
@@ -162,7 +162,7 @@ func _test_monster_block_expires_and_reports_full_block() -> void:
 	_assert(run.monster_block == 0, "monster block expires before the monster acts again")
 
 func _test_new_tile_text_is_configured() -> void:
-	for tile_id in ["T059", "T060", "T061", "T062", "T063", "T064", "T065"]:
+	for tile_id in ["T059", "T060", "T061", "T062", "T063", "T064", "T065", "T066", "T067", "T068", "T069", "T070", "T071", "T072"]:
 		var tile = tile_defs.get(tile_id, {})
 		_assert(not str(tile.get("name", "")).is_empty(), "%s has a configured tile name" % tile_id)
 		_assert(not str(tile.get("displayDescription", "")).is_empty(), "%s has a configured tile description" % tile_id)
@@ -176,46 +176,47 @@ func _test_generated_tile_icons_exist() -> void:
 
 func _test_group_monsters_take_targeted_damage() -> void:
 	var config = MonsterConfig.load_config()
-	var group_def = MonsterConfig.encounter(config, "goblin_group")
+	var group_def = MonsterConfig.encounter(config, "skeleton_pair")
 	var run = RunState.new()
 	run.setup(tile_defs, relic_defs, buff_defs, 13, "T001", 3)
 	run.start_battle(1, group_def)
-	_assert(run.enemy_units.size() == 3, "goblin group expands to three units")
+	_assert(run.enemy_units.size() == 2, "skeleton pair expands to two units")
 	var event = run.apply_monster_damage_to_unit(1, 9, "test", 0, "red")
-	_assert(int(event.get("unitIndex", -1)) == 1 and int(run.enemy_units[1].get("hp", 0)) == 29, "targeted damage applies to selected unit only")
-	_assert(int(run.enemy_units[0].get("hp", 0)) == 38 and int(run.enemy_units[2].get("hp", 0)) == 38, "other group units keep independent hp")
+	_assert(int(event.get("unitIndex", -1)) == 1 and int(run.enemy_units[1].get("hp", 0)) == 33, "targeted damage applies to selected unit only")
+	_assert(int(run.enemy_units[0].get("hp", 0)) == 48, "other group units keep independent hp")
 
 func _test_group_monsters_keep_independent_block() -> void:
 	var config = MonsterConfig.load_config()
-	var group_def = MonsterConfig.encounter(config, "goblin_group")
+	var group_def = MonsterConfig.encounter(config, "guard_pair")
 	var run = RunState.new()
 	run.setup(tile_defs, relic_defs, buff_defs, 14, "T001", 3)
 	run.start_battle(1, group_def)
-	run.add_enemy_block(2, 6)
-	var event = run.apply_monster_damage_to_unit(2, 4, "test", 0, "red")
+	run.add_enemy_block(1, 6)
+	var event = run.apply_monster_damage_to_unit(1, 4, "test", 0, "red")
 	_assert(int(event.get("blocked", 0)) == 4 and int(event.get("amount", 0)) == 0, "target unit block absorbs damage independently")
-	_assert(int(run.enemy_units[2].get("block", 0)) == 2 and int(run.enemy_units[0].get("block", 0)) == 0, "other units do not share block")
+	_assert(int(run.enemy_units[1].get("block", 0)) == 2 and int(run.enemy_units[0].get("block", 0)) == 0, "other units do not share block")
 	run.begin_monster_turn()
-	_assert(int(run.enemy_units[2].get("block", 0)) == 0, "group monster block clears before the next monster action")
+	_assert(int(run.enemy_units[1].get("block", 0)) == 0, "group monster block clears before the next monster action")
 
 func _test_monster_tables_include_new_flow() -> void:
 	var config = MonsterConfig.load_config()
-	_assert(MonsterConfig.battle_count(config) == 5, "test flow has five configured battles")
-	_assert(str(MonsterConfig.battle_for(config, 1).get("monster_id", "")) == "normal_goblin", "battle 1 uses normal goblin")
-	_assert(str(MonsterConfig.battle_for(config, 2).get("monster_id", "")) == "slime_baby", "battle 2 uses slime baby")
-	_assert(str(MonsterConfig.battle_for(config, 3).get("monster_id", "")) == "goblin_group", "battle 3 uses goblin group")
-	_assert(str(MonsterConfig.battle_for(config, 4).get("monster_id", "")) == "headless_knight", "battle 4 uses headless knight")
-	_assert(str(MonsterConfig.battle_for(config, 5).get("monster_id", "")) == "void_eye", "battle 5 uses void eye")
-	_assert(not MonsterConfig.effects_for_intent(config, "clacker_jam").is_empty(), "clacker jam has configured effects")
-	_assert(not MonsterConfig.effects_for_intent(config, "void_lock").is_empty(), "new void eye intent has configured effects")
-	_assert(MonsterConfig.encounter(config, "goblin_group").get("units", []).size() == 3, "goblin group is configured as three enemies")
+	_assert(MonsterConfig.battle_count(config) == 15, "test flow has fifteen configured battles")
+	_assert(str(MonsterConfig.battle_for(config, 1).get("monster_id", "")) == "goblin", "battle 1 uses goblin")
+	_assert(str(MonsterConfig.battle_for(config, 2).get("monster_id", "")) == "slime", "battle 2 uses slime")
+	_assert(str(MonsterConfig.battle_for(config, 7).get("monster_id", "")) == "skeleton_pair", "battle 7 uses skeleton pair")
+	_assert(str(MonsterConfig.battle_for(config, 12).get("monster_id", "")) == "headless_knight", "battle 12 uses headless knight")
+	_assert(str(MonsterConfig.battle_for(config, 14).get("monster_id", "")) == "void_eye", "battle 14 uses void eye")
+	_assert(not MonsterConfig.effects_for_intent(config, "goblin_snot").is_empty(), "goblin snot has configured effects")
+	_assert(not MonsterConfig.effects_for_intent(config, "skeleton_king_bone_spikes").is_empty(), "skeleton king bone spikes has configured effects")
+	_assert(not MonsterConfig.effects_for_intent(config, "dice_demon_fog").is_empty(), "dice demon fog has configured effects")
+	_assert(MonsterConfig.encounter(config, "guard_pair").get("units", []).size() == 2, "guard pair is configured as two enemies")
 
 func _test_new_monster_text_is_configured() -> void:
 	var config = MonsterConfig.load_config()
-	for monster_id in ["normal_goblin", "slime_baby", "goblin_group", "headless_knight", "void_eye"]:
+	for monster_id in ["goblin", "slime", "skeleton_soldier", "murloc", "skeleton_archer", "frost_giant", "skeleton_pair", "guard_pair", "baby_dragon", "skeleton_king", "werewolf", "headless_knight", "medusa", "void_eye", "dice_demon"]:
 		var monster = MonsterConfig.monster(config, monster_id)
 		_assert(not str(monster.get("name", "")).contains("?"), "%s has a readable configured name" % monster_id)
-	for intent_id in ["goblin_stab", "slime_baby_mud", "headless_flame_combo", "void_lock", "void_stun"]:
+	for intent_id in ["goblin_snot", "slime_mud", "headless_flame_combo", "void_eye_void_gaze", "dice_demon_fog"]:
 		var intent = config.get("intents_by_id", {}).get(intent_id, {})
 		_assert(not str(intent.get("name", "")).contains("?") and not str(intent.get("telegraph", "")).contains("?"), "%s has readable configured intent text" % intent_id)
 
@@ -229,6 +230,6 @@ func _test_act_map_tables_include_first_act() -> void:
 	var boss_nodes = act_map.get("nodes", []).filter(func(node): return str(node.get("room_type", "")) == "BOSS")
 	_assert(boss_nodes.size() == 1, "act 1 has one boss node")
 	var monster_id = MapConfig.pick_monster_for_node(map_config, boss_nodes[0], local_rng)
-	_assert(["slime_boss", "void_eye"].has(monster_id), "act 1 boss pool resolves to a configured boss")
+	_assert(["medusa", "void_eye", "dice_demon"].has(monster_id), "act 1 boss pool resolves to a configured boss")
 	var pool_monsters = map_config.get("monster_pool_entries", []).map(func(entry): return str(entry.get("monster_id", "")))
-	_assert(pool_monsters.has("green_louse") and pool_monsters.has("gremlin_nob") and pool_monsters.has("goblin_group"), "act 1 pools include normal, elite, and group monsters")
+	_assert(pool_monsters.has("goblin") and pool_monsters.has("skeleton_king") and pool_monsters.has("guard_pair"), "act 1 pools include normal, elite, and group monsters")

@@ -13,7 +13,11 @@ func plan_roll(run_state, dice_order: Array, dice_rolls: Dictionary) -> Dictiona
 		var roll = int(dice_rolls[dice_id])
 		var path: Array[int] = []
 		for step in range(1, roll + 1):
-			path.append(run_state.board.normalize_index(dice_state.index + step))
+			var tile_index = run_state.board.normalize_index(dice_state.index + step)
+			path.append(tile_index)
+			var tile = run_state.board.get_tile(tile_index)
+			if _tile_stops_movement(tile):
+				break
 		plan["paths"][dice_id] = path
 		plan["landings"][dice_id] = path.back() if not path.is_empty() else dice_state.index
 	return plan
@@ -39,6 +43,8 @@ func resolve_planned_roll(run_state, dice_order: Array, dice_rolls: Dictionary, 
 		dice_state.last_roll = int(dice_rolls[dice_id])
 		dice_state.moved_steps = int(dice_rolls[dice_id])
 		dice_state.record_landing(tile_index, tile.id, "roll")
+		for event in run_state.advance_moon_counters(-2):
+			turn.emit_event(str(event.get("type", "tile_counter_changed")), event)
 		var context = ResolveContext.new().setup(run_state, turn, dice_state, tile, tile_index, dice_state.last_roll, "roll")
 		effect_resolver.resolve_tile(context)
 	var end_context = ResolveContext.new().setup(run_state, turn, null, null, -1, 0, "turn_end")
@@ -69,6 +75,14 @@ func _apply_passive_path_effect(run_state, turn, _dice_id: String, _tile_index: 
 		return
 	var context = ResolveContext.new().setup(run_state, turn, run_state.dice[_dice_id], tile, _tile_index, 0, "passed")
 	effect_resolver.resolve_pass_tile(context)
+
+func _tile_stops_movement(tile) -> bool:
+	if tile == null:
+		return false
+	for effect in tile.definition.get("passEffects", []):
+		if typeof(effect) == TYPE_DICTIONARY and str(effect.get("type", "")) == "stop_movement":
+			return true
+	return false
 
 func _current_landing_index(run_state, landing: Dictionary) -> int:
 	var instance_id = str(landing.get("tileInstanceId", ""))

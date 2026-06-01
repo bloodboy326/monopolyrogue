@@ -17,7 +17,7 @@ static func battle_for(config: Dictionary, battle_number: int) -> Dictionary:
 	for battle in config.get("battles", []):
 		if typeof(battle) == TYPE_DICTIONARY and int(battle.get("battle", 0)) == battle_number:
 			return battle
-	return {"battle": battle_number, "monster_id": "slime_boss", "rolls": 3}
+	return {"battle": battle_number, "monster_id": "slime", "rolls": 3}
 
 static func battle_count(config: Dictionary) -> int:
 	return config.get("battles", []).size()
@@ -49,6 +49,11 @@ static func choose_intent(config: Dictionary, run_state) -> Dictionary:
 	var phase = phase_for(config, run_state.monster_id, run_state.monster_hp, run_state.monster_max_hp, run_state.battle_turn)
 	var pool_id = str(phase.get("intent_pool", ""))
 	run_state.current_phase_id = str(phase.get("phase_id", ""))
+	var sequence_intent = _sequence_intent_id(phase, run_state.battle_turn)
+	if not sequence_intent.is_empty():
+		var sequence_result = config.get("intents_by_id", {}).get(sequence_intent, {}).duplicate(true)
+		sequence_result["effects"] = effects_for_intent(config, sequence_intent)
+		return sequence_result
 	var candidates = _available_pool_entries(config, pool_id, run_state, true)
 	if candidates.is_empty():
 		candidates = _available_pool_entries(config, pool_id, run_state, false)
@@ -70,9 +75,14 @@ static func choose_intent_for_unit(config: Dictionary, run_state, unit_index: in
 	var pool_id = str(phase.get("intent_pool", ""))
 	unit["current_phase_id"] = str(phase.get("phase_id", ""))
 	run_state.enemy_units[unit_index] = unit
-	var candidates = _available_pool_entries_for_values(config, pool_id, int(unit.get("hp", 0)), int(unit.get("max_hp", 1)), run_state.battle_turn, unit.get("intent_history", []), unit.get("intent_last_used", {}), true)
+	var sequence_intent = _sequence_intent_id(phase, run_state.battle_turn)
+	if not sequence_intent.is_empty():
+		var sequence_result = config.get("intents_by_id", {}).get(sequence_intent, {}).duplicate(true)
+		sequence_result["effects"] = effects_for_intent(config, sequence_intent)
+		return sequence_result
+	var candidates = _available_pool_entries_for_values(config, pool_id, int(unit.get("hp", 0)), int(unit.get("max_hp", 1)), run_state.battle_turn, unit.get("intent_history", []), unit.get("intent_last_used", {}), true, run_state)
 	if candidates.is_empty():
-		candidates = _available_pool_entries_for_values(config, pool_id, int(unit.get("hp", 0)), int(unit.get("max_hp", 1)), run_state.battle_turn, unit.get("intent_history", []), unit.get("intent_last_used", {}), false)
+		candidates = _available_pool_entries_for_values(config, pool_id, int(unit.get("hp", 0)), int(unit.get("max_hp", 1)), run_state.battle_turn, unit.get("intent_history", []), unit.get("intent_last_used", {}), false, run_state)
 	if candidates.is_empty():
 		return {}
 	var picked = run_state.rng.pick_weighted(candidates)
@@ -118,24 +128,34 @@ static func _index_tables(config: Dictionary) -> Dictionary:
 	return indexed
 
 static func _available_pool_entries(config: Dictionary, pool_id: String, run_state, strict: bool) -> Array:
-	return _available_pool_entries_for_values(config, pool_id, run_state.monster_hp, run_state.monster_max_hp, run_state.battle_turn, run_state.intent_history, run_state.intent_last_used, strict)
+	return _available_pool_entries_for_values(config, pool_id, run_state.monster_hp, run_state.monster_max_hp, run_state.battle_turn, run_state.intent_history, run_state.intent_last_used, strict, run_state)
 
-static func _available_pool_entries_for_values(config: Dictionary, pool_id: String, hp: int, max_hp: int, turn: int, history: Array, last_used: Dictionary, strict: bool) -> Array:
+static func _available_pool_entries_for_values(config: Dictionary, pool_id: String, hp: int, max_hp: int, turn: int, history: Array, last_used: Dictionary, strict: bool, run_state = null) -> Array:
 	var result = []
 	for entry in config.get("intent_pools", []):
 		if typeof(entry) != TYPE_DICTIONARY or str(entry.get("pool_id", "")) != pool_id:
 			continue
 		if int(entry.get("min_turn", 1)) > turn:
 			continue
-		if not _condition_met(str(entry.get("require", "")), hp, max_hp, turn):
+		if not _condition_met_with_state(str(entry.get("require", "")), hp, max_hp, turn, run_state):
 			continue
 		var forbid = str(entry.get("forbid", ""))
-		if not forbid.is_empty() and _condition_met(forbid, hp, max_hp, turn):
+		if not forbid.is_empty() and _condition_met_with_state(forbid, hp, max_hp, turn, run_state):
 			continue
 		if strict and _is_blocked_by_history_values(entry, history, last_used, turn):
 			continue
 		result.append(entry)
 	return result
+
+static func _sequence_intent_id(phase: Dictionary, turn: int) -> String:
+	var sequence: Array = phase.get("sequence", [])
+	if sequence.is_empty():
+		return ""
+	var start_turn = int(phase.get("sequence_start_turn", 1))
+	if turn < start_turn:
+		return ""
+	var index = (turn - start_turn) % sequence.size()
+	return str(sequence[index])
 
 static func _is_blocked_by_history(entry: Dictionary, run_state) -> bool:
 	return _is_blocked_by_history_values(entry, run_state.intent_history, run_state.intent_last_used, run_state.battle_turn)
@@ -149,6 +169,9 @@ static func _is_blocked_by_history_values(entry: Dictionary, history: Array, las
 	var max_repeat = int(entry.get("max_repeat", 99))
 	if max_repeat < 99 and _tail_repeat_count(history, intent_id) >= max_repeat:
 		return true
+	var max_uses = int(entry.get("max_uses", 0))
+	if max_uses > 0 and _history_count(history, intent_id) >= max_uses:
+		return true
 	return false
 
 static func _tail_repeat_count(history: Array, intent_id: String) -> int:
@@ -158,6 +181,48 @@ static func _tail_repeat_count(history: Array, intent_id: String) -> int:
 			break
 		count += 1
 	return count
+
+static func _history_count(history: Array, intent_id: String) -> int:
+	var count = 0
+	for item in history:
+		if str(item) == intent_id:
+			count += 1
+	return count
+
+static func _condition_met_with_state(condition: String, hp: int, max_hp: int, turn: int, run_state) -> bool:
+	if _condition_met(condition, hp, max_hp, turn):
+		return true
+	if condition.begins_with("TURN_MOD:"):
+		var rest = condition.substr("TURN_MOD:".length())
+		var parts = rest.split("=")
+		if parts.size() != 2:
+			return false
+		var divisor = max(1, int(parts[0]))
+		return turn % divisor == int(parts[1])
+	if condition.begins_with("TILE_COUNT:"):
+		if run_state == null:
+			return false
+		var rest = condition.substr("TILE_COUNT:".length())
+		var ops = [">=", "<=", "==", ">", "<"]
+		for op in ops:
+			var op_index = rest.find(op)
+			if op_index == -1:
+				continue
+			var tile_id = rest.substr(0, op_index)
+			var threshold = int(rest.substr(op_index + op.length()))
+			var count = run_state.count_tiles_by_id(tile_id)
+			match op:
+				">=":
+					return count >= threshold
+				"<=":
+					return count <= threshold
+				"==":
+					return count == threshold
+				">":
+					return count > threshold
+				"<":
+					return count < threshold
+	return false
 
 static func _condition_met(condition: String, hp: int, max_hp: int, turn: int) -> bool:
 	if condition.is_empty() or condition == "START":

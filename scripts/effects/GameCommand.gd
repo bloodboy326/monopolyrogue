@@ -9,6 +9,9 @@ static func damage_player(amount: int, source: String = "", piercing: bool = fal
 static func add_player_block(amount: int, source: String = "") -> Dictionary:
 	return {"type": "AddPlayerBlock", "amount": amount, "source": source}
 
+static func heal_player(amount: int, source: String = "") -> Dictionary:
+	return {"type": "HealPlayer", "amount": amount, "source": source}
+
 static func add_player_strength(amount: int, source: String = "") -> Dictionary:
 	return {"type": "AddPlayerStrength", "amount": amount, "source": source}
 

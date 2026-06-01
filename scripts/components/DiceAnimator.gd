@@ -13,6 +13,7 @@ var roll_target = 1
 var face_elapsed = 0.0
 var roll_origin = Vector2.ZERO
 var selectable = false
+var concealed = false
 
 func configure(new_color: Color, start_value: int = 1) -> void:
 	dice_color = new_color
@@ -33,6 +34,10 @@ func _ready() -> void:
 func set_selectable(value_in: bool) -> void:
 	selectable = value_in
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if selectable else Control.CURSOR_ARROW
+	queue_redraw()
+
+func set_concealed(value_in: bool) -> void:
+	concealed = value_in
 	queue_redraw()
 
 func _gui_input(event: InputEvent) -> void:
@@ -146,7 +151,10 @@ func _draw() -> void:
 	_draw_rounded_box(rect.grow(-5.0), radius * 0.75, dice_color)
 	draw_line(Vector2(size.x * 0.20, size.y * 0.18), Vector2(size.x * 0.66, size.y * 0.18), Color(1.0, 1.0, 1.0, 0.24 + (0.16 if rolling else 0.0)), 4.0)
 	draw_line(Vector2(size.x * 0.18, size.y * 0.76), Vector2(size.x * 0.70, size.y * 0.76), dice_color.lightened(0.32), 4.0)
-	_draw_pips()
+	if concealed and not rolling:
+		_draw_unknown_face()
+	else:
+		_draw_pips()
 	if selectable and not rolling:
 		var glow_color = Color(1.0, 0.92, 0.25, 0.92)
 		draw_arc(size * 0.5, min_side * 0.48, 0.0, TAU, 18, glow_color, 5.0)
@@ -169,6 +177,14 @@ func _draw_pips() -> void:
 	for point in points[value]:
 		draw_circle(point * size, min(size.x, size.y) * 0.070, Color(0.0, 0.0, 0.0, 1.0))
 		draw_circle(point * size - Vector2(1.5, 1.5), min(size.x, size.y) * 0.030, Color.WHITE)
+
+func _draw_unknown_face() -> void:
+	var font = ThemeDB.fallback_font
+	var font_size = int(min(size.x, size.y) * 0.58)
+	var text_size = font.get_string_size("?", HORIZONTAL_ALIGNMENT_CENTER, -1, font_size)
+	var position = size * 0.5 - text_size * 0.5 + Vector2(0, text_size.y * 0.72)
+	draw_string(font, position + Vector2(3, 4), "?", HORIZONTAL_ALIGNMENT_CENTER, -1, font_size, Color(0, 0, 0, 0.85))
+	draw_string(font, position, "?", HORIZONTAL_ALIGNMENT_CENTER, -1, font_size, Color.WHITE)
 
 func _draw_rounded_box(rect: Rect2, radius: float, color: Color) -> void:
 	var box = StyleBoxFlat.new()

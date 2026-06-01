@@ -25,6 +25,7 @@ SHEETS = [
     SheetSpec("tile_icons_t041_t050_sheet.png", [f"T{i:03d}" for i in range(41, 51)]),
     SheetSpec("tile_icons_t051_t060_sheet.png", [f"T{i:03d}" for i in range(51, 61)]),
     SheetSpec("tile_icons_t061_t901_sheet.png", [f"T{i:03d}" for i in range(61, 66)] + ["T901"]),
+    SheetSpec("tile_icons_t066_t072_sheet.png", [f"T{i:03d}" for i in range(66, 73)]),
 ]
 
 

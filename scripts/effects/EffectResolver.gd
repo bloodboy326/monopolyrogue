@@ -59,6 +59,8 @@ func _execute_command(command: Dictionary, context) -> Array:
 			_damage_player(command, context)
 		"AddPlayerBlock":
 			_add_player_block(command, context)
+		"HealPlayer":
+			_heal_player(command, context)
 		"AddPlayerStrength":
 			_add_player_strength(command, context)
 		"AddPlayerDexterity":
@@ -164,6 +166,12 @@ func _add_player_block(command: Dictionary, context) -> void:
 	var amount = max(0, int(command.get("amount", 0)) + context.run_state.player_dexterity)
 	context.run_state.player_block += amount
 	context.turn_context.add_block(amount, str(command.get("source", context.source_id)), context.tile_index, context.dice.id if context.dice != null else "")
+
+func _heal_player(command: Dictionary, context) -> void:
+	var event = context.run_state.apply_player_heal(max(0, int(command.get("amount", 0))))
+	event["sourceId"] = str(command.get("source", context.source_id))
+	event["sourceIndex"] = context.tile_index
+	context.turn_context.emit_event("player_healed", event)
 
 func _damage_player(command: Dictionary, context) -> void:
 	var raw_amount = max(0, int(command.get("amount", 0)))

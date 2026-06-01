@@ -10,9 +10,21 @@ const HIT = Color(0.80, 0.92, 0.34, 1.0)
 const DEAD = Color(0.34, 0.38, 0.36, 1.0)
 const WHITE = Color(0.96, 0.98, 0.90, 1.0)
 const SPRITE_DRAW_SCALE = {
-	"louse": 1.28,
-	"slime": 1.18,
-	"slime_small": 0.84
+	"goblin": 1.14,
+	"slime": 1.22,
+	"skeleton_soldier": 1.14,
+	"murloc": 1.14,
+	"skeleton_archer": 1.14,
+	"guard_a": 1.14,
+	"guard_b": 1.14,
+	"frost_giant": 1.18,
+	"baby_dragon": 1.15,
+	"skeleton_king": 1.16,
+	"werewolf": 1.16,
+	"headless_knight": 1.16,
+	"void_eye": 1.10,
+	"medusa": 1.12,
+	"dice_demon": 1.12
 }
 
 var state := "normal"
@@ -75,20 +87,12 @@ func _draw() -> void:
 		"dead":
 			_draw_dead(rect)
 		_:
-			match art_key:
-				"jaw_worm":
-					_draw_jaw_worm(rect)
-				"clacker":
-					_draw_clacker(rect)
-				"louse":
-					_draw_louse(rect)
-				_:
-					if state == "attack":
-						_draw_attack(rect)
-					elif state == "hit":
-						_draw_hit(rect)
-					else:
-						_draw_normal(rect)
+			if state == "attack":
+				_draw_attack(rect)
+			elif state == "hit":
+				_draw_hit(rect)
+			else:
+				_draw_normal(rect)
 
 func _draw_normal(rect: Rect2) -> void:
 	var bob = sin(wobble * 3.2) * rect.size.y * 0.025
@@ -119,48 +123,6 @@ func _draw_dead(rect: Rect2) -> void:
 	_line(rect, Vector2(0.57, 0.60), Vector2(0.65, 0.68), INK, 0.026)
 	_line(rect, Vector2(0.65, 0.60), Vector2(0.57, 0.68), INK, 0.026)
 
-func _draw_jaw_worm(rect: Rect2) -> void:
-	var bob = sin(wobble * 2.6) * rect.size.y * 0.018
-	var fill = HIT if state == "hit" else WORM
-	if state == "attack":
-		fill = WORM.lightened(0.12)
-	_poly(rect, [Vector2(0.18, 0.64), Vector2(0.26, 0.36), Vector2(0.46, 0.24), Vector2(0.72, 0.32), Vector2(0.84, 0.58), Vector2(0.72, 0.78), Vector2(0.38, 0.78)], INK)
-	_poly(rect, [Vector2(0.22, 0.62 + bob / rect.size.y), Vector2(0.30, 0.40), Vector2(0.47, 0.30), Vector2(0.68, 0.36), Vector2(0.78, 0.58), Vector2(0.68, 0.70), Vector2(0.38, 0.70)], fill)
-	_line(rect, Vector2(0.35, 0.32), Vector2(0.28, 0.18), INK, 0.034)
-	_line(rect, Vector2(0.63, 0.35), Vector2(0.76, 0.20), INK, 0.034)
-	draw_circle(_pt(rect, Vector2(0.43, 0.47)), rect.size.x * 0.032, INK)
-	draw_circle(_pt(rect, Vector2(0.62, 0.49)), rect.size.x * 0.032, INK)
-	_poly(rect, [Vector2(0.44, 0.58), Vector2(0.54, 0.67), Vector2(0.66, 0.58), Vector2(0.56, 0.61)], Color(0.96, 0.92, 0.78, 1.0))
-
-func _draw_clacker(rect: Rect2) -> void:
-	var fill = HIT if state == "hit" else SHELL
-	if state == "attack":
-		fill = SHELL.lightened(0.14)
-	_ellipse(Rect2(Vector2(rect.size.x * 0.24, rect.size.y * 0.28), Vector2(rect.size.x * 0.52, rect.size.y * 0.42)).grow(8), INK)
-	_ellipse(Rect2(Vector2(rect.size.x * 0.24, rect.size.y * 0.28), Vector2(rect.size.x * 0.52, rect.size.y * 0.42)), fill)
-	for x in [0.28, 0.42, 0.56, 0.70]:
-		_line(rect, Vector2(x, 0.68), Vector2(x - 0.08, 0.82), INK, 0.030)
-	_line(rect, Vector2(0.27, 0.44), Vector2(0.10, 0.34), INK, 0.042)
-	_line(rect, Vector2(0.73, 0.44), Vector2(0.90, 0.34), INK, 0.042)
-	draw_circle(_pt(rect, Vector2(0.42, 0.44)), rect.size.x * 0.028, INK)
-	draw_circle(_pt(rect, Vector2(0.58, 0.44)), rect.size.x * 0.028, INK)
-	_line(rect, Vector2(0.42, 0.58), Vector2(0.58, 0.58), INK, 0.028)
-
-func _draw_louse(rect: Rect2) -> void:
-	var fill = HIT if state == "hit" else LOUSE
-	if state == "attack":
-		fill = LOUSE.lightened(0.10)
-	_ellipse(Rect2(Vector2(rect.size.x * 0.28, rect.size.y * 0.24), Vector2(rect.size.x * 0.44, rect.size.y * 0.52)).grow(8), INK)
-	_ellipse(Rect2(Vector2(rect.size.x * 0.28, rect.size.y * 0.24), Vector2(rect.size.x * 0.44, rect.size.y * 0.52)), fill)
-	for i in range(6):
-		var y = 0.34 + i * 0.07
-		_line(rect, Vector2(0.31, y), Vector2(0.16, y - 0.04), INK, 0.022)
-		_line(rect, Vector2(0.69, y), Vector2(0.84, y - 0.04), INK, 0.022)
-	_line(rect, Vector2(0.38, 0.28), Vector2(0.30, 0.15), INK, 0.024)
-	_line(rect, Vector2(0.62, 0.28), Vector2(0.70, 0.15), INK, 0.024)
-	draw_circle(_pt(rect, Vector2(0.43, 0.44)), rect.size.x * 0.027, INK)
-	draw_circle(_pt(rect, Vector2(0.57, 0.44)), rect.size.x * 0.027, INK)
-
 func _load_sprite_textures() -> void:
 	sprite_textures.clear()
 	var asset_key = _sprite_asset_key()
@@ -170,17 +132,7 @@ func _load_sprite_textures() -> void:
 			sprite_textures[key] = load(path)
 
 func _sprite_asset_key() -> String:
-	match art_key:
-		"louse":
-			return "red_louse"
-		"slime_small":
-			return "slime_boss"
-		"jaw_worm":
-			return "jaw_worm"
-		"clacker":
-			return "clacker"
-		_:
-			return art_key
+	return art_key
 
 func _sprite_state_key() -> String:
 	match state:

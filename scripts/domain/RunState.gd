@@ -42,6 +42,10 @@ var roll_start_bonus: int = 0
 var all_pawns_next_rolls: int = 0
 var next_turn_locked_dice_count: int = 0
 var locked_dice: Array[String] = []
+var dice_range_min: int = 1
+var dice_range_max: int = 6
+var dice_range_turns_left: int = 0
+var dice_fog_turns_left: int = 0
 var turn_counters: Dictionary = {}
 var battle_counters: Dictionary = {}
 
@@ -76,6 +80,14 @@ func setup(p_tile_definitions: Dictionary, p_relic_definitions: Dictionary, p_bu
 	turn_rolls_left = 3
 	turn_rolls_total = 3
 	next_turn_roll_bonus = 0
+	roll_start_bonus = 0
+	all_pawns_next_rolls = 0
+	next_turn_locked_dice_count = 0
+	locked_dice.clear()
+	dice_range_min = 1
+	dice_range_max = 6
+	dice_range_turns_left = 0
+	dice_fog_turns_left = 0
 	turn_counters.clear()
 	battle_counters.clear()
 	relics.clear()
@@ -120,6 +132,10 @@ func start_battle(new_battle_number: int, monster_def: Dictionary) -> void:
 	all_pawns_next_rolls = 0
 	next_turn_locked_dice_count = 0
 	locked_dice.clear()
+	dice_range_min = 1
+	dice_range_max = 6
+	dice_range_turns_left = 0
+	dice_fog_turns_left = 0
 	temporary_tile_instances.clear()
 	battle_reverts.clear()
 	battle_removed_tiles.clear()
@@ -139,13 +155,14 @@ func _setup_enemy_units(monster_def: Dictionary) -> void:
 		if typeof(raw_unit) != TYPE_DICTIONARY:
 			continue
 		var unit := {
-			"monster_id": str(raw_unit.get("monster_id", monster_def.get("monster_id", "slime_boss"))),
+			"monster_id": str(raw_unit.get("monster_id", monster_def.get("monster_id", "slime"))),
 			"name": str(raw_unit.get("name", monster_def.get("name", "怪物"))),
 			"max_hp": int(raw_unit.get("max_hp", monster_def.get("max_hp", 80))),
 			"hp": int(raw_unit.get("hp", raw_unit.get("max_hp", monster_def.get("max_hp", 80)))),
 			"block": 0,
 			"strength": 0,
 			"art_key": str(raw_unit.get("art_key", monster_def.get("art_key", "slime"))),
+			"passive": raw_unit.get("passive", monster_def.get("passive", {})).duplicate(true),
 			"start_phase": str(raw_unit.get("start_phase", monster_def.get("start_phase", ""))),
 			"current_phase_id": str(raw_unit.get("start_phase", monster_def.get("start_phase", ""))),
 			"current_intent": {},
@@ -156,13 +173,14 @@ func _setup_enemy_units(monster_def: Dictionary) -> void:
 		enemy_units.append(unit)
 	if enemy_units.is_empty():
 		enemy_units.append({
-			"monster_id": "slime_boss",
+			"monster_id": "slime",
 			"name": "怪物",
 			"max_hp": 80,
 			"hp": 80,
 			"block": 0,
 			"strength": 0,
 			"art_key": "slime",
+			"passive": {},
 			"start_phase": "",
 			"current_phase_id": "",
 			"current_intent": {},
@@ -216,6 +234,31 @@ func needs_damage_target_choice() -> bool:
 
 func is_dice_locked(dice_id: String) -> bool:
 	return locked_dice.has(dice_id)
+
+func is_dice_fogged() -> bool:
+	return dice_fog_turns_left > 0
+
+func roll_die_value() -> int:
+	return rng.randi_range(dice_range_min, dice_range_max)
+
+func set_forced_roll_range(min_value: int, max_value: int, turns: int) -> Dictionary:
+	dice_range_min = clamp(min_value, 1, 6)
+	dice_range_max = clamp(max_value, dice_range_min, 6)
+	dice_range_turns_left = max(dice_range_turns_left, max(0, turns))
+	return {"type": "dice_range_changed", "min": dice_range_min, "max": dice_range_max, "turns": dice_range_turns_left}
+
+func set_dice_fog(turns: int) -> Dictionary:
+	dice_fog_turns_left = max(dice_fog_turns_left, max(0, turns))
+	return {"type": "dice_fog_changed", "turns": dice_fog_turns_left}
+
+func end_player_turn_statuses() -> void:
+	if dice_range_turns_left > 0:
+		dice_range_turns_left -= 1
+		if dice_range_turns_left <= 0:
+			dice_range_min = 1
+			dice_range_max = 6
+	if dice_fog_turns_left > 0:
+		dice_fog_turns_left -= 1
 
 func alive_enemy_indices() -> Array[int]:
 	var result: Array[int] = []
@@ -587,6 +630,19 @@ func apply_monster_damage_to_unit(unit_index: int, raw_amount: int, source_id: S
 	var unit: Dictionary = enemy_units[index]
 	if enemy_units.size() == 1 and int(unit.get("block", 0)) == 0 and monster_block > 0:
 		unit["block"] = monster_block
+	if bool(unit.get("current_intent", {}).get("immune", false)):
+		return {
+			"type": "monster_damaged",
+			"amount": 0,
+			"blocked": max(0, raw_amount),
+			"raw": raw_amount,
+			"unitIndex": index,
+			"unitName": str(unit.get("name", "")),
+			"sourceId": source_id,
+			"sourceIndex": source_index,
+			"diceId": dice_id,
+			"immune": true
+		}
 	var blocked = min(int(unit.get("block", 0)), max(0, raw_amount))
 	unit["block"] = int(unit.get("block", 0)) - blocked
 	var amount = max(0, raw_amount - blocked)
@@ -594,7 +650,7 @@ func apply_monster_damage_to_unit(unit_index: int, raw_amount: int, source_id: S
 	enemy_units[index] = unit
 	selected_enemy_index = index if int(unit.get("hp", 0)) > 0 else first_alive_enemy_index()
 	_sync_monster_alias()
-	return {
+	var event = {
 		"type": "monster_damaged",
 		"amount": amount,
 		"blocked": blocked,
@@ -605,6 +661,11 @@ func apply_monster_damage_to_unit(unit_index: int, raw_amount: int, source_id: S
 		"sourceIndex": source_index,
 		"diceId": dice_id
 	}
+	var passive: Dictionary = unit.get("passive", {})
+	if amount > 0 and passive.has("on_damaged_add_tile"):
+		event["passiveTileId"] = str(passive.get("on_damaged_add_tile", "T000"))
+		event["passiveTileCount"] = int(passive.get("count", 1))
+	return event
 
 func add_enemy_block(unit_index: int, amount: int) -> Dictionary:
 	if unit_index < 0 or unit_index >= enemy_units.size():
@@ -626,6 +687,18 @@ func add_enemy_strength(unit_index: int, amount: int) -> Dictionary:
 	_sync_monster_alias()
 	return {"type": "monster_strength_added", "amount": amount, "unitIndex": unit_index, "unitName": str(unit.get("name", "")), "strength": int(unit.get("strength", 0))}
 
+func add_enemy_heal(unit_index: int, amount: int) -> Dictionary:
+	if unit_index < 0 or unit_index >= enemy_units.size():
+		unit_index = first_alive_enemy_index()
+	var unit: Dictionary = enemy_units[unit_index]
+	var old_hp = int(unit.get("hp", 0))
+	var max_hp = int(unit.get("max_hp", 1))
+	unit["hp"] = min(max_hp, old_hp + max(0, amount))
+	enemy_units[unit_index] = unit
+	selected_enemy_index = unit_index
+	_sync_monster_alias()
+	return {"type": "monster_healed", "amount": int(unit.get("hp", 0)) - old_hp, "unitIndex": unit_index, "unitName": str(unit.get("name", "")), "hp": int(unit.get("hp", 0)), "maxHp": max_hp}
+
 func apply_player_damage(amount: int) -> Dictionary:
 	var blocked = min(player_block, max(0, amount))
 	player_block -= blocked
@@ -634,6 +707,11 @@ func apply_player_damage(amount: int) -> Dictionary:
 	if damage > 0:
 		increment_counter("battle", "player_damage_taken", 1)
 	return {"amount": damage, "blocked": blocked, "raw": amount, "playerHp": player_hp, "playerBlock": player_block}
+
+func apply_player_heal(amount: int) -> Dictionary:
+	var old_hp = player_hp
+	player_hp = min(player_max_hp, player_hp + max(0, amount))
+	return {"type": "player_healed", "amount": player_hp - old_hp, "playerHp": player_hp, "playerMaxHp": player_max_hp}
 
 func record_current_intent_used() -> void:
 	var intent_id = str(current_intent.get("intent_id", ""))
@@ -666,7 +744,7 @@ func pick_corruptible_tile_index() -> int:
 		var tile = board.get_tile(i)
 		if tile == null:
 			continue
-		if tile.id in ["T000", "T010", "T901"]:
+		if tile.id in ["T000", "T010", "T901"] or tile.has_tag("curse"):
 			continue
 		if bool(tile.runtime_flags.get("temporary_tile", false)):
 			continue
@@ -674,6 +752,31 @@ func pick_corruptible_tile_index() -> int:
 	if candidates.is_empty():
 		return -1
 	return int(rng.pick_array(candidates))
+
+func count_tiles_by_id(tile_id: String) -> int:
+	var count = 0
+	for tile in board.tiles:
+		if tile != null and tile.id == tile_id:
+			count += 1
+	return count
+
+func advance_moon_counters(delta: int) -> Array[Dictionary]:
+	var events: Array[Dictionary] = []
+	for i in range(board.size() - 1, -1, -1):
+		var tile = board.get_tile(i)
+		if tile == null or tile.id != "T070":
+			continue
+		var value = int(tile.counters.get("moon", 0)) + delta
+		tile.counters["moon"] = max(0, value)
+		events.append({"type": "tile_counter_changed", "tileIndex": i, "tileId": tile.id, "tileInstanceId": tile.instance_id, "counterKey": "moon", "value": int(tile.counters["moon"])})
+		if int(tile.counters["moon"]) >= 10:
+			var removed = board.remove_tile(i)
+			if removed == null:
+				continue
+			forget_temporary_tile(removed.instance_id)
+			reindex_dice_after_remove(i)
+			events.append({"type": "tile_destroyed", "tileIndex": i, "tileId": removed.id, "tileInstanceId": removed.instance_id, "mode": "moonCounter"})
+	return events
 
 func _weighted_tile_pool() -> Array:
 	var result = []
