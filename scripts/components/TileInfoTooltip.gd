@@ -52,6 +52,17 @@ func show_tile(tile_data: Dictionary, anchor_global_pos: Vector2, viewport_rect:
 	rarity_label.text = rarity
 	rarity_label.add_theme_color_override("font_color", rarity_colors.get(rarity, Color.WHITE))
 	description_label.text = RichDescription.to_bbcode(str(tile_data.get("tile_describe", tile_data.get("description", ""))))
+	_place(anchor_global_pos, viewport_rect)
+
+func show_relic(relic_data: Dictionary, anchor_global_pos: Vector2, viewport_rect: Rect2) -> void:
+	title_label.text = str(relic_data.get("name", relic_data.get("id", "")))
+	var rarity = str(relic_data.get("rarity", "遗物"))
+	rarity_label.text = rarity
+	rarity_label.add_theme_color_override("font_color", rarity_colors.get(rarity, Color(1.0, 0.82, 0.24)))
+	description_label.text = RichDescription.to_bbcode(str(relic_data.get("displayDescription", relic_data.get("description", ""))))
+	_place(anchor_global_pos, viewport_rect)
+
+func _place(anchor_global_pos: Vector2, viewport_rect: Rect2) -> void:
 	var desc_len = description_label.get_parsed_text().length()
 	var estimated_lines = max(2, int(ceil(float(desc_len) / 14.0)))
 	custom_minimum_size = Vector2(276, 88 + estimated_lines * 22)

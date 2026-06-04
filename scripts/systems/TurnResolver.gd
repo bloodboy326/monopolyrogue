@@ -7,19 +7,29 @@ const EffectResolver = preload("res://scripts/effects/EffectResolver.gd")
 var effect_resolver = EffectResolver.new()
 
 func plan_roll(run_state, dice_order: Array, dice_rolls: Dictionary) -> Dictionary:
-	var plan = {"landings": {}, "paths": {}}
+	var plan = {"landings": {}, "landingInstances": {}, "paths": {}, "pathSteps": {}}
 	for dice_id in dice_order:
 		var dice_state = run_state.dice[dice_id]
 		var roll = int(dice_rolls[dice_id])
 		var path: Array[int] = []
+		var path_steps: Array[Dictionary] = []
 		for step in range(1, roll + 1):
 			var tile_index = run_state.board.normalize_index(dice_state.index + step)
 			path.append(tile_index)
 			var tile = run_state.board.get_tile(tile_index)
+			path_steps.append({
+				"tileIndex": tile_index,
+				"tileId": tile.id if tile != null else "",
+				"tileInstanceId": tile.instance_id if tile != null else ""
+			})
 			if _tile_stops_movement(tile):
 				break
 		plan["paths"][dice_id] = path
-		plan["landings"][dice_id] = path.back() if not path.is_empty() else dice_state.index
+		plan["pathSteps"][dice_id] = path_steps
+		var landing_index = path.back() if not path.is_empty() else dice_state.index
+		plan["landings"][dice_id] = landing_index
+		var landing_tile = run_state.board.get_tile(landing_index)
+		plan["landingInstances"][dice_id] = landing_tile.instance_id if landing_tile != null else ""
 	return plan
 
 func resolve_roll(run_state, dice_order: Array, dice_rolls: Dictionary) -> RefCounted:
@@ -54,26 +64,40 @@ func resolve_planned_roll(run_state, dice_order: Array, dice_rolls: Dictionary, 
 
 func _record_landings(run_state, turn, dice_order: Array, dice_rolls: Dictionary, plan: Dictionary) -> void:
 	for dice_id in dice_order:
-		var tile_index = int(plan["landings"][dice_id])
-		var tile = run_state.board.get_tile(tile_index)
+		var tile_index = _planned_tile_index(run_state, plan, dice_id)
+		var tile = run_state.board.get_tile(tile_index) if tile_index >= 0 else null
+		var landing_instance_id = str(plan.get("landingInstances", {}).get(dice_id, ""))
+		if not landing_instance_id.is_empty() and (tile == null or tile.instance_id != landing_instance_id):
+			tile = null
+			tile_index = -1
 		var landing = {"diceId": dice_id, "tileIndex": tile_index, "tile": tile, "tileInstanceId": tile.instance_id if tile != null else "", "diceValue": int(dice_rolls[dice_id])}
 		turn.landed_tiles.append(landing)
 		turn.landed_by_dice[dice_id] = landing
-		turn.emit_event("dice_landed", {"diceId": dice_id, "tileIndex": tile_index, "tileId": tile.id})
+		if tile != null:
+			turn.emit_event("dice_landed", {"diceId": dice_id, "tileIndex": tile_index, "tileId": tile.id})
+		else:
+			turn.emit_event("dice_landing_skipped", {"diceId": dice_id, "reason": "tile_removed_before_landing"})
 
 func _record_paths(run_state, turn, dice_order: Array, plan: Dictionary) -> void:
 	for dice_id in dice_order:
-		for tile_index in plan["paths"].get(dice_id, []):
-			var tile = run_state.board.get_tile(tile_index)
-			turn.emit_event("dice_passed_tile", {"diceId": dice_id, "tileIndex": tile_index, "tileId": tile.id})
-			_apply_passive_path_effect(run_state, turn, dice_id, tile_index, tile)
+		var steps: Array = plan.get("pathSteps", {}).get(dice_id, [])
+		var landing_instance_id = str(plan.get("landingInstances", {}).get(dice_id, ""))
+		for step in steps:
+			var tile_index = _current_step_index(run_state, step)
+			var tile = run_state.board.get_tile(tile_index) if tile_index >= 0 else null
+			if tile != null and not str(step.get("tileInstanceId", "")).is_empty() and tile.instance_id != str(step.get("tileInstanceId", "")):
+				tile = null
+				tile_index = -1
+			var is_landing = not landing_instance_id.is_empty() and str(step.get("tileInstanceId", "")) == landing_instance_id
+			turn.emit_event("dice_passed_tile", {"diceId": dice_id, "tileIndex": tile_index, "tileId": tile.id if tile != null else ""})
+			_apply_passive_path_effect(run_state, turn, dice_id, tile_index, tile, is_landing)
 
-func _apply_passive_path_effect(run_state, turn, _dice_id: String, _tile_index: int, tile) -> void:
+func _apply_passive_path_effect(run_state, turn, _dice_id: String, _tile_index: int, tile, is_landing: bool) -> void:
 	if tile == null:
 		return
 	if tile.definition.get("passEffects", []).is_empty():
 		return
-	var context = ResolveContext.new().setup(run_state, turn, run_state.dice[_dice_id], tile, _tile_index, 0, "passed")
+	var context = ResolveContext.new().setup(run_state, turn, run_state.dice[_dice_id], tile, _tile_index, 0, "passed", {"isLanding": is_landing})
 	effect_resolver.resolve_pass_tile(context)
 
 func _tile_stops_movement(tile) -> bool:
@@ -91,3 +115,19 @@ func _current_landing_index(run_state, landing: Dictionary) -> int:
 	if run_state.board.is_empty():
 		return -1
 	return run_state.board.normalize_index(int(landing.get("tileIndex", 0)))
+
+func _planned_tile_index(run_state, plan: Dictionary, dice_id: String) -> int:
+	var instance_id = str(plan.get("landingInstances", {}).get(dice_id, ""))
+	if not instance_id.is_empty():
+		return run_state.board.find_tile_index_by_instance(instance_id)
+	if run_state.board.is_empty():
+		return -1
+	return run_state.board.normalize_index(int(plan["landings"].get(dice_id, 0)))
+
+func _current_step_index(run_state, step: Dictionary) -> int:
+	var instance_id = str(step.get("tileInstanceId", ""))
+	if not instance_id.is_empty():
+		return run_state.board.find_tile_index_by_instance(instance_id)
+	if run_state.board.is_empty():
+		return -1
+	return run_state.board.normalize_index(int(step.get("tileIndex", 0)))

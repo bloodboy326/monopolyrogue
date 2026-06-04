@@ -7,7 +7,9 @@ static func resolve_tile(context) -> Array:
 		return []
 	var effects = context.tile.definition.get("weakEffects", []) if context.tile.is_weak() else context.tile.definition.get("effects", [])
 	var commands = _commands_from_effects(effects, context)
-	if not context.tile.is_weak() and context.tile.max_durability() > 0:
+	if context.tile.has_tile_buff("converge") or bool(context.tile.runtime_flags.get("converge", false)):
+		commands.push_front(GameCommand.add_rolls(1, context.tile.id))
+	if not context.tile.is_weak() and context.tile.max_durability() > 0 and context.run_state.get_counter("turn", "no_durability_cost_turn") <= 0:
 		commands.append(GameCommand.consume_tile_durability(context.tile_index, context.tile.instance_id, context.source_id))
 	return commands
 
@@ -39,8 +41,12 @@ static func _command_for_effect(effect: Dictionary, context) -> Array:
 	match str(effect.get("type", "")):
 		"damage":
 			return [GameCommand.damage_monster(effect.get("value", effect.get("amount", 0)), source_id, bool(effect.get("attack", true)))]
+		"damage_all":
+			return [GameCommand.damage_all_monsters(effect.get("value", effect.get("amount", 0)), source_id, bool(effect.get("attack", true)))]
 		"damage_player":
 			return [GameCommand.damage_player(_resolve_amount(effect.get("value", effect.get("amount", 0)), context), source_id, bool(effect.get("piercing", false)))]
+		"add_coins":
+			return [GameCommand.add_coins(_resolve_amount(effect.get("value", effect.get("amount", 0)), context), source_id)]
 		"block":
 			return [GameCommand.add_player_block(_resolve_amount(effect.get("value", effect.get("amount", 0)), context), source_id)]
 		"heal_player":
@@ -72,6 +78,12 @@ static func _command_for_effect(effect: Dictionary, context) -> Array:
 			return [GameCommand.set_destroy_next_tile(source_id)]
 		"add_durability_all":
 			return [GameCommand.add_durability_all(_resolve_amount(effect.get("value", effect.get("amount", 0)), context), source_id)]
+		"add_converge_to_tiles":
+			return [GameCommand.add_converge_to_tiles(_resolve_amount(effect.get("count", effect.get("value", 1)), context), source_id)]
+		"set_tile_weak":
+			if context.tile == null:
+				return []
+			return [GameCommand.set_tile_weak(context.tile_index, context.tile.instance_id, source_id)]
 		"add_turn_start_tile":
 			return [GameCommand.add_turn_start_tile(str(effect.get("tile", effect.get("tile_id", "T000"))), _resolve_amount(effect.get("count", 1), context), source_id)]
 		"set_all_pawns_next_roll":
@@ -86,7 +98,8 @@ static func _command_for_effect(effect: Dictionary, context) -> Array:
 			var rule: Dictionary = effect.get("targetRule", {"type": str(effect.get("target", "random")), "count": int(effect.get("count", 1))})
 			return [GameCommand.destroy_tiles_by_rule(rule, source_id, effect.get("destroyMode", {"type": "configured"}))]
 		"transform_self_for_battle":
-			return [GameCommand.transform_tile_for_battle(context.tile_index, str(effect.get("target", "T010")), source_id)]
+			var fallback_target = context.run_state.tile_id_for_name("废墟", "T012") if context.run_state != null else "T012"
+			return [GameCommand.transform_tile_for_battle(context.tile_index, str(effect.get("target", fallback_target)), source_id)]
 		"destroy_self":
 			if context.tile == null:
 				return []
@@ -151,6 +164,8 @@ static func _condition_met(raw_condition, context) -> bool:
 		var allowed: Array = condition.get("reason_in", [])
 		if not allowed.has(context.reason):
 			return false
+	if bool(condition.get("pass_through_only", false)) and bool(context.payload.get("isLanding", false)):
+		return false
 	if bool(condition.get("monster_intent_attack", false)) and not context.run_state.is_monster_intent_attack():
 		return false
 	if bool(condition.get("player_damaged_in_battle", false)) and context.run_state.get_counter("battle", "player_damage_taken") <= 0:

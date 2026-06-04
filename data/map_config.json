@@ -2,8 +2,22 @@
   "acts": [
     {
       "act_id": 1,
-      "name": "第一层",
+      "name": "???",
       "boss_pool": "act1_boss",
+      "generator": {
+        "floors": 13,
+        "path_floors": 13,
+        "boss_floor": 14,
+        "columns": 7,
+        "path_count": 6,
+        "rolls": 3,
+        "room_type_ratios": {
+          "SHOP": 0.05,
+          "REST": 0.12,
+          "EVENT": 0.22,
+          "ELITE": 0.08
+        }
+      },
       "layout": [
         {
           "floor": 1,
@@ -151,7 +165,7 @@
       "act_id": 1,
       "phase": "mid",
       "floor_min": 5,
-      "floor_max": 9,
+      "floor_max": 8,
       "normal_pool": "act1_mid_normal",
       "elite_pool": "act1_elite",
       "event_pool": "act1_mid_event",
@@ -160,8 +174,8 @@
     {
       "act_id": 1,
       "phase": "late",
-      "floor_min": 10,
-      "floor_max": 14,
+      "floor_min": 9,
+      "floor_max": 13,
       "normal_pool": "act1_late_normal",
       "elite_pool": "act1_elite",
       "event_pool": "act1_late_event",
@@ -170,8 +184,8 @@
     {
       "act_id": 1,
       "phase": "boss",
-      "floor_min": 15,
-      "floor_max": 15,
+      "floor_min": 14,
+      "floor_max": 14,
       "normal_pool": "act1_late_normal",
       "elite_pool": "act1_elite",
       "event_pool": "act1_late_event",
@@ -189,8 +203,22 @@
     {
       "weight_set": "act1_early_rooms",
       "room_type": "EVENT",
-      "weight": 22,
+      "weight": 12,
       "min_floor": 2,
+      "max_floor": 4
+    },
+    {
+      "weight_set": "act1_early_rooms",
+      "room_type": "SHOP",
+      "weight": 6,
+      "min_floor": 2,
+      "max_floor": 4
+    },
+    {
+      "weight_set": "act1_early_rooms",
+      "room_type": "CHEST",
+      "weight": 4,
+      "min_floor": 3,
       "max_floor": 4
     },
     {
@@ -203,7 +231,21 @@
     {
       "weight_set": "act1_mid_rooms",
       "room_type": "EVENT",
-      "weight": 24,
+      "weight": 14,
+      "min_floor": 5,
+      "max_floor": 9
+    },
+    {
+      "weight_set": "act1_mid_rooms",
+      "room_type": "SHOP",
+      "weight": 10,
+      "min_floor": 5,
+      "max_floor": 9
+    },
+    {
+      "weight_set": "act1_mid_rooms",
+      "room_type": "CHEST",
+      "weight": 8,
       "min_floor": 5,
       "max_floor": 9
     },
@@ -231,7 +273,21 @@
     {
       "weight_set": "act1_late_rooms",
       "room_type": "EVENT",
-      "weight": 20,
+      "weight": 12,
+      "min_floor": 10,
+      "max_floor": 13
+    },
+    {
+      "weight_set": "act1_late_rooms",
+      "room_type": "SHOP",
+      "weight": 8,
+      "min_floor": 10,
+      "max_floor": 13
+    },
+    {
+      "weight_set": "act1_late_rooms",
+      "room_type": "CHEST",
+      "weight": 6,
       "min_floor": 10,
       "max_floor": 13
     },
@@ -258,12 +314,17 @@
     },
     {
       "act_id": 1,
-      "floor": 14,
+      "floor": 7,
+      "room_type": "CHEST"
+    },
+    {
+      "act_id": 1,
+      "floor": 13,
       "room_type": "REST"
     },
     {
       "act_id": 1,
-      "floor": 15,
+      "floor": 14,
       "room_type": "BOSS"
     }
   ],
@@ -271,22 +332,27 @@
     {
       "pool_id": "act1_easy_normal",
       "monster_id": "goblin",
-      "weight": 34
+      "weight": 30
     },
     {
       "pool_id": "act1_easy_normal",
       "monster_id": "slime",
-      "weight": 32
+      "weight": 30
     },
     {
       "pool_id": "act1_easy_normal",
       "monster_id": "skeleton_soldier",
-      "weight": 28
+      "weight": 30
+    },
+    {
+      "pool_id": "act1_easy_normal",
+      "monster_id": "murloc",
+      "weight": 16
     },
     {
       "pool_id": "act1_mid_normal",
       "monster_id": "skeleton_archer",
-      "weight": 26
+      "weight": 24
     },
     {
       "pool_id": "act1_mid_normal",
@@ -296,7 +362,7 @@
     {
       "pool_id": "act1_mid_normal",
       "monster_id": "frost_giant",
-      "weight": 18
+      "weight": 22
     },
     {
       "pool_id": "act1_mid_normal",
@@ -304,19 +370,24 @@
       "weight": 12
     },
     {
+      "pool_id": "act1_mid_normal",
+      "monster_id": "slime",
+      "weight": 12
+    },
+    {
       "pool_id": "act1_late_normal",
       "monster_id": "skeleton_pair",
-      "weight": 28
+      "weight": 24
     },
     {
       "pool_id": "act1_late_normal",
       "monster_id": "guard_pair",
-      "weight": 28
+      "weight": 24
     },
     {
       "pool_id": "act1_late_normal",
       "monster_id": "baby_dragon",
-      "weight": 24
+      "weight": 22
     },
     {
       "pool_id": "act1_late_normal",
@@ -324,9 +395,14 @@
       "weight": 16
     },
     {
+      "pool_id": "act1_late_normal",
+      "monster_id": "skeleton_archer",
+      "weight": 12
+    },
+    {
       "pool_id": "act1_elite",
       "monster_id": "skeleton_king",
-      "weight": 32
+      "weight": 30
     },
     {
       "pool_id": "act1_elite",

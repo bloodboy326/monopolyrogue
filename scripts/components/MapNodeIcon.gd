@@ -2,6 +2,7 @@ extends Control
 
 signal picked(node_id: String)
 
+const GeneratedMapIcon = preload("res://scripts/components/GeneratedMapIcon.gd")
 const INK = Color(0.02, 0.02, 0.025, 1.0)
 const WHITE = Color(0.96, 0.98, 1.0, 1.0)
 const GOLD = Color(1.0, 0.82, 0.22, 1.0)
@@ -50,6 +51,10 @@ func _draw() -> void:
 		draw_arc(center, radius * 1.05, 0.0, TAU, 48, GOLD, 4.0, true)
 	if current:
 		draw_arc(center, radius * 1.12, 0.0, TAU, 48, Color(0.30, 1.0, 0.58), 5.0, true)
+	var icon_modulate = Color(0.64, 0.66, 0.72, 0.86) if not available and not current else Color.WHITE
+	var icon_size = Vector2.ONE * radius * 1.42
+	if GeneratedMapIcon.draw(self, _icon_key(), Rect2(center - icon_size * 0.5, icon_size), icon_modulate):
+		return
 	match room_type:
 		"EVENT":
 			_draw_question(center, radius)
@@ -57,10 +62,31 @@ func _draw() -> void:
 			_draw_elite(center, radius)
 		"REST":
 			_draw_fire(center, radius)
+		"SHOP":
+			_draw_shop(center, radius)
+		"CHEST":
+			_draw_chest(center, radius)
 		"BOSS":
 			_draw_boss(center, radius)
 		_:
 			_draw_monster(center, radius)
+
+func _icon_key() -> String:
+	match room_type:
+		"EVENT":
+			return "EVENT"
+		"ELITE":
+			return "ELITE"
+		"REST":
+			return "REST"
+		"SHOP":
+			return "SHOP"
+		"CHEST":
+			return "CHEST"
+		"BOSS":
+			return "BOSS"
+		_:
+			return "MONSTER"
 
 func _room_color() -> Color:
 	match room_type:
@@ -70,6 +96,10 @@ func _room_color() -> Color:
 			return Color(0.66, 0.35, 0.92, 1.0)
 		"REST":
 			return Color(1.0, 0.48, 0.18, 1.0)
+		"SHOP":
+			return Color(0.94, 0.62, 0.18, 1.0)
+		"CHEST":
+			return Color(0.72, 0.46, 0.22, 1.0)
 		"BOSS":
 			return Color(0.92, 0.18, 0.26, 1.0)
 		_:
@@ -95,6 +125,20 @@ func _draw_fire(center: Vector2, radius: float) -> void:
 	_poly(center, radius, [Vector2(0.00, -0.70), Vector2(0.34, -0.10), Vector2(0.20, 0.42), Vector2(-0.24, 0.42), Vector2(-0.38, -0.06)], Color(1.0, 0.92, 0.18))
 	_poly(center, radius, [Vector2(0.06, -0.40), Vector2(0.22, 0.02), Vector2(0.04, 0.30), Vector2(-0.16, 0.06)], Color(1.0, 0.25, 0.18))
 	_line(center, Vector2(-0.48, 0.48), Vector2(0.48, 0.48), radius, INK, 0.12)
+
+func _draw_shop(center: Vector2, radius: float) -> void:
+	_poly(center, radius, [Vector2(-0.48, -0.24), Vector2(0.48, -0.24), Vector2(0.36, 0.54), Vector2(-0.36, 0.54)], Color(1.0, 0.86, 0.24))
+	_line(center, Vector2(-0.26, -0.48), Vector2(0.26, -0.48), radius, INK, 0.12)
+	_line(center, Vector2(-0.26, -0.48), Vector2(-0.48, -0.24), radius, INK, 0.10)
+	_line(center, Vector2(0.26, -0.48), Vector2(0.48, -0.24), radius, INK, 0.10)
+	draw_circle(center + Vector2(0, radius * 0.10), radius * 0.13, INK)
+	draw_circle(center + Vector2(0, radius * 0.10), radius * 0.08, GOLD)
+
+func _draw_chest(center: Vector2, radius: float) -> void:
+	_poly(center, radius, [Vector2(-0.56, -0.12), Vector2(0.56, -0.12), Vector2(0.50, 0.46), Vector2(-0.50, 0.46)], Color(0.72, 0.36, 0.16))
+	_poly(center, radius, [Vector2(-0.50, -0.44), Vector2(0.50, -0.44), Vector2(0.56, -0.12), Vector2(-0.56, -0.12)], Color(0.92, 0.55, 0.18))
+	_line(center, Vector2(-0.56, -0.12), Vector2(0.56, -0.12), radius, INK, 0.10)
+	_poly(center, radius, [Vector2(-0.12, 0.02), Vector2(0.12, 0.02), Vector2(0.12, 0.26), Vector2(-0.12, 0.26)], GOLD)
 
 func _draw_boss(center: Vector2, radius: float) -> void:
 	_poly(center, radius, [Vector2(-0.76, -0.44), Vector2(-0.36, -0.22), Vector2(-0.58, 0.00)], WHITE)

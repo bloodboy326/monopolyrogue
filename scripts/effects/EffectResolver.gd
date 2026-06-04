@@ -55,8 +55,12 @@ func _execute_command(command: Dictionary, context) -> Array:
 	match str(command.get("type", "")):
 		"DamageMonster":
 			return _damage_monster(command, context)
+		"DamageAllMonsters":
+			return _damage_all_monsters(command, context)
 		"DamagePlayer":
 			_damage_player(command, context)
+		"AddCoins":
+			_add_coins(command, context)
 		"AddPlayerBlock":
 			_add_player_block(command, context)
 		"HealPlayer":
@@ -89,6 +93,10 @@ func _execute_command(command: Dictionary, context) -> Array:
 			_consume_tile_durability(command, context)
 		"AddDurabilityAll":
 			_add_durability_all(command, context)
+		"AddConvergeToTiles":
+			_add_converge_to_tiles(command, context)
+		"SetTileWeak":
+			_set_tile_weak(command, context)
 		"TransformTile":
 			return _transform_tile(command, context, false)
 		"TransformTileForBattle":
@@ -126,6 +134,8 @@ func _execute_command(command: Dictionary, context) -> Array:
 func _damage_monster(command: Dictionary, context) -> Array:
 	var raw_amount = max(0, _resolve_amount(command.get("amount", 0), context))
 	if bool(command.get("attack", true)):
+		for event in context.run_state.record_attack_trigger():
+			context.turn_context.emit_event(str(event.get("type", "player_strength_added")), event)
 		raw_amount += context.run_state.player_strength
 		raw_amount = int(round(float(raw_amount) * context.run_state.consume_next_attack_multiplier()))
 	var source_id = str(command.get("source", context.source_id))
@@ -141,6 +151,19 @@ func _damage_monster(command: Dictionary, context) -> Array:
 		context.turn_context.emit_event(str(event.get("type", "monster_damaged")), event)
 	return []
 
+func _damage_all_monsters(command: Dictionary, context) -> Array:
+	var raw_amount = max(0, _resolve_amount(command.get("amount", 0), context))
+	if bool(command.get("attack", true)):
+		for event in context.run_state.record_attack_trigger():
+			context.turn_context.emit_event(str(event.get("type", "player_strength_added")), event)
+		raw_amount += context.run_state.player_strength
+		raw_amount = int(round(float(raw_amount) * context.run_state.consume_next_attack_multiplier()))
+	var source_id = str(command.get("source", context.source_id))
+	for unit_index in context.run_state.alive_enemy_indices():
+		var event = context.run_state.apply_monster_damage_to_unit(unit_index, raw_amount, source_id, context.tile_index, context.dice.id if context.dice != null else "")
+		context.turn_context.emit_event(str(event.get("type", "monster_damaged")), event)
+	return []
+
 func _resolve_amount(raw_value, context) -> int:
 	if typeof(raw_value) == TYPE_DICTIONARY:
 		var formula: Dictionary = raw_value
@@ -152,6 +175,15 @@ func _resolve_amount(raw_value, context) -> int:
 		match str(formula.get("type", "constant")):
 			"counter":
 				return (context.run_state.get_counter(scope, counter) + add) * multiplier
+			"counter_div":
+				var divisor = max(1, int(formula.get("divisor", 1)))
+				return int(floor(float(context.run_state.get_counter(scope, counter) + add) / float(divisor))) * multiplier
+			"source_counter":
+				return (base + context.run_state.get_counter(scope, _source_counter_key(context, counter)) + add) * multiplier
+			"tile_counter":
+				if context.tile == null:
+					return base
+				return (base + int(context.tile.counters.get(counter, 0)) + add) * multiplier
 			"counter_add":
 				return (base + context.run_state.get_counter(scope, counter) + add) * multiplier
 			"rolls_left_plus":
@@ -162,10 +194,25 @@ func _resolve_amount(raw_value, context) -> int:
 				return int(formula.get("value", 0))
 	return int(raw_value)
 
+func _source_counter_key(context, counter: String) -> String:
+	var instance_id = context.tile.instance_id if context.tile != null else context.source_id
+	return "%s:%s" % [instance_id, counter]
+
 func _add_player_block(command: Dictionary, context) -> void:
 	var amount = max(0, int(command.get("amount", 0)) + context.run_state.player_dexterity)
 	context.run_state.player_block += amount
 	context.turn_context.add_block(amount, str(command.get("source", context.source_id)), context.tile_index, context.dice.id if context.dice != null else "")
+
+func _add_coins(command: Dictionary, context) -> void:
+	var amount = max(0, _resolve_amount(command.get("amount", 0), context))
+	context.run_state.add_coins(amount)
+	context.turn_context.emit_event("coins_added", {
+		"amount": amount,
+		"coins": context.run_state.coins,
+		"sourceId": str(command.get("source", context.source_id)),
+		"sourceIndex": context.tile_index,
+		"diceId": context.dice.id if context.dice != null else ""
+	})
 
 func _heal_player(command: Dictionary, context) -> void:
 	var event = context.run_state.apply_player_heal(max(0, int(command.get("amount", 0))))
@@ -249,9 +296,20 @@ func _consume_tile_durability(command: Dictionary, context) -> void:
 	var event = context.run_state.consume_tile_durability(int(command.get("tileIndex", context.tile_index)), str(command.get("tileInstanceId", "")))
 	if not event.is_empty():
 		context.turn_context.emit_event(str(event.get("type", "tile_durability_changed")), event)
+		for followup in context.run_state.record_durability_consumed():
+			context.turn_context.emit_event(str(followup.get("type", "tile_durability_changed")), followup)
 
 func _add_durability_all(command: Dictionary, context) -> void:
 	for event in context.run_state.add_durability_to_all(int(command.get("amount", 0))):
+		context.turn_context.emit_event(str(event.get("type", "tile_durability_changed")), event)
+
+func _add_converge_to_tiles(command: Dictionary, context) -> void:
+	for event in context.run_state.add_converge_to_random_tiles(max(0, int(command.get("count", 1)))):
+		context.turn_context.emit_event(str(event.get("type", "tile_enhanced")), event)
+
+func _set_tile_weak(command: Dictionary, context) -> void:
+	var event = context.run_state.set_tile_weak(int(command.get("tileIndex", context.tile_index)), str(command.get("tileInstanceId", "")))
+	if not event.is_empty():
 		context.turn_context.emit_event(str(event.get("type", "tile_durability_changed")), event)
 
 func _add_buff(command: Dictionary, context) -> Array:
@@ -365,7 +423,8 @@ func _move_dice(command: Dictionary, context) -> Array:
 	for offset in range(1, distance + 1):
 		path.append(context.run_state.board.normalize_index(dice_state.index + direction * offset))
 	if reason == "warp" and distance > 0:
-		context.run_state.increment_counter("turn", "warp_count", 1)
+		for event in context.run_state.record_warp_trigger():
+			context.turn_context.emit_event(str(event.get("type", "rolls_added")), event)
 	for target_index in path:
 		var pass_tile = context.run_state.board.get_tile(target_index)
 		if pass_tile == null:

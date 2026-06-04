@@ -5,6 +5,7 @@ const DiceState = preload("res://scripts/domain/DiceState.gd")
 const Tile = preload("res://scripts/domain/Tile.gd")
 const GameRng = preload("res://scripts/core/GameRng.gd")
 const TileDefinitions = preload("res://scripts/data/TileDefinitions.gd")
+const SHOP_REMOVE_PRICES = [75, 100, 125, 175, 225]
 
 var board = Board.new()
 var dice: Dictionary = {}
@@ -27,6 +28,7 @@ var turn_start_tile_spawns: Array[Dictionary] = []
 var rng = GameRng.new(1)
 var _tile_serial: int = 1
 var delete_count: int = 0
+var shop_remove_count: int = 0
 
 var player_max_hp: int = 80
 var player_hp: int = 80
@@ -71,12 +73,14 @@ func setup(p_tile_definitions: Dictionary, p_relic_definitions: Dictionary, p_bu
 	random_seed = seed_value
 	rng.set_seed(seed_value)
 	player_hp = player_max_hp
+	coins = 0
 	player_block = 0
 	player_strength = 0
 	player_dexterity = 0
 	next_attack_multiplier = 1.0
 	pending_roll_bonus = 0
 	delete_count = 0
+	shop_remove_count = 0
 	turn_rolls_left = 3
 	turn_rolls_total = 3
 	next_turn_roll_bonus = 0
@@ -330,6 +334,13 @@ func _counter_store(scope: String) -> Dictionary:
 func get_tile_definition(tile_id: String) -> Dictionary:
 	return tile_definitions.get(tile_id, tile_definitions.get("T000", {}))
 
+func tile_id_for_name(tile_name: String, fallback: String = "T000") -> String:
+	for tile_id in tile_definitions.keys():
+		var definition: Dictionary = tile_definitions[tile_id]
+		if str(definition.get("name", "")) == tile_name:
+			return str(tile_id)
+	return fallback
+
 func create_tile(tile_id: String):
 	var tile = Tile.from_definition(get_tile_definition(tile_id), _tile_serial)
 	_tile_serial += 1
@@ -407,16 +418,166 @@ func apply_turn_start_tile_spawns() -> Array[Dictionary]:
 		var count = max(0, int(spawn.get("count", 1)))
 		var tile_id = str(spawn.get("tileId", "T000"))
 		for _i in range(count):
-			var tile = create_tile(tile_id)
-			var insert_at = rng.randi_range(0, board.size())
-			board.insert_tile(insert_at, tile)
-			reindex_dice_after_insert(insert_at)
-			if should_cleanup_after_battle(tile):
-				register_temporary_tile(tile)
-			else:
-				register_persistent_battle_tile(tile, insert_at)
-			events.append({"type": "tile_generated", "tileIndex": insert_at, "tileId": tile.id, "tileInstanceId": tile.instance_id, "temporary": bool(tile.runtime_flags.get("temporary_tile", false))})
+			events.append(_generate_runtime_tile(tile_id))
 	return events
+
+func apply_turn_start_durability_curses() -> Array[Dictionary]:
+	var events: Array[Dictionary] = []
+	var weakness_tile_id = tile_id_for_name("虚弱", "T080")
+	var weakness_count = count_tiles_by_id(weakness_tile_id)
+	if weakness_count <= 0:
+		return events
+	for _curse in range(weakness_count):
+		for index in range(board.size()):
+			var tile = board.get_tile(index)
+			if tile == null or tile.id == weakness_tile_id or tile.max_durability() <= 0:
+				continue
+			var remaining = max(0, tile.durability_remaining() - 1)
+			tile.state["durability"] = remaining
+			if remaining <= 0:
+				tile.runtime_flags["weak"] = true
+			events.append({"type": "tile_durability_changed", "tileIndex": index, "tileId": tile.id, "tileInstanceId": tile.instance_id, "durability": remaining, "maxDurability": tile.max_durability(), "weak": tile.is_weak()})
+	return events
+
+func apply_relic_battle_start() -> Array[Dictionary]:
+	var events: Array[Dictionary] = []
+	for relic_id in relics:
+		var relic: Dictionary = relic_definitions.get(relic_id, {})
+		for effect in relic.get("effects", []):
+			match str(effect.get("type", "")):
+				"battle_start_tile":
+					for _i in range(max(0, int(effect.get("count", 1)))):
+						events.append(_generate_runtime_tile(str(effect.get("tile", "T000"))))
+				"battle_start_strength":
+					player_strength += int(effect.get("amount", 0))
+					events.append({"type": "player_strength_added", "amount": int(effect.get("amount", 0)), "strength": player_strength, "sourceId": relic_id, "sourceIndex": -1})
+				"battle_start_dexterity":
+					player_dexterity += int(effect.get("amount", 0))
+					events.append({"type": "player_dexterity_added", "amount": int(effect.get("amount", 0)), "dexterity": player_dexterity, "sourceId": relic_id, "sourceIndex": -1})
+	return events
+
+func apply_relic_turn_start() -> Array[Dictionary]:
+	var events: Array[Dictionary] = []
+	for relic_id in relics:
+		var relic: Dictionary = relic_definitions.get(relic_id, {})
+		for effect in relic.get("effects", []):
+			match str(effect.get("type", "")):
+				"turn_start_rolls":
+					if effect.has("turn") and int(effect.get("turn", 1)) != battle_turn:
+						continue
+					var amount = int(effect.get("amount", 1))
+					adjust_rolls(amount)
+					events.append({"type": "rolls_added", "amount": amount, "sourceId": relic_id, "sourceIndex": -1, "rollsLeft": turn_rolls_left, "rollsTotal": turn_rolls_total})
+				"turn_interval_rolls":
+					var interval = max(1, int(effect.get("interval", 1)))
+					if battle_turn % interval != 0:
+						continue
+					var interval_amount = int(effect.get("amount", 1))
+					adjust_rolls(interval_amount)
+					events.append({"type": "rolls_added", "amount": interval_amount, "sourceId": relic_id, "sourceIndex": -1, "rollsLeft": turn_rolls_left, "rollsTotal": turn_rolls_total})
+				"turn_start_block":
+					if int(effect.get("turn", 1)) != battle_turn:
+						continue
+					var block_amount = int(effect.get("amount", 0))
+					player_block += block_amount
+					events.append({"type": "player_block_added", "amount": block_amount, "sourceId": relic_id, "sourceIndex": -1, "turnTotal": player_block})
+	return events
+
+func apply_roll_passive_relics() -> Array[Dictionary]:
+	var events: Array[Dictionary] = []
+	var roll_count = get_counter("battle", "player_rolls")
+	for relic_id in relics:
+		var relic: Dictionary = relic_definitions.get(relic_id, {})
+		for effect in relic.get("effects", []):
+			match str(effect.get("type", "")):
+				"dice_roll_energy":
+					var threshold = max(1, int(effect.get("threshold", 10)))
+					if roll_count > 0 and roll_count % threshold == 0:
+						var amount = int(effect.get("amount", 1))
+						adjust_rolls(amount)
+						events.append({"type": "rolls_added", "amount": amount, "sourceId": relic_id, "sourceIndex": -1, "rollsLeft": turn_rolls_left, "rollsTotal": turn_rolls_total})
+				"dice_roll_hp_loss":
+					var hp_threshold = max(1, int(effect.get("threshold", 10)))
+					if roll_count > 0 and roll_count % hp_threshold == 0:
+						var result = apply_player_damage(int(effect.get("amount", 1)))
+						events.append({"type": "player_damaged", "amount": int(result["amount"]), "blocked": int(result["blocked"]), "raw": int(result["raw"]), "sourceId": relic_id, "sourceIndex": -1})
+	var storm = get_counter("battle", "stray_bullet_storm")
+	if storm > 0:
+		var storm_source_id = tile_id_for_name("流弹风暴", "T078")
+		for unit_index in alive_enemy_indices():
+			events.append(apply_monster_damage_to_unit(unit_index, storm * 2, storm_source_id, -1, ""))
+	return events
+
+func record_attack_trigger() -> Array[Dictionary]:
+	var events: Array[Dictionary] = []
+	var attack_count = increment_counter("turn", "player_attack_count", 1)
+	if has_relic("R012") and attack_count % 3 == 0:
+		player_strength += 1
+		events.append({"type": "player_strength_added", "amount": 1, "strength": player_strength, "sourceId": "R012", "sourceIndex": -1})
+	return events
+
+func record_warp_trigger() -> Array[Dictionary]:
+	var events: Array[Dictionary] = []
+	var warp_count = increment_counter("turn", "warp_count", 1)
+	if has_relic("R011") and warp_count % 3 == 0:
+		adjust_rolls(1)
+		events.append({"type": "rolls_added", "amount": 1, "sourceId": "R011", "sourceIndex": -1, "rollsLeft": turn_rolls_left, "rollsTotal": turn_rolls_total})
+	return events
+
+func record_durability_consumed() -> Array[Dictionary]:
+	var events: Array[Dictionary] = []
+	var consumed = increment_counter("battle", "durability_consumed", 1)
+	if has_relic("R010") and consumed % 10 == 0:
+		events.append_array(add_durability_to_all(1))
+	return events
+
+func add_converge_to_random_tiles(count: int) -> Array[Dictionary]:
+	var events: Array[Dictionary] = []
+	var candidates: Array[int] = []
+	for index in range(board.size()):
+		var tile = board.get_tile(index)
+		if tile == null or tile.is_empty() or tile.has_tag("curse") or tile.has_tile_buff("converge") or bool(tile.runtime_flags.get("converge", false)):
+			continue
+		candidates.append(index)
+	while events.size() < count and not candidates.is_empty():
+		var picked = int(rng.pick_array(candidates))
+		candidates.erase(picked)
+		var tile = board.get_tile(picked)
+		tile.add_tile_buff({
+			"id": "converge",
+			"name": "汇聚",
+			"icon": "converge",
+			"durationType": "battle",
+			"remaining": 1,
+			"description": "本场战斗内，踩中该地块时额外获得1点能量"
+		})
+		tile.runtime_flags["converge"] = true
+		events.append({"type": "tile_enhanced", "tileIndex": picked, "tileId": tile.id, "tileInstanceId": tile.instance_id, "enhancement": "converge"})
+	return events
+
+func set_tile_weak(tile_index: int, instance_id: String) -> Dictionary:
+	var index = board.find_tile_index_by_instance(instance_id)
+	if index == -1:
+		index = board.normalize_index(tile_index) if not board.is_empty() else -1
+	if index == -1:
+		return {}
+	var tile = board.get_tile(index)
+	if tile == null or tile.max_durability() <= 0:
+		return {}
+	tile.state["durability"] = 0
+	tile.runtime_flags["weak"] = true
+	return {"type": "tile_durability_changed", "tileIndex": index, "tileId": tile.id, "tileInstanceId": tile.instance_id, "durability": 0, "maxDurability": tile.max_durability(), "weak": true}
+
+func _generate_runtime_tile(tile_id: String) -> Dictionary:
+	var tile = create_tile(tile_id)
+	var insert_at = rng.randi_range(0, board.size())
+	board.insert_tile(insert_at, tile)
+	reindex_dice_after_insert(insert_at)
+	if should_cleanup_after_battle(tile):
+		register_temporary_tile(tile)
+	else:
+		register_persistent_battle_tile(tile, insert_at)
+	return {"type": "tile_generated", "tileIndex": insert_at, "tileId": tile.id, "tileInstanceId": tile.instance_id, "temporary": bool(tile.runtime_flags.get("temporary_tile", false))}
 
 func consume_all_pawns_next_roll() -> bool:
 	if all_pawns_next_rolls <= 0:
@@ -548,10 +709,24 @@ func cleanup_battle_removed_tiles() -> Array[Dictionary]:
 	battle_removed_tiles.clear()
 	return events
 
+func cleanup_battle_tile_buffs() -> Array[Dictionary]:
+	var events: Array[Dictionary] = []
+	for index in range(board.size()):
+		var tile = board.get_tile(index)
+		if tile == null:
+			continue
+		var had_converge = tile.has_tile_buff("converge") or bool(tile.runtime_flags.get("converge", false))
+		tile.clear_tile_buffs_for_duration("battle")
+		tile.runtime_flags.erase("converge")
+		if had_converge:
+			events.append({"type": "tile_buff_removed", "tileIndex": index, "tileId": tile.id, "tileInstanceId": tile.instance_id, "buffId": "converge"})
+	return events
+
 func cleanup_round_temporary_tiles() -> Array[Dictionary]:
 	var events = cleanup_battle_reverts()
 	events.append_array(cleanup_battle_temporary_tiles())
 	events.append_array(cleanup_battle_removed_tiles())
+	events.append_array(cleanup_battle_tile_buffs())
 	return events
 
 func cleanup_round_buffs() -> void:
@@ -560,6 +735,37 @@ func cleanup_round_buffs() -> void:
 func add_relic(relic_id: String) -> void:
 	if not relics.has(relic_id):
 		relics.append(relic_id)
+
+func has_relic(relic_id: String) -> bool:
+	return relics.has(relic_id)
+
+func add_coins(amount: int) -> int:
+	coins = max(0, coins + max(0, amount))
+	return coins
+
+func spend_coins(amount: int) -> bool:
+	var price = max(0, amount)
+	if coins < price:
+		return false
+	coins -= price
+	return true
+
+func shop_remove_price() -> int:
+	return int(SHOP_REMOVE_PRICES[min(shop_remove_count, SHOP_REMOVE_PRICES.size() - 1)])
+
+func can_shop_remove_tile() -> bool:
+	return board.size() > 1 and coins >= shop_remove_price()
+
+func remove_shop_tile(index: int) -> Dictionary:
+	if board.size() <= 1:
+		return {}
+	var normalized = board.normalize_index(index)
+	var removed = board.remove_tile(normalized)
+	if removed == null:
+		return {}
+	reindex_dice_after_remove(normalized)
+	shop_remove_count += 1
+	return {"type": "tile_destroyed", "tileIndex": normalized, "tileId": removed.id, "tileInstanceId": removed.instance_id, "mode": "shopRemove", "permanent": true}
 
 func add_buff(buff: Dictionary) -> void:
 	buffs.append(buff)
@@ -607,8 +813,31 @@ func draw_tile_choices(count: int) -> Array[String]:
 		candidates.erase(picked)
 	return choices
 
-func draw_relic_choices(_count: int) -> Array[String]:
-	return []
+func draw_tile_choices_by_rarity(count: int, rarity_code: String) -> Array[String]:
+	var choices: Array[String] = []
+	var candidates: Array[String] = []
+	for tile_id in tile_pool:
+		var def = get_tile_definition(tile_id)
+		if str(def.get("rarity_code", _rarity_code(str(def.get("rarity", ""))))) == rarity_code:
+			candidates.append(tile_id)
+	while choices.size() < count and not candidates.is_empty():
+		var picked = str(rng.pick_array(candidates))
+		choices.append(picked)
+		candidates.erase(picked)
+	return choices
+
+func draw_relic_choices(count: int, rarity_filter: String = "") -> Array[String]:
+	var choices: Array[String] = []
+	var candidates = _weighted_relic_pool(rarity_filter)
+	while choices.size() < count and not candidates.is_empty():
+		var picked = rng.pick_weighted(candidates)
+		if picked == null:
+			break
+		var relic_id = str(picked.get("id", ""))
+		if not choices.has(relic_id):
+			choices.append(relic_id)
+		candidates.erase(picked)
+	return choices
 
 func is_monster_intent_attack() -> bool:
 	for unit in enemy_units:
@@ -667,6 +896,30 @@ func apply_monster_damage_to_unit(unit_index: int, raw_amount: int, source_id: S
 		event["passiveTileCount"] = int(passive.get("count", 1))
 	return event
 
+func kill_all_enemies(source_id: String = "gm_kill") -> Array[Dictionary]:
+	var events: Array[Dictionary] = []
+	for i in range(enemy_units.size()):
+		var unit: Dictionary = enemy_units[i]
+		var hp = int(unit.get("hp", 0))
+		if hp <= 0:
+			continue
+		unit["hp"] = 0
+		enemy_units[i] = unit
+		events.append({
+			"type": "monster_damaged",
+			"amount": hp,
+			"blocked": 0,
+			"raw": hp,
+			"unitIndex": i,
+			"unitName": str(unit.get("name", "")),
+			"sourceId": source_id,
+			"sourceIndex": -1,
+			"diceId": ""
+		})
+	selected_enemy_index = first_alive_enemy_index()
+	_sync_monster_alias()
+	return events
+
 func add_enemy_block(unit_index: int, amount: int) -> Dictionary:
 	if unit_index < 0 or unit_index >= enemy_units.size():
 		unit_index = first_alive_enemy_index()
@@ -700,13 +953,16 @@ func add_enemy_heal(unit_index: int, amount: int) -> Dictionary:
 	return {"type": "monster_healed", "amount": int(unit.get("hp", 0)) - old_hp, "unitIndex": unit_index, "unitName": str(unit.get("name", "")), "hp": int(unit.get("hp", 0)), "maxHp": max_hp}
 
 func apply_player_damage(amount: int) -> Dictionary:
-	var blocked = min(player_block, max(0, amount))
+	var raw_amount = max(0, amount)
+	if raw_amount > 0 and get_counter("turn", "player_damage_cap_1") > 0:
+		raw_amount = 1
+	var blocked = min(player_block, raw_amount)
 	player_block -= blocked
-	var damage = max(0, amount - blocked)
+	var damage = max(0, raw_amount - blocked)
 	player_hp = max(0, player_hp - damage)
 	if damage > 0:
 		increment_counter("battle", "player_damage_taken", 1)
-	return {"amount": damage, "blocked": blocked, "raw": amount, "playerHp": player_hp, "playerBlock": player_block}
+	return {"amount": damage, "blocked": blocked, "raw": raw_amount, "playerHp": player_hp, "playerBlock": player_block}
 
 func apply_player_heal(amount: int) -> Dictionary:
 	var old_hp = player_hp
@@ -740,11 +996,12 @@ func record_current_intents_used() -> void:
 
 func pick_corruptible_tile_index() -> int:
 	var candidates: Array[int] = []
+	var ruin_tile_id = tile_id_for_name("废墟", "T012")
 	for i in range(board.size()):
 		var tile = board.get_tile(i)
 		if tile == null:
 			continue
-		if tile.id in ["T000", "T010", "T901"] or tile.has_tag("curse"):
+		if tile.id in ["T000", ruin_tile_id, "T901"] or tile.has_tag("curse"):
 			continue
 		if bool(tile.runtime_flags.get("temporary_tile", false)):
 			continue
@@ -762,9 +1019,10 @@ func count_tiles_by_id(tile_id: String) -> int:
 
 func advance_moon_counters(delta: int) -> Array[Dictionary]:
 	var events: Array[Dictionary] = []
+	var moon_tile_id = tile_id_for_name("月圆", "T071")
 	for i in range(board.size() - 1, -1, -1):
 		var tile = board.get_tile(i)
-		if tile == null or tile.id != "T070":
+		if tile == null or tile.id != moon_tile_id:
 			continue
 		var value = int(tile.counters.get("moon", 0)) + delta
 		tile.counters["moon"] = max(0, value)
@@ -784,6 +1042,48 @@ func _weighted_tile_pool() -> Array:
 		var def = get_tile_definition(tile_id)
 		result.append({"id": tile_id, "weight": _rarity_weight(str(def.get("rarity", "普通")))})
 	return result
+
+func _weighted_relic_pool(rarity_filter: String = "") -> Array:
+	var result = []
+	for relic_id in relic_definitions.keys():
+		if relics.has(str(relic_id)):
+			continue
+		var def: Dictionary = relic_definitions[relic_id]
+		var code = str(def.get("rarity_code", _rarity_code(str(def.get("rarity", "")))))
+		if not rarity_filter.is_empty() and code != rarity_filter:
+			continue
+		result.append({"id": str(relic_id), "weight": _rarity_code_weight(code)})
+	return result
+
+func _rarity_code(rarity: String) -> String:
+	match rarity:
+		"基础牌":
+			return "basic"
+		"普通":
+			return "common"
+		"稀有":
+			return "rare"
+		"非凡":
+			return "uncommon"
+		"诅咒":
+			return "curse"
+		"boss":
+			return "boss"
+		_:
+			return "common"
+
+func _rarity_code_weight(code: String) -> float:
+	match code:
+		"common":
+			return 100.0
+		"rare":
+			return 38.0
+		"uncommon":
+			return 18.0
+		"boss":
+			return 0.0
+		_:
+			return 12.0
 
 func _rarity_weight(rarity: String) -> float:
 	match rarity:

@@ -5,7 +5,9 @@
     "T001",
     "T002",
     "T001",
-    "T002"
+    "T002",
+    "T003",
+    "T004"
   ],
   "tiles": [
     {
@@ -68,7 +70,12 @@
           "type": "damage",
           "value": 5
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "普通攻击",
+      "tile_rare": "基础牌",
+      "tile_describe": "造成5点伤害"
     },
     {
       "id": "T002",
@@ -102,10 +109,108 @@
           "type": "block",
           "value": 5
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "普通防御",
+      "tile_rare": "基础牌",
+      "tile_describe": "获得5点护盾"
     },
     {
       "id": "T003",
+      "type": "技能",
+      "name": "修修补补",
+      "rarity": "基础牌",
+      "description": "获得8点护盾，所有需要耐久度的卡牌本场战斗耐久度+1",
+      "displayDescription": "获得8点护盾，所有需要耐久度的卡牌本场战斗耐久度+1",
+      "selectable": false,
+      "temporary": false,
+      "destroy_after_battle": false,
+      "tags": [
+        "skill",
+        "basic",
+        "repair",
+        "durability"
+      ],
+      "icon_kind": "repair",
+      "color": [
+        0.22,
+        0.52,
+        0.9,
+        1.0
+      ],
+      "accent": [
+        0.66,
+        0.92,
+        1.0,
+        1.0
+      ],
+      "effects": [
+        {
+          "type": "block",
+          "value": 8
+        },
+        {
+          "type": "add_durability_all",
+          "value": 1
+        }
+      ],
+      "rarity_code": "common",
+      "changed": true,
+      "tile_name": "修修补补",
+      "tile_rare": "基础牌",
+      "tile_describe": "获得8点护盾，所有需要耐久度的卡牌本场战斗耐久度+1"
+    },
+    {
+      "id": "T004",
+      "type": "攻击",
+      "name": "充能剑",
+      "rarity": "基础牌",
+      "rarity_code": "common",
+      "description": "造成10点伤害，耐久度2 虚弱状态：造成2点伤害",
+      "displayDescription": "造成10点伤害，耐久度2 虚弱状态：造成2点伤害",
+      "selectable": false,
+      "temporary": false,
+      "destroy_after_battle": false,
+      "changed": true,
+      "tile_name": "充能剑",
+      "tile_rare": "基础牌",
+      "tile_describe": "造成10点伤害，耐久度2 虚弱状态：造成2点伤害",
+      "tags": [
+        "attack",
+        "basic",
+        "energy",
+        "durability"
+      ],
+      "icon_kind": "charge_sword",
+      "color": [
+        0.92,
+        0.25,
+        0.32,
+        1.0
+      ],
+      "accent": [
+        1.0,
+        0.82,
+        0.22,
+        1.0
+      ],
+      "durability": 2,
+      "effects": [
+        {
+          "type": "damage",
+          "value": 10
+        }
+      ],
+      "weakEffects": [
+        {
+          "type": "damage",
+          "value": 2
+        }
+      ]
+    },
+    {
+      "id": "T005",
       "type": "技能",
       "name": "重装防御",
       "rarity": "普通",
@@ -146,10 +251,15 @@
           "counter": "hits",
           "value": 1
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "重装防御",
+      "tile_rare": "普通",
+      "tile_describe": "获得8点护盾，本场战斗每踩中一次，护盾+1"
     },
     {
-      "id": "T004",
+      "id": "T006",
       "type": "攻击",
       "name": "重击",
       "rarity": "普通",
@@ -190,10 +300,15 @@
           "counter": "hits",
           "value": 1
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "重击",
+      "tile_rare": "普通",
+      "tile_describe": "造成8点伤害，本场战斗每踩中一次，伤害+1"
     },
     {
-      "id": "T005",
+      "id": "T007",
       "type": "攻击",
       "name": "偷袭",
       "rarity": "普通",
@@ -230,10 +345,15 @@
           "value": 1,
           "attack": false
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "偷袭",
+      "tile_rare": "普通",
+      "tile_describe": "造成4点伤害,每次被棋子经过一次，对敌方造成一点伤害"
     },
     {
-      "id": "T006",
+      "id": "T008",
       "type": "攻击",
       "name": "连击",
       "rarity": "普通",
@@ -274,10 +394,15 @@
             "multiplier": 5
           }
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "连击",
+      "tile_rare": "普通",
+      "tile_describe": "造成5点伤害，本回合每踩中一次，伤害+5"
     },
     {
-      "id": "T007",
+      "id": "T009",
       "type": "技能",
       "name": "强化",
       "rarity": "稀有",
@@ -307,10 +432,15 @@
           "type": "next_attack_multiplier",
           "value": 2
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "强化",
+      "tile_rare": "稀有",
+      "tile_describe": "下一次攻击造成的伤害翻倍"
     },
     {
-      "id": "T008",
+      "id": "T010",
       "type": "攻击",
       "name": "陨石撞击",
       "rarity": "稀有",
@@ -342,12 +472,17 @@
         },
         {
           "type": "transform_self_for_battle",
-          "target": "T010"
+          "target": "T012"
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "陨石撞击",
+      "tile_rare": "稀有",
+      "tile_describe": "造成20点伤害，本场战斗变成废墟"
     },
     {
-      "id": "T009",
+      "id": "T011",
       "type": "攻击",
       "name": "地裂",
       "rarity": "稀有",
@@ -379,13 +514,18 @@
         },
         {
           "type": "generate_tile",
-          "tile": "T010",
+          "tile": "T012",
           "count": 1
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "地裂",
+      "tile_rare": "稀有",
+      "tile_describe": "造成12点伤害，本场战斗增加1个废墟地块"
     },
     {
-      "id": "T010",
+      "id": "T012",
       "type": "诅咒",
       "name": "废墟",
       "rarity": "诅咒",
@@ -411,10 +551,15 @@
         0.76,
         1
       ],
-      "effects": []
+      "effects": [],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "废墟",
+      "tile_rare": "诅咒",
+      "tile_describe": "无"
     },
     {
-      "id": "T011",
+      "id": "T013",
       "type": "技能",
       "name": "净化",
       "rarity": "稀有",
@@ -449,10 +594,15 @@
         {
           "type": "destroy_self"
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "净化",
+      "tile_rare": "稀有",
+      "tile_describe": "本场战斗，每次踩中一个诅咒牌，能量+1。踩中后销毁自身"
     },
     {
-      "id": "T012",
+      "id": "T014",
       "type": "技能",
       "name": "再次冲锋",
       "rarity": "稀有",
@@ -486,10 +636,15 @@
         {
           "type": "destroy_self"
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "再次冲锋",
+      "tile_rare": "稀有",
+      "tile_describe": "获得2点能量，踩中后销毁该地块"
     },
     {
-      "id": "T013",
+      "id": "T015",
       "type": "技能",
       "name": "盾墙",
       "rarity": "普通",
@@ -523,15 +678,20 @@
           "type": "block_if_monster_attack",
           "value": 4
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "盾墙",
+      "tile_rare": "普通",
+      "tile_describe": "获得6点护盾，如果怪物意图在攻击，额外获得4点护盾"
     },
     {
-      "id": "T014",
+      "id": "T016",
       "type": "技能",
       "name": "超载",
       "rarity": "稀有",
-      "description": "获得3点能量，踩中后生成1个虚空地块，耐久度2 虚弱状态：获得1点能量，踩中后生成1个虚空地块",
-      "displayDescription": "获得3点能量，踩中后生成1个虚空地块，耐久度2 ,虚弱状态：获得1点能量，踩中后生成1个虚空地块",
+      "description": "获得3点能量，踩中后生成1个虚无地块，耐久度2 虚弱状态：获得1点能量，踩中后生成1个虚无地块",
+      "displayDescription": "获得3点能量，踩中后生成1个虚无地块，耐久度2 ,虚弱状态：获得1点能量，踩中后生成1个虚无地块",
       "selectable": true,
       "temporary": true,
       "destroy_after_battle": true,
@@ -560,7 +720,7 @@
         },
         {
           "type": "generate_tile",
-          "tile": "T072",
+          "tile": "T073",
           "count": 1
         }
       ],
@@ -572,14 +732,18 @@
         },
         {
           "type": "generate_tile",
-          "tile": "T072",
+          "tile": "T073",
           "count": 1
         }
       ],
-      "changed": true
+      "changed": false,
+      "rarity_code": "common",
+      "tile_name": "超载",
+      "tile_rare": "稀有",
+      "tile_describe": "获得3点能量，踩中后生成1个虚无地块，耐久度2 ,虚弱状态：获得1点能量，踩中后生成1个虚无地块"
     },
     {
-      "id": "T015",
+      "id": "T017",
       "type": "诅咒",
       "name": "虚无",
       "rarity": "诅咒",
@@ -613,14 +777,19 @@
         {
           "type": "destroy_self"
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "虚无",
+      "tile_rare": "诅咒",
+      "tile_describe": "获得-1能量，销毁"
     },
     {
-      "id": "T016",
+      "id": "T018",
       "type": "技能",
       "name": "快速拔枪",
       "rarity": "普通",
-      "description": "生成4个快速射击地块",
+      "description": "生成3个快速射击地块",
       "displayDescription": "生成3个快速射击地块",
       "selectable": true,
       "temporary": false,
@@ -645,13 +814,18 @@
       "effects": [
         {
           "type": "generate_tile",
-          "tile": "T017",
+          "tile": "T019",
           "count": 3
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "快速拔枪",
+      "tile_rare": "普通",
+      "tile_describe": "生成3个快速射击地块"
     },
     {
-      "id": "T017",
+      "id": "T019",
       "type": "攻击",
       "name": "快速射击",
       "rarity": "普通",
@@ -702,10 +876,15 @@
           "counter": "quick_shot_destroyed",
           "value": 1
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "快速射击",
+      "tile_rare": "普通",
+      "tile_describe": "获得1点能量，造成4点伤害，踩中后销毁该地块"
     },
     {
-      "id": "T018",
+      "id": "T020",
       "type": "技能",
       "name": "掩护射击",
       "rarity": "普通",
@@ -737,13 +916,18 @@
         },
         {
           "type": "generate_tile",
-          "tile": "T017",
+          "tile": "T019",
           "count": 2
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "掩护射击",
+      "tile_rare": "普通",
+      "tile_describe": "获得4点护盾，生成2个快速射击地块"
     },
     {
-      "id": "T019",
+      "id": "T021",
       "type": "技能",
       "name": "枪术大师",
       "rarity": "稀有",
@@ -779,15 +963,20 @@
         {
           "type": "destroy_self"
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "枪术大师",
+      "tile_rare": "稀有",
+      "tile_describe": "本场战斗快速射击块伤害+4，踩中后销毁该地块"
     },
     {
-      "id": "T020",
+      "id": "T022",
       "type": "攻击",
       "name": "金色子弹",
       "rarity": "非凡",
-      "description": "造成 5 × 本场战斗中消耗的快速射击地块数量",
-      "displayDescription": "造成 5 × 本场战斗中消耗的快速射击地块数量",
+      "description": "造成 5 × 本场战斗中消耗的快速射击地块数量伤害",
+      "displayDescription": "造成 5 × 本场战斗中消耗的快速射击地块数量伤害",
       "selectable": true,
       "temporary": false,
       "destroy_after_battle": false,
@@ -818,10 +1007,15 @@
             "multiplier": 5
           }
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "金色子弹",
+      "tile_rare": "非凡",
+      "tile_describe": "造成 5 × 本场战斗中消耗的快速射击地块数量伤害"
     },
     {
-      "id": "T021",
+      "id": "T023",
       "type": "技能",
       "name": "队友掩护",
       "rarity": "非凡",
@@ -860,10 +1054,15 @@
         {
           "type": "destroy_self"
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "队友掩护",
+      "tile_rare": "非凡",
+      "tile_describe": "每消耗1个快速射击地块，获得3点护盾，踩中后销毁该地块"
     },
     {
-      "id": "T022",
+      "id": "T024",
       "type": "技能",
       "name": "补充",
       "rarity": "稀有",
@@ -902,10 +1101,15 @@
         {
           "type": "destroy_self"
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "补充",
+      "tile_rare": "稀有",
+      "tile_describe": "每消耗4个快速射击地块，能量+1，踩中后销毁该地块"
     },
     {
-      "id": "T023",
+      "id": "T025",
       "type": "技能",
       "name": "后援",
       "rarity": "稀有",
@@ -934,16 +1138,21 @@
       "effects": [
         {
           "type": "add_turn_start_tile",
-          "tile": "T017",
+          "tile": "T019",
           "count": 1
         },
         {
           "type": "destroy_self"
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "后援",
+      "tile_rare": "稀有",
+      "tile_describe": "本场战斗每回合开始时生成一格快速射击地块，踩中后销毁该地块"
     },
     {
-      "id": "T024",
+      "id": "T026",
       "type": "技能",
       "name": "快速跃迁3",
       "rarity": "稀有",
@@ -982,10 +1191,15 @@
           "type": "block",
           "value": 5
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "快速跃迁3",
+      "tile_rare": "稀有",
+      "tile_describe": "踩中后棋子继续再次位移3格距离，耐久度4 虚弱状态:获得5点格挡"
     },
     {
-      "id": "T025",
+      "id": "T027",
       "type": "技能",
       "name": "快速跃迁1",
       "rarity": "普通",
@@ -1017,10 +1231,15 @@
           "steps": 1,
           "reason": "warp"
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "快速跃迁1",
+      "tile_rare": "普通",
+      "tile_describe": "踩中后棋子继续再次位移1格距离"
     },
     {
-      "id": "T026",
+      "id": "T028",
       "type": "技能",
       "name": "快速跃迁5",
       "rarity": "非凡",
@@ -1059,10 +1278,15 @@
           "type": "block",
           "value": 5
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "快速跃迁5",
+      "tile_rare": "非凡",
+      "tile_describe": "踩中后棋子继续再次位移1格距离，耐久度3 虚弱状态:获得5点格挡"
     },
     {
-      "id": "T027",
+      "id": "T029",
       "type": "技能",
       "name": "能量回响",
       "rarity": "稀有",
@@ -1098,10 +1322,14 @@
           }
         }
       ],
-      "changed": true
+      "changed": false,
+      "rarity_code": "common",
+      "tile_name": "能量回响",
+      "tile_rare": "稀有",
+      "tile_describe": "如果是被跃迁后的棋子踩中，增加3点能量"
     },
     {
-      "id": "T028",
+      "id": "T030",
       "type": "技能",
       "name": "跃迁速射",
       "rarity": "普通",
@@ -1145,10 +1373,14 @@
           }
         }
       ],
-      "changed": true
+      "changed": false,
+      "rarity_code": "common",
+      "tile_name": "跃迁速射",
+      "tile_rare": "普通",
+      "tile_describe": "造成3点伤害，如果被跃迁中的棋子经过，造成4点伤害"
     },
     {
-      "id": "T029",
+      "id": "T031",
       "type": "技能",
       "name": "灵活抖动",
       "rarity": "普通",
@@ -1192,10 +1424,14 @@
           }
         }
       ],
-      "changed": true
+      "changed": false,
+      "rarity_code": "common",
+      "tile_name": "灵活抖动",
+      "tile_rare": "普通",
+      "tile_describe": "获得5点护甲，被跃迁中的棋子经过，获得4点护甲"
     },
     {
-      "id": "T030",
+      "id": "T032",
       "type": "技能",
       "name": "跃迁填补",
       "rarity": "稀有",
@@ -1232,10 +1468,15 @@
             ]
           }
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "跃迁填补",
+      "tile_rare": "稀有",
+      "tile_describe": "被跃迁中的棋子经过，获得1点能量"
     },
     {
-      "id": "T031",
+      "id": "T033",
       "type": "攻击",
       "name": "超能光速",
       "rarity": "非凡",
@@ -1277,10 +1518,15 @@
             "add": 0
           }
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "超能光速",
+      "tile_rare": "非凡",
+      "tile_describe": "造成10 × 当前所有能量+1的伤害，并且当前能量变为0"
     },
     {
-      "id": "T032",
+      "id": "T034",
       "type": "技能",
       "name": "充能",
       "rarity": "稀有",
@@ -1313,10 +1559,15 @@
         {
           "type": "destroy_self"
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "充能",
+      "tile_rare": "稀有",
+      "tile_describe": "本场战斗，所有需要耐久度的卡牌本场战斗耐久度+3，踩中后销毁该地块"
     },
     {
-      "id": "T033",
+      "id": "T035",
       "type": "攻击",
       "name": "跃迁之刃",
       "rarity": "非凡",
@@ -1366,10 +1617,15 @@
             ]
           }
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "跃迁之刃",
+      "tile_rare": "非凡",
+      "tile_describe": "造成8点伤害，被跃迁中的棋子经过一次，本场战斗伤害+3"
     },
     {
-      "id": "T034",
+      "id": "T036",
       "type": "技能",
       "name": "积蓄力量",
       "rarity": "普通",
@@ -1403,10 +1659,15 @@
           "type": "add_next_turn_rolls",
           "value": 1
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "积蓄力量",
+      "tile_rare": "普通",
+      "tile_describe": "获得7点护盾，下回合能量+1"
     },
     {
-      "id": "T035",
+      "id": "T037",
       "type": "技能",
       "name": "拆迁",
       "rarity": "稀有",
@@ -1436,10 +1697,15 @@
         {
           "type": "set_destroy_next_tile"
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "拆迁",
+      "tile_rare": "稀有",
+      "tile_describe": "销毁下一轮踩到的地块（在触发该地块效果之前就销毁，并检查是否有被销毁效果）"
     },
     {
-      "id": "T036",
+      "id": "T038",
       "type": "攻击",
       "name": "腐烂剑柄",
       "rarity": "普通",
@@ -1476,10 +1742,15 @@
           "type": "damage",
           "value": 20
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "腐烂剑柄",
+      "tile_rare": "普通",
+      "tile_describe": "踩中造成7点伤害，如果是被销毁，造成20点伤害"
     },
     {
-      "id": "T037",
+      "id": "T039",
       "type": "技能",
       "name": "战袍",
       "rarity": "稀有",
@@ -1516,10 +1787,15 @@
           "type": "add_rolls",
           "value": 3
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "战袍",
+      "tile_rare": "稀有",
+      "tile_describe": "踩中获得7点护盾，如果是被销毁，获得3点能量"
     },
     {
-      "id": "T038",
+      "id": "T040",
       "type": "技能",
       "name": "凋谢",
       "rarity": "稀有",
@@ -1552,10 +1828,15 @@
             "type": "adjacent"
           }
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "凋谢",
+      "tile_rare": "稀有",
+      "tile_describe": "踩中后销毁左右两边的地块"
     },
     {
-      "id": "T039",
+      "id": "T041",
       "type": "攻击",
       "name": "腐烂之力",
       "rarity": "稀有",
@@ -1594,46 +1875,63 @@
             "excludeCurrent": true
           }
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "腐烂之力",
+      "tile_rare": "稀有",
+      "tile_describe": "造成10点伤害，踩中后随机销毁场上一个地块"
     },
     {
-      "id": "T040",
+      "id": "T042",
       "type": "技能",
       "name": "虚无空间",
       "rarity": "非凡",
       "description": "本回合所有对自己的伤害都结算为1，生成一张虚无地块，耐久度3 虚弱状态：无效果",
-      "displayDescription": "本回合所有对自己的伤害都结算为1，生成两张虚无地块，耐久度3 虚弱状态：无效果",
+      "displayDescription": "本回合所有对自己的伤害都结算为1，生成一张虚无地块，耐久度3 虚弱状态：无效果",
       "selectable": true,
       "temporary": false,
       "destroy_after_battle": false,
       "tags": [
-        "skill"
+        "skill",
+        "void"
       ],
-      "icon_kind": "power",
+      "icon_kind": "void",
       "color": [
-        0.6,
-        0.28,
-        0.88,
-        1
+        0.36,
+        0.22,
+        0.62,
+        1.0
       ],
       "accent": [
-        1,
         0.88,
-        0.22,
-        1
+        0.52,
+        1.0,
+        1.0
       ],
       "effects": [
         {
+          "type": "increment_counter",
+          "scope": "turn",
+          "counter": "player_damage_cap_1",
+          "value": 1
+        },
+        {
           "type": "generate_tile",
-          "tile": "T015",
-          "count": 2
+          "tile": "T073",
+          "count": 1
         }
       ],
       "durability": 3,
-      "weakEffects": []
+      "weakEffects": [],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "虚无空间",
+      "tile_rare": "非凡",
+      "tile_describe": "本回合所有对自己的伤害都结算为1，生成一张虚无地块，耐久度3 虚弱状态：无效果"
     },
     {
-      "id": "T041",
+      "id": "T043",
       "type": "技能",
       "name": "快速反应",
       "rarity": "普通",
@@ -1667,10 +1965,15 @@
           "type": "add_rolls",
           "value": 1
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "快速反应",
+      "tile_rare": "普通",
+      "tile_describe": "获得3点护盾，能量+1"
     },
     {
-      "id": "T042",
+      "id": "T044",
       "type": "攻击",
       "name": "众人之力",
       "rarity": "非凡",
@@ -1710,10 +2013,15 @@
             "pawns_at_tile_at_most": 2
           }
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "众人之力",
+      "tile_rare": "非凡",
+      "tile_describe": "当触发时如果该地块位置上有3个棋子，则造成50点伤害，否则造成12点伤害。"
     },
     {
-      "id": "T043",
+      "id": "T045",
       "type": "技能",
       "name": "逃兵",
       "rarity": "普通",
@@ -1753,10 +2061,15 @@
             "pawns_at_tile_at_least": 2
           }
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "逃兵",
+      "tile_rare": "普通",
+      "tile_describe": "当触发时如果该地块位置上只有1个棋子，则获得12点护盾，否则获得5点护盾"
     },
     {
-      "id": "T044",
+      "id": "T046",
       "type": "攻击",
       "name": "趁其不备",
       "rarity": "普通",
@@ -1790,23 +2103,28 @@
           "type": "add_rolls",
           "value": 1
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "趁其不备",
+      "tile_rare": "普通",
+      "tile_describe": "造成3点伤害，能量+1"
     },
     {
-      "id": "T045",
+      "id": "T047",
       "type": "技能",
       "name": "步步为营",
       "rarity": "非凡",
-      "description": "每一次掷骰子，获得2点能量，消耗",
-      "displayDescription": "每一次掷骰子，获得2点能量。踩中后销毁自身",
+      "description": "每一次掷骰子，获得2点护甲，消耗",
+      "displayDescription": "每一次掷骰子，获得2点护甲。踩中后销毁自身",
       "selectable": true,
       "temporary": false,
       "destroy_after_battle": false,
       "tags": [
         "skill",
-        "energy"
+        "defense"
       ],
-      "icon_kind": "power",
+      "icon_kind": "shield_wall",
       "color": [
         0.15,
         0.74,
@@ -1821,16 +2139,23 @@
       ],
       "effects": [
         {
-          "type": "add_roll_start_bonus",
+          "type": "increment_counter",
+          "scope": "battle",
+          "counter": "roll_block_bonus",
           "value": 2
         },
         {
           "type": "destroy_self"
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "步步为营",
+      "tile_rare": "非凡",
+      "tile_describe": "每一次掷骰子，获得2点护甲。踩中后销毁自身"
     },
     {
-      "id": "T046",
+      "id": "T048",
       "type": "技能",
       "name": "全军出击",
       "rarity": "非凡",
@@ -1861,10 +2186,15 @@
         }
       ],
       "durability": 3,
-      "weakEffects": []
+      "weakEffects": [],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "全军出击",
+      "tile_rare": "非凡",
+      "tile_describe": "下一次掷骰子，三个棋子会一起按照格子骰出的数移动，耐久度3  虚弱状态：无效果"
     },
     {
-      "id": "T047",
+      "id": "T049",
       "type": "技能",
       "name": "无暇之盾",
       "rarity": "稀有",
@@ -1901,10 +2231,15 @@
             "player_damaged_in_battle": true
           }
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "无暇之盾",
+      "tile_rare": "稀有",
+      "tile_describe": "获得13点护盾，本场战斗收到一次伤害后，附加效果：骰子-1"
     },
     {
-      "id": "T048",
+      "id": "T050",
       "type": "攻击",
       "name": "无暇之刃",
       "rarity": "稀有",
@@ -1941,47 +2276,15 @@
             "player_damaged_in_battle": true
           }
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "无暇之刃",
+      "tile_rare": "稀有",
+      "tile_describe": "造成14点伤害，如果本场战斗收到一次伤害后，附加效果：骰子-1"
     },
     {
-      "id": "T049",
-      "type": "技能",
-      "name": "修修补补",
-      "rarity": "稀有",
-      "description": "获得6点护盾，所有需要耐久度的卡牌本场战斗耐久度+1",
-      "displayDescription": "获得6点护盾，所有需要耐久度的卡牌本场战斗耐久度+1",
-      "selectable": true,
-      "temporary": false,
-      "destroy_after_battle": false,
-      "tags": [
-        "skill"
-      ],
-      "icon_kind": "power",
-      "color": [
-        0.22,
-        0.52,
-        0.9,
-        1
-      ],
-      "accent": [
-        0.66,
-        0.92,
-        1,
-        1
-      ],
-      "effects": [
-        {
-          "type": "block",
-          "value": 6
-        },
-        {
-          "type": "add_durability_all",
-          "value": 1
-        }
-      ]
-    },
-    {
-      "id": "T050",
+      "id": "T051",
       "type": "技能",
       "name": "要来喽",
       "rarity": "非凡",
@@ -2009,58 +2312,26 @@
       "effects": [
         {
           "type": "generate_tile",
-          "tile": "T051",
-          "count": 1
-        },
-        {
-          "type": "destroy_self"
-        }
-      ]
-    },
-    {
-      "id": "T051",
-      "type": "技能",
-      "name": "真要来喽",
-      "rarity": "非凡",
-      "description": "本场战斗增加1个还不跑吗地块，消耗",
-      "displayDescription": "本场战斗增加1个还不跑吗地块，踩中后销毁该地块",
-      "selectable": false,
-      "temporary": true,
-      "destroy_after_battle": true,
-      "tags": [
-        "skill"
-      ],
-      "icon_kind": "power",
-      "color": [
-        0.18,
-        0.62,
-        0.82,
-        1
-      ],
-      "accent": [
-        1,
-        0.86,
-        0.22,
-        1
-      ],
-      "effects": [
-        {
-          "type": "generate_tile",
           "tile": "T052",
           "count": 1
         },
         {
           "type": "destroy_self"
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "要来喽",
+      "tile_rare": "非凡",
+      "tile_describe": "本场战斗增加1个真要来喽地块,踩中后销毁该地块"
     },
     {
       "id": "T052",
       "type": "技能",
-      "name": "还不跑吗",
+      "name": "真要来喽",
       "rarity": "非凡",
-      "description": "本场战斗增加1个阿姆斯特朗终极大炮地块，消耗",
-      "displayDescription": "本场战斗增加1个阿姆斯特朗终极大炮地块，踩中后销毁该地块",
+      "description": "本场战斗增加1个还不跑吗地块，消耗",
+      "displayDescription": "本场战斗增加1个还不跑吗地块，踩中后销毁该地块",
       "selectable": false,
       "temporary": true,
       "destroy_after_battle": true,
@@ -2089,10 +2360,57 @@
         {
           "type": "destroy_self"
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "真要来喽",
+      "tile_rare": "非凡",
+      "tile_describe": "本场战斗增加1个还不跑吗地块，踩中后销毁该地块"
     },
     {
       "id": "T053",
+      "type": "技能",
+      "name": "还不跑吗",
+      "rarity": "非凡",
+      "description": "本场战斗增加1个阿姆斯特朗终极大炮地块，消耗",
+      "displayDescription": "本场战斗增加1个阿姆斯特朗终极大炮地块，踩中后销毁该地块",
+      "selectable": false,
+      "temporary": true,
+      "destroy_after_battle": true,
+      "tags": [
+        "skill"
+      ],
+      "icon_kind": "power",
+      "color": [
+        0.18,
+        0.62,
+        0.82,
+        1
+      ],
+      "accent": [
+        1,
+        0.86,
+        0.22,
+        1
+      ],
+      "effects": [
+        {
+          "type": "generate_tile",
+          "tile": "T054",
+          "count": 1
+        },
+        {
+          "type": "destroy_self"
+        }
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "还不跑吗",
+      "tile_rare": "非凡",
+      "tile_describe": "本场战斗增加1个阿姆斯特朗终极大炮地块，踩中后销毁该地块"
+    },
+    {
+      "id": "T054",
       "type": "技能",
       "name": "阿姆斯特朗终极大炮",
       "rarity": "非凡",
@@ -2129,10 +2447,15 @@
           "type": "damage",
           "value": 15
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "阿姆斯特朗终极大炮",
+      "tile_rare": "非凡",
+      "tile_describe": "造成80点伤害，耐久度3 虚弱状态：造成15点伤害"
     },
     {
-      "id": "T054",
+      "id": "T055",
       "type": "技能",
       "name": "补给包",
       "rarity": "稀有",
@@ -2161,21 +2484,26 @@
       "effects": [
         {
           "type": "generate_tile",
-          "tile": "T055",
+          "tile": "T056",
           "count": 4
         },
         {
           "type": "destroy_self"
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "补给包",
+      "tile_rare": "稀有",
+      "tile_describe": "生成4个能量点地块，踩中后销毁该地块"
     },
     {
-      "id": "T055",
+      "id": "T056",
       "type": "技能",
       "name": "能量点",
       "rarity": "稀有",
-      "description": "获得1点能量,消耗",
-      "displayDescription": "获得1点能量,踩中后销毁该地块",
+      "description": "获得2点能量,消耗",
+      "displayDescription": "获得2点能量,踩中后销毁该地块",
       "selectable": false,
       "temporary": true,
       "destroy_after_battle": true,
@@ -2188,26 +2516,31 @@
         0.15,
         0.74,
         0.65,
-        1
+        1.0
       ],
       "accent": [
-        1,
+        1.0,
         0.86,
         0.22,
-        1
+        1.0
       ],
       "effects": [
         {
           "type": "add_rolls",
-          "value": 1
+          "value": 2
         },
         {
           "type": "destroy_self"
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "能量点",
+      "tile_rare": "稀有",
+      "tile_describe": "获得2点能量,踩中后销毁该地块"
     },
     {
-      "id": "T056",
+      "id": "T057",
       "type": "技能",
       "name": "补给站",
       "rarity": "非凡",
@@ -2236,16 +2569,21 @@
       "effects": [
         {
           "type": "add_turn_start_tile",
-          "tile": "T055",
+          "tile": "T056",
           "count": 1
         },
         {
           "type": "destroy_self"
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "补给站",
+      "tile_rare": "非凡",
+      "tile_describe": "每回合开始前，生成一个能量点地块，踩中后销毁该地块"
     },
     {
-      "id": "T057",
+      "id": "T058",
       "type": "技能",
       "name": "耐久中转站",
       "rarity": "非凡",
@@ -2273,16 +2611,21 @@
       "effects": [
         {
           "type": "add_turn_start_tile",
-          "tile": "T058",
+          "tile": "T059",
           "count": 1
         },
         {
           "type": "destroy_self"
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "耐久中转站",
+      "tile_rare": "非凡",
+      "tile_describe": "每回合开始前，生成一个耐久点地块，踩中后销毁该地块"
     },
     {
-      "id": "T058",
+      "id": "T059",
       "type": "技能",
       "name": "耐久点",
       "rarity": "非凡",
@@ -2316,10 +2659,15 @@
           "type": "add_durability_all",
           "value": 1
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "changed": false,
+      "tile_name": "耐久点",
+      "tile_rare": "非凡",
+      "tile_describe": "获得2点护盾，所有需要耐久度的卡牌本场战斗耐久度+1"
     },
     {
-      "id": "T059",
+      "id": "T060",
       "type": "技能",
       "name": "高效护卫",
       "rarity": "稀有",
@@ -2328,7 +2676,7 @@
       "selectable": true,
       "temporary": false,
       "destroy_after_battle": false,
-      "changed": true,
+      "changed": false,
       "tags": [
         "skill"
       ],
@@ -2353,10 +2701,14 @@
         {
           "type": "destroy_self"
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "tile_name": "高效护卫",
+      "tile_rare": "稀有",
+      "tile_describe": "获得2点敏捷(每获得一次格挡，在格挡基础上+2)，踩中后销毁该地块"
     },
     {
-      "id": "T060",
+      "id": "T061",
       "type": "技能",
       "name": "高效输出",
       "rarity": "稀有",
@@ -2365,7 +2717,7 @@
       "selectable": true,
       "temporary": false,
       "destroy_after_battle": false,
-      "changed": true,
+      "changed": false,
       "tags": [
         "skill"
       ],
@@ -2390,10 +2742,14 @@
         {
           "type": "destroy_self"
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "tile_name": "高效输出",
+      "tile_rare": "稀有",
+      "tile_describe": "获得2点力量(每造成一次伤害，在伤害基础上+2)，踩中后销毁该地块"
     },
     {
-      "id": "T061",
+      "id": "T062",
       "type": "技能",
       "name": "轻便护甲包",
       "rarity": "稀有",
@@ -2402,7 +2758,7 @@
       "selectable": true,
       "temporary": false,
       "destroy_after_battle": false,
-      "changed": true,
+      "changed": false,
       "tags": [
         "skill"
       ],
@@ -2423,14 +2779,18 @@
       "effects": [
         {
           "type": "generate_tile",
-          "tile": "T062",
+          "tile": "T063",
           "count": 3
         }
       ],
-      "weakEffects": []
+      "weakEffects": [],
+      "rarity_code": "common",
+      "tile_name": "轻便护甲包",
+      "tile_rare": "稀有",
+      "tile_describe": "生成3个护甲包地块，耐久度3 虚弱状态：无效果"
     },
     {
-      "id": "T062",
+      "id": "T063",
       "type": "技能",
       "name": "护甲包",
       "rarity": "稀有",
@@ -2439,7 +2799,7 @@
       "selectable": false,
       "temporary": true,
       "destroy_after_battle": true,
-      "changed": true,
+      "changed": false,
       "tags": [
         "skill"
       ],
@@ -2468,19 +2828,23 @@
         {
           "type": "destroy_self"
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "tile_name": "护甲包",
+      "tile_rare": "稀有",
+      "tile_describe": "获得8点护甲，能量+1"
     },
     {
-      "id": "T063",
+      "id": "T064",
       "type": "攻击",
-      "name": "充能剑",
+      "name": "充能巨剑",
       "rarity": "非凡",
       "description": "造成28点伤害，耐久度2 虚弱状态：造成10点伤害",
       "displayDescription": "造成28点伤害，耐久度2 虚弱状态：造成10点伤害",
       "selectable": true,
       "temporary": false,
       "destroy_after_battle": false,
-      "changed": true,
+      "changed": false,
       "tags": [
         "attack"
       ],
@@ -2489,13 +2853,13 @@
         0.96,
         0.3,
         0.36,
-        1
+        1.0
       ],
       "accent": [
         0.4,
-        1,
+        1.0,
         0.96,
-        1
+        1.0
       ],
       "durability": 2,
       "effects": [
@@ -2509,10 +2873,14 @@
           "type": "damage",
           "value": 10
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "tile_name": "充能巨剑",
+      "tile_rare": "非凡",
+      "tile_describe": "造成28点伤害，耐久度2 虚弱状态：造成10点伤害"
     },
     {
-      "id": "T064",
+      "id": "T065",
       "type": "诅咒",
       "name": "烈火",
       "rarity": "稀有",
@@ -2521,7 +2889,7 @@
       "selectable": false,
       "temporary": true,
       "destroy_after_battle": true,
-      "changed": true,
+      "changed": false,
       "tags": [
         "curse",
         "fire"
@@ -2550,10 +2918,14 @@
         {
           "type": "destroy_self"
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "tile_name": "烈火",
+      "tile_rare": "稀有",
+      "tile_describe": "棋子每次经过，玩家受到一点伤害，踩中后销毁该地块"
     },
     {
-      "id": "T065",
+      "id": "T066",
       "type": "诅咒",
       "name": "晕眩",
       "rarity": "稀有",
@@ -2562,7 +2934,7 @@
       "selectable": false,
       "temporary": true,
       "destroy_after_battle": true,
-      "changed": true,
+      "changed": false,
       "tags": [
         "curse",
         "stun"
@@ -2581,10 +2953,14 @@
         1
       ],
       "auto_destroy_end_turn": true,
-      "effects": []
+      "effects": [],
+      "rarity_code": "common",
+      "tile_name": "晕眩",
+      "tile_rare": "稀有",
+      "tile_describe": "无效果，玩家回合结束自动销毁"
     },
     {
-      "id": "T066",
+      "id": "T067",
       "type": "技能",
       "name": "及时救难",
       "rarity": "普通",
@@ -2593,7 +2969,7 @@
       "selectable": true,
       "temporary": false,
       "destroy_after_battle": false,
-      "changed": true,
+      "changed": false,
       "tags": [
         "skill",
         "heal"
@@ -2619,10 +2995,14 @@
         {
           "type": "destroy_self"
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "tile_name": "及时救难",
+      "tile_rare": "普通",
+      "tile_describe": "恢复7滴血，踩中后销毁该地块"
     },
     {
-      "id": "T067",
+      "id": "T068",
       "type": "诅咒",
       "name": "鼻涕液",
       "rarity": "普通",
@@ -2631,7 +3011,7 @@
       "selectable": false,
       "temporary": true,
       "destroy_after_battle": true,
-      "changed": true,
+      "changed": false,
       "tags": [
         "curse",
         "sticky"
@@ -2658,10 +3038,14 @@
         {
           "type": "destroy_self"
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "tile_name": "鼻涕液",
+      "tile_rare": "普通",
+      "tile_describe": "当棋子经过时，会强行黏住该棋子（无法到达目的地，在粘液这里就停住了,结束回合）,踩中后销毁该地块"
     },
     {
-      "id": "T068",
+      "id": "T069",
       "type": "诅咒",
       "name": "淤泥",
       "rarity": "普通",
@@ -2670,7 +3054,7 @@
       "selectable": false,
       "temporary": true,
       "destroy_after_battle": true,
-      "changed": true,
+      "changed": false,
       "tags": [
         "curse",
         "slime",
@@ -2693,19 +3077,23 @@
         {
           "type": "destroy_self"
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "tile_name": "淤泥",
+      "tile_rare": "普通",
+      "tile_describe": "踩中后销毁该地块"
     },
     {
-      "id": "T069",
+      "id": "T070",
       "type": "诅咒",
       "name": "骨头",
       "rarity": "普通",
-      "description": "无效果",
-      "displayDescription": "无效果",
+      "description": "当棋子经过或者踩中时会消耗它",
+      "displayDescription": "当棋子经过或者踩中时会消耗它",
       "selectable": false,
       "temporary": true,
       "destroy_after_battle": true,
-      "changed": true,
+      "changed": false,
       "tags": [
         "curse",
         "bone"
@@ -2723,10 +3111,26 @@
         0.75,
         1.0
       ],
-      "effects": []
+      "passEffects": [
+        {
+          "type": "destroy_self",
+          "condition": {
+            "pass_through_only": true
+          }
+        }
+      ],
+      "effects": [
+        {
+          "type": "destroy_self"
+        }
+      ],
+      "rarity_code": "common",
+      "tile_name": "骨头",
+      "tile_rare": "普通",
+      "tile_describe": "当棋子经过或者踩中时会消耗它"
     },
     {
-      "id": "T070",
+      "id": "T071",
       "type": "诅咒",
       "name": "月圆",
       "rarity": "普通",
@@ -2735,7 +3139,7 @@
       "selectable": false,
       "temporary": true,
       "destroy_after_battle": true,
-      "changed": true,
+      "changed": false,
       "tags": [
         "curse",
         "moon"
@@ -2759,10 +3163,14 @@
       "eventHooks": [
         "moon_counter"
       ],
-      "effects": []
+      "effects": [],
+      "rarity_code": "common",
+      "tile_name": "月圆",
+      "tile_rare": "普通",
+      "tile_describe": "玩家每骰一次骰子，记数+1，玩家每踩到地块一次，记数-2， 当记数=10时，该地块自动销毁"
     },
     {
-      "id": "T071",
+      "id": "T072",
       "type": "诅咒",
       "name": "分裂箭",
       "rarity": "普通",
@@ -2771,7 +3179,7 @@
       "selectable": false,
       "temporary": true,
       "destroy_after_battle": true,
-      "changed": true,
+      "changed": false,
       "tags": [
         "curse",
         "arrow"
@@ -2798,10 +3206,14 @@
         {
           "type": "destroy_self"
         }
-      ]
+      ],
+      "rarity_code": "common",
+      "tile_name": "分裂箭",
+      "tile_rare": "普通",
+      "tile_describe": "踩中对玩家造成5点无法被格挡的伤害，踩中后销毁该地块"
     },
     {
-      "id": "T072",
+      "id": "T073",
       "type": "诅咒",
       "name": "虚空",
       "rarity": "普通",
@@ -2810,7 +3222,7 @@
       "selectable": false,
       "temporary": true,
       "destroy_after_battle": true,
-      "changed": true,
+      "changed": false,
       "tags": [
         "curse",
         "void"
@@ -2828,42 +3240,323 @@
         1.0,
         1.0
       ],
-      "effects": []
+      "effects": [],
+      "rarity_code": "common",
+      "tile_name": "虚空",
+      "tile_rare": "普通",
+      "tile_describe": "无效果"
     },
     {
-      "id": "T901",
-      "type": "诅咒",
-      "name": "淤泥",
-      "rarity": "诅咒",
-      "description": "踩中后失去1次骰子机会",
-      "displayDescription": "踩中后失去1次骰子机会；战斗结束后消失",
-      "selectable": false,
-      "temporary": true,
-      "destroy_after_battle": true,
+      "id": "T074",
+      "type": "攻击",
+      "name": "扫射",
+      "rarity": "普通",
+      "rarity_code": "common",
+      "description": "对所有敌人造成8点伤害",
+      "displayDescription": "对所有敌人造成8点伤害",
+      "selectable": true,
+      "temporary": false,
+      "destroy_after_battle": false,
+      "changed": false,
       "tags": [
-        "curse",
-        "slime",
-        "mud"
+        "attack",
+        "aoe"
       ],
-      "icon_kind": "slime_mud",
+      "icon_kind": "sword",
       "color": [
-        0.2,
-        0.46,
-        0.28,
-        1
+        0.94,
+        0.3,
+        0.36,
+        1.0
       ],
       "accent": [
-        0.6,
-        0.95,
-        0.38,
-        1
+        1.0,
+        0.86,
+        0.22,
+        1.0
       ],
       "effects": [
         {
-          "type": "lose_rolls",
-          "value": 1
+          "type": "damage_all",
+          "value": 8
         }
-      ]
+      ],
+      "tile_name": "扫射",
+      "tile_rare": "普通",
+      "tile_describe": "对所有敌人造成8点伤害"
+    },
+    {
+      "id": "T075",
+      "type": "攻击",
+      "name": "小队出击",
+      "rarity": "稀有",
+      "rarity_code": "common",
+      "description": "对所有敌人造成16点伤害，耐久度2  虚弱状态：对所有人造成8点伤害",
+      "displayDescription": "对所有敌人造成16点伤害，耐久度2  虚弱状态：对所有人造成8点伤害",
+      "selectable": true,
+      "temporary": false,
+      "destroy_after_battle": false,
+      "changed": false,
+      "tags": [
+        "attack",
+        "aoe"
+      ],
+      "icon_kind": "sword",
+      "color": [
+        0.94,
+        0.3,
+        0.36,
+        1.0
+      ],
+      "accent": [
+        0.44,
+        1.0,
+        0.94,
+        1.0
+      ],
+      "durability": 2,
+      "effects": [
+        {
+          "type": "damage_all",
+          "value": 16
+        }
+      ],
+      "weakEffects": [
+        {
+          "type": "damage_all",
+          "value": 8
+        }
+      ],
+      "tile_name": "小队出击",
+      "tile_rare": "稀有",
+      "tile_describe": "对所有敌人造成16点伤害，耐久度2  虚弱状态：对所有人造成8点伤害"
+    },
+    {
+      "id": "T076",
+      "type": "技能",
+      "name": "定点清除",
+      "rarity": "稀有",
+      "rarity_code": "common",
+      "description": "获得1点能量，随机消耗场上个地块，耐久度2； 虚弱状态：无效果",
+      "displayDescription": "获得1点能量，随机消耗场上个地块，耐久度2； 虚弱状态：无效果",
+      "selectable": true,
+      "temporary": false,
+      "destroy_after_battle": false,
+      "changed": false,
+      "tags": [
+        "skill",
+        "energy",
+        "destroy"
+      ],
+      "icon_kind": "charge",
+      "durability": 2,
+      "effects": [
+        {
+          "type": "add_rolls",
+          "value": 1
+        },
+        {
+          "type": "destroy_tiles",
+          "targetRule": {
+            "type": "random",
+            "count": 1,
+            "excludeCurrent": true
+          },
+          "destroyMode": {
+            "type": "configured"
+          }
+        }
+      ],
+      "weakEffects": [],
+      "tile_name": "定点清除",
+      "tile_rare": "稀有",
+      "tile_describe": "获得1点能量，随机消耗场上个地块，耐久度2； 虚弱状态：无效果"
+    },
+    {
+      "id": "T077",
+      "type": "技能",
+      "name": "空降包",
+      "rarity": "非凡",
+      "rarity_code": "common",
+      "description": "本场战斗给场上两个随机非诅咒地块增加一个属性：汇聚：获得1点能量。      消耗",
+      "displayDescription": "本场战斗给场上两个随机非诅咒地块增加一个属性：汇聚：获得1点能量。    踩中后销毁该地块",
+      "selectable": true,
+      "temporary": false,
+      "destroy_after_battle": false,
+      "changed": false,
+      "tags": [
+        "skill",
+        "supply"
+      ],
+      "icon_kind": "lab",
+      "effects": [
+        {
+          "type": "add_converge_to_tiles",
+          "count": 2
+        },
+        {
+          "type": "destroy_self"
+        }
+      ],
+      "tile_name": "空降包",
+      "tile_rare": "非凡",
+      "tile_describe": "本场战斗给场上两个随机非诅咒地块增加一个属性：汇聚：获得1点能量。    踩中后销毁该地块"
+    },
+    {
+      "id": "T078",
+      "type": "技能",
+      "name": "流弹风暴",
+      "rarity": "非凡",
+      "rarity_code": "common",
+      "description": "本场战斗每投一次骰子，对全体敌人造成2点伤害。消耗",
+      "displayDescription": "本场战斗每投一次骰子，对全体敌人造成2点伤害。踩中后销毁该地块",
+      "selectable": true,
+      "temporary": false,
+      "destroy_after_battle": false,
+      "changed": false,
+      "tags": [
+        "skill",
+        "aoe"
+      ],
+      "icon_kind": "sword",
+      "effects": [
+        {
+          "type": "increment_counter",
+          "scope": "battle",
+          "counter": "stray_bullet_storm",
+          "value": 1
+        },
+        {
+          "type": "destroy_self"
+        }
+      ],
+      "tile_name": "流弹风暴",
+      "tile_rare": "非凡",
+      "tile_describe": "本场战斗每投一次骰子，对全体敌人造成2点伤害。踩中后销毁该地块"
+    },
+    {
+      "id": "T079",
+      "type": "技能",
+      "name": "肾上腺素",
+      "rarity": "非凡",
+      "rarity_code": "common",
+      "description": "本回合内所有棋子踩中的耐力消耗变为0。踩中会变为虚弱地块。",
+      "displayDescription": "本回合内所有棋子踩中的耐力消耗变为0。踩中后变为虚弱地块。",
+      "selectable": true,
+      "temporary": false,
+      "destroy_after_battle": false,
+      "changed": false,
+      "tags": [
+        "skill",
+        "durability"
+      ],
+      "icon_kind": "charge",
+      "durability": 1,
+      "effects": [
+        {
+          "type": "increment_counter",
+          "scope": "turn",
+          "counter": "no_durability_cost_turn",
+          "value": 1
+        },
+        {
+          "type": "set_tile_weak"
+        }
+      ],
+      "weakEffects": [],
+      "tile_name": "肾上腺素",
+      "tile_rare": "非凡",
+      "tile_describe": "本回合内所有棋子踩中的耐力消耗变为0。踩中后变为虚弱地块。"
+    },
+    {
+      "id": "T080",
+      "type": "诅咒",
+      "name": "虚弱",
+      "rarity": "普通",
+      "rarity_code": "common",
+      "description": "每一回合开始，所有需要耐力的棋子耐力-1，踩中自毁",
+      "displayDescription": "每一回合开始，所有需要耐力的棋子耐力-1，踩中后销毁该地块",
+      "selectable": false,
+      "temporary": true,
+      "destroy_after_battle": true,
+      "changed": false,
+      "tags": [
+        "curse",
+        "weakness"
+      ],
+      "icon_kind": "void",
+      "effects": [
+        {
+          "type": "destroy_self"
+        }
+      ],
+      "tile_name": "虚弱",
+      "tile_rare": "普通",
+      "tile_describe": "每一回合开始，所有需要耐力的棋子耐力-1，踩中后销毁该地块"
+    },
+    {
+      "id": "T081",
+      "type": "技能",
+      "name": "黄金",
+      "rarity": "普通",
+      "rarity_code": "common",
+      "description": "获得15个金币，消耗",
+      "displayDescription": "获得15个金币，消耗",
+      "selectable": false,
+      "temporary": true,
+      "destroy_after_battle": true,
+      "changed": false,
+      "tags": [
+        "skill",
+        "gold"
+      ],
+      "icon_kind": "coin",
+      "color": [
+        0.95,
+        0.6,
+        0.18,
+        1.0
+      ],
+      "accent": [
+        1.0,
+        0.95,
+        0.28,
+        1.0
+      ],
+      "effects": [
+        {
+          "type": "add_coins",
+          "value": 15
+        },
+        {
+          "type": "destroy_self"
+        }
+      ],
+      "tile_name": "黄金",
+      "tile_rare": "普通",
+      "tile_describe": "获得15个金币，消耗"
+    },
+    {
+      "id": "T082",
+      "type": "诅咒",
+      "name": "头疼",
+      "rarity": "普通",
+      "rarity_code": "common",
+      "description": "无效果",
+      "displayDescription": "无效果",
+      "selectable": false,
+      "temporary": true,
+      "destroy_after_battle": true,
+      "changed": false,
+      "tags": [
+        "curse",
+        "headache"
+      ],
+      "icon_kind": "void",
+      "effects": [],
+      "tile_name": "头疼",
+      "tile_rare": "普通",
+      "tile_describe": "无效果"
     }
   ]
 }

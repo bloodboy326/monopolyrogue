@@ -24,6 +24,7 @@ var tile_data: Dictionary = {}
 var weak = false
 var durability = 0
 var max_durability = 0
+var tile_buffs: Array = []
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -43,6 +44,7 @@ func setup(index: int, data: Dictionary) -> void:
 	weak = bool(data.get("weak", false)) or bool(data.get("runtime_flags", {}).get("temporarily_destroyed", false))
 	durability = int(data.get("durability", 0))
 	max_durability = int(data.get("maxDurability", 0))
+	tile_buffs = data.get("tileBuffs", []).duplicate(true)
 	queue_redraw()
 
 func set_insert_hint(value: bool) -> void:
@@ -113,6 +115,8 @@ func _draw() -> void:
 		_draw_tile_icon()
 	if max_durability > 0:
 		_draw_durability_badge(r)
+	if not tile_buffs.is_empty():
+		_draw_tile_buff_icons(r)
 	if weak:
 		_draw_weak_overlay(r)
 	if glow > 0.0:
@@ -146,3 +150,33 @@ func _draw_durability_badge(rect: Rect2) -> void:
 func _draw_weak_overlay(rect: Rect2) -> void:
 	draw_rect(rect.grow(-6.0), Color(0.03, 0.04, 0.06, 0.52), true)
 	TileCardFrame.draw_rect_outline(self, rect.grow(-7.0), Color(0.55, 0.66, 0.78, 0.80), max(2.0, size.x * 0.035))
+
+func _draw_tile_buff_icons(rect: Rect2) -> void:
+	var icon_size = clamp(size.x * 0.22, 15.0, 22.0)
+	var gap = icon_size * 0.16
+	var visible_buffs: Array = []
+	for buff in tile_buffs:
+		if typeof(buff) == TYPE_DICTIONARY:
+			visible_buffs.append(buff)
+	var total_width = visible_buffs.size() * icon_size + max(0, visible_buffs.size() - 1) * gap
+	var start_x = rect.position.x + rect.size.x * 0.5 - total_width * 0.5
+	var y = rect.end.y - icon_size * 0.18
+	for i in range(visible_buffs.size()):
+		var buff: Dictionary = visible_buffs[i]
+		var buff_rect = Rect2(Vector2(start_x + i * (icon_size + gap), y), Vector2(icon_size, icon_size))
+		_draw_single_tile_buff(buff_rect, str(buff.get("icon", buff.get("id", ""))))
+
+func _draw_single_tile_buff(rect: Rect2, icon_key: String) -> void:
+	var center = rect.get_center()
+	var radius = rect.size.x * 0.5
+	draw_circle(center + Vector2(1.5, 2.0), radius, Color(0, 0, 0, 0.42))
+	draw_circle(center, radius, Color(0.02, 0.03, 0.04, 0.96))
+	match icon_key:
+		"converge":
+			draw_circle(center, radius * 0.78, Color(0.10, 0.74, 0.78, 0.98))
+			draw_arc(center, radius * 0.46, PI * 0.08, PI * 1.50, 18, Color.WHITE, max(1.4, radius * 0.16), true)
+			var tip = center + Vector2(radius * 0.42, -radius * 0.08)
+			draw_polygon(PackedVector2Array([tip, tip + Vector2(-radius * 0.24, -radius * 0.15), tip + Vector2(-radius * 0.08, radius * 0.20)]), PackedColorArray([Color.WHITE, Color.WHITE, Color.WHITE]))
+		_:
+			draw_circle(center, radius * 0.78, Color(0.50, 0.54, 0.62, 0.98))
+			draw_circle(center, radius * 0.24, Color.WHITE)

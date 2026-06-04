@@ -7,6 +7,11 @@ const DiceAnimator = preload("res://scripts/components/DiceAnimator.gd")
 const PawnMover = preload("res://scripts/components/PawnMover.gd")
 const TileJuice = preload("res://scripts/components/TileJuice.gd")
 const TileChoiceCard = preload("res://scripts/components/TileChoiceCard.gd")
+const RelicChoiceCard = preload("res://scripts/components/RelicChoiceCard.gd")
+const ShopRelicItem = preload("res://scripts/components/ShopRelicItem.gd")
+const ShopRemoveTileButton = preload("res://scripts/components/ShopRemoveTileButton.gd")
+const GeneratedRelicIcon = preload("res://scripts/components/GeneratedRelicIcon.gd")
+const TargetReticle = preload("res://scripts/components/TargetReticle.gd")
 const FloatingText = preload("res://scripts/components/FloatingText.gd")
 const ScreenShake = preload("res://scripts/components/ScreenShake.gd")
 const BoardPath = preload("res://scripts/components/BoardPath.gd")
@@ -35,6 +40,9 @@ const ActMapOverlay = preload("res://scripts/components/ActMapOverlay.gd")
 
 const BOARD_VIEW_SCALE = 1.0
 const BOARD_START_ANGLE = -PI * 0.5
+const BASE_WINDOW_SIZE = Vector2i(960, 800)
+const WINDOW_SIZE_SCALES = [1.0, 1.5, 2.0, 2.5]
+const DEFAULT_WINDOW_SIZE_INDEX = 2
 
 var rng = RandomNumberGenerator.new()
 var monster_config: Dictionary = {}
@@ -64,12 +72,18 @@ var round_label: Label
 var player_hp_bar: Control
 var player_hp_label: Label
 var player_block_label: Label
+var coin_label: Label
+var relic_bar: HBoxContainer
 var monster_name_label: Label
 var monster_hp_bar: Control
 var monster_hp_label: Label
 var roll_result_label: Label
 var action_banner: Label
 var cancel_action_button: Button
+var size_selector: OptionButton
+var gm_heal_button: Button
+var gm_gold_button: Button
+var gm_kill_button: Button
 var round_flash: ColorRect
 var map_overlay
 var choice_overlay: Control
@@ -88,6 +102,7 @@ var monster_hp_labels: Array = []
 var monster_intent_icons: Array = []
 var monster_intent_labels: Array = []
 var monster_hit_areas: Array = []
+var monster_target_reticles: Array = []
 
 var tiles_data: Array[Dictionary] = []
 var tile_nodes: Array = []
@@ -118,10 +133,24 @@ var mode = "play"
 var roll_locked = false
 var selecting_damage_target := false
 var pending_tile: Dictionary = {}
+var pending_relic_choice_count := 0
+var pending_room_reward_gold := 0
+var shop_price_labels: Array = []
+var shop_relic_items: Array = []
+var shop_remove_button: Control
+var current_shop_node_id := ""
+var current_shop_cards: Array[Dictionary] = []
+var current_shop_relics: Array[Dictionary] = []
+var current_shop_remove_used := false
+var pending_insert_return := ""
+var pending_shop_card_index := -1
+var pending_shop_card_price := 0
+var last_monster_by_room_type: Dictionary = {}
 var batch_remaining = 0
 
 func _ready() -> void:
 	rng.randomize()
+	_apply_window_size_index(DEFAULT_WINDOW_SIZE_INDEX, false)
 	_load_game_definitions()
 	_build_scene()
 	_start_new_game()
@@ -252,8 +281,16 @@ func _build_boss() -> void:
 		hit_area.z_index = 95
 		hit_area.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		hit_area.gui_input.connect(_on_monster_hit_area_input.bind(i))
+		hit_area.mouse_entered.connect(_on_monster_hit_area_entered.bind(i))
+		hit_area.mouse_exited.connect(_on_monster_hit_area_exited.bind(i))
 		boss_layer.add_child(hit_area)
 		monster_hit_areas.append(hit_area)
+
+		var reticle = TargetReticle.new()
+		reticle.name = "TargetReticle%d" % i
+		reticle.z_index = 110
+		boss_layer.add_child(reticle)
+		monster_target_reticles.append(reticle)
 
 	boss_view = monster_views[0]
 	intent_icon = monster_intent_icons[0]
@@ -277,6 +314,30 @@ func _build_hud() -> void:
 
 	player_block_label = _make_label("护盾 0", 22, Color(0.55, 0.85, 1.0), HORIZONTAL_ALIGNMENT_LEFT)
 	hud_layer.add_child(player_block_label)
+
+	coin_label = _make_label("金币 0", 20, Color(1.0, 0.86, 0.24), HORIZONTAL_ALIGNMENT_LEFT)
+	coin_label.z_index = 112
+	hud_layer.add_child(coin_label)
+
+	relic_bar = HBoxContainer.new()
+	relic_bar.name = "RelicBar"
+	relic_bar.z_index = 112
+	relic_bar.alignment = BoxContainer.ALIGNMENT_BEGIN
+	relic_bar.add_theme_constant_override("separation", 8)
+	hud_layer.add_child(relic_bar)
+
+	size_selector = OptionButton.new()
+	size_selector.name = "WindowSizeSelector"
+	size_selector.z_index = 132
+	size_selector.focus_mode = Control.FOCUS_NONE
+	size_selector.add_theme_font_size_override("font_size", 16)
+	for i in range(WINDOW_SIZE_SCALES.size()):
+		var scale_value = float(WINDOW_SIZE_SCALES[i])
+		var window_size = Vector2i(roundi(BASE_WINDOW_SIZE.x * scale_value), roundi(BASE_WINDOW_SIZE.y * scale_value))
+		size_selector.add_item("%s×  %d×%d" % [_format_scale_label(scale_value), window_size.x, window_size.y], i)
+	size_selector.select(DEFAULT_WINDOW_SIZE_INDEX)
+	size_selector.item_selected.connect(_on_window_size_selected)
+	hud_layer.add_child(size_selector)
 
 	roll_result_label = _make_label("准备战斗", 22, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
 	roll_result_label.z_index = 120
@@ -345,6 +406,21 @@ func _build_hud() -> void:
 	roll_counter_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hud_layer.add_child(roll_counter_badge)
 
+	gm_heal_button = _make_button("GM +50血", Color(0.50, 0.96, 0.52))
+	gm_heal_button.z_index = 130
+	gm_heal_button.pressed.connect(_on_gm_heal_pressed)
+	hud_layer.add_child(gm_heal_button)
+
+	gm_gold_button = _make_button("GM +10000金", Color(1.0, 0.82, 0.22))
+	gm_gold_button.z_index = 130
+	gm_gold_button.pressed.connect(_on_gm_gold_pressed)
+	hud_layer.add_child(gm_gold_button)
+
+	gm_kill_button = _make_button("GM 秒杀", Color(1.0, 0.44, 0.36))
+	gm_kill_button.z_index = 130
+	gm_kill_button.pressed.connect(_on_gm_kill_pressed)
+	hud_layer.add_child(gm_kill_button)
+
 func _build_pawns() -> void:
 	for color_key in pawn_order:
 		var pawn = PawnMover.new()
@@ -388,6 +464,14 @@ func _start_new_game() -> void:
 	current_battle_rolls = 3
 	current_map_node_id = ""
 	selected_map_node.clear()
+	last_monster_by_room_type.clear()
+	current_shop_node_id = ""
+	current_shop_cards.clear()
+	current_shop_relics.clear()
+	current_shop_remove_used = false
+	pending_insert_return = ""
+	pending_shop_card_index = -1
+	pending_shop_card_price = 0
 	act_map = MapConfig.generate_act_map(map_config, 1, rng)
 	run_state = RunState.new()
 	run_state.setup(tile_definitions, relic_definitions, buff_definitions, rng.randi(), "T001", 6)
@@ -417,21 +501,493 @@ func _on_map_node_selected(node_id: String) -> void:
 	_sfx("ui_click", -2.5)
 	selected_map_node = node
 	current_map_node_id = node_id
-	if str(node.get("room_type", "MONSTER")) == "REST":
-		_resolve_rest_node()
-		return
-	var monster_id = MapConfig.pick_monster_for_node(map_config, node, rng)
+	var room_type = str(node.get("room_type", "MONSTER"))
+	match room_type:
+		"REST":
+			_show_rest_overlay()
+			return
+		"SHOP", "EVENT":
+			_show_shop_overlay()
+			return
+		"CHEST":
+			_show_chest_overlay()
+			return
+	var repeat_key = "ELITE" if room_type == "ELITE" else ("BOSS" if room_type == "BOSS" else "MONSTER")
+	var avoid_monsters: Array = []
+	if last_monster_by_room_type.has(repeat_key):
+		avoid_monsters.append(str(last_monster_by_room_type[repeat_key]))
+	var monster_id = MapConfig.pick_monster_for_node(map_config, node, rng, avoid_monsters)
+	last_monster_by_room_type[repeat_key] = monster_id
 	var monster_def = MonsterConfig.encounter(monster_config, monster_id)
 	if monster_def.is_empty():
 		monster_def = MonsterConfig.encounter(monster_config, "slime")
 	_begin_battle(monster_def, int(node.get("floor", battle_number)), int(node.get("rolls", 3)))
 
 func _resolve_rest_node() -> void:
-	if run_state != null:
-		var heal_amount = max(1, int(ceil(float(run_state.player_max_hp) * 0.18)))
-		run_state.player_hp = min(run_state.player_max_hp, run_state.player_hp + heal_amount)
-		_sfx("player_block", -4.0, 1.05)
-	_show_map()
+	_show_rest_overlay()
+
+func _show_shop_overlay() -> void:
+	mode = "shop"
+	roll_locked = true
+	map_overlay.visible = false
+	_clear_overlay(choice_overlay)
+	choice_overlay.visible = true
+	shop_price_labels.clear()
+	shop_relic_items.clear()
+	shop_remove_button = null
+	_ensure_shop_inventory()
+	var viewport_size = get_viewport_rect().size
+	_add_room_background(choice_overlay, "res://assets/generated/rooms/shop_interior.png", Color(0.05, 0.035, 0.035, 0.78))
+	var title = _make_label("地精商店", 38, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
+	title.position = Vector2(viewport_size.x * 0.5 - 260, 34)
+	title.size = Vector2(520, 52)
+	choice_overlay.add_child(title)
+	var coins = _make_label("金币 %d" % run_state.coins, 24, Color(1.0, 0.86, 0.24), HORIZONTAL_ALIGNMENT_RIGHT)
+	coins.position = Vector2(viewport_size.x - 220, 38)
+	coins.size = Vector2(180, 38)
+	choice_overlay.add_child(coins)
+
+	if not ResourceLoader.exists("res://assets/generated/rooms/shop_interior.png") and ResourceLoader.exists("res://assets/generated/rooms/goblin_shopkeeper.png"):
+		var shopkeeper = TextureRect.new()
+		shopkeeper.texture = load("res://assets/generated/rooms/goblin_shopkeeper.png")
+		shopkeeper.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		shopkeeper.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		shopkeeper.position = Vector2(58, viewport_size.y * 0.19)
+		shopkeeper.size = Vector2(176, 220)
+		choice_overlay.add_child(shopkeeper)
+
+	var card_specs = current_shop_cards
+	var card_width: float = clamp(viewport_size.x * 0.145, 142.0, 178.0)
+	var card_height: float = clamp(viewport_size.y * 0.31, 238.0, 286.0)
+	var start_x = viewport_size.x * 0.5 - (card_width * 4.0 + 26.0 * 3.0) * 0.5
+	var y = viewport_size.y * 0.16
+	for i in range(card_specs.size()):
+		var spec: Dictionary = card_specs[i]
+		var tile_id = str(spec.get("tile_id", "T001"))
+		var price = int(spec.get("price", 50))
+		var purchased = bool(spec.get("purchased", false))
+		var card = TileChoiceCard.new()
+		card.setup(i, _make_tile(tile_id))
+		card.size = Vector2(card_width, card_height)
+		card.custom_minimum_size = card.size
+		card.position = Vector2(start_x + (card_width + 26.0) * i, y)
+		card.pivot_offset = card.size * 0.5
+		if purchased:
+			card.modulate = Color(0.48, 0.48, 0.50, 0.62)
+			card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		else:
+			card.picked.connect(_on_shop_card_picked.bind(i, card, coins))
+		card.info_hovered.connect(_show_tile_tooltip)
+		card.info_hidden.connect(_hide_tile_tooltip)
+		card.reference_hovered.connect(_show_reference_tooltip)
+		choice_overlay.add_child(card)
+		var price_label = _make_label("%d 金币" % price, 18, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
+		price_label.position = card.position + Vector2(0, card_height + 8)
+		price_label.size = Vector2(card_width, 26)
+		price_label.set_meta("price", price)
+		price_label.set_meta("purchased", purchased)
+		price_label.set_meta("shop_index", i)
+		if purchased:
+			price_label.text = "已购买"
+			price_label.add_theme_color_override("font_color", Color(0.70, 0.72, 0.76))
+		choice_overlay.add_child(price_label)
+		shop_price_labels.append(price_label)
+
+	var relic_choices = current_shop_relics
+	var relic_width: float = clamp(viewport_size.x * 0.12, 110.0, 138.0)
+	var relic_height: float = clamp(viewport_size.y * 0.18, 126.0, 154.0)
+	var relic_start_x = viewport_size.x * 0.5 - (relic_width * max(1, relic_choices.size()) + 42.0 * max(0, relic_choices.size() - 1)) * 0.5
+	var relic_y = viewport_size.y * 0.64
+	for i in range(relic_choices.size()):
+		var relic_spec: Dictionary = relic_choices[i]
+		var relic_id = str(relic_spec.get("relic_id", ""))
+		var relic_def: Dictionary = relic_definitions.get(relic_id, {"id": relic_id})
+		var relic_price = int(relic_spec.get("price", _shop_relic_price(relic_def)))
+		var relic_purchased = bool(relic_spec.get("purchased", false))
+		var relic_card = ShopRelicItem.new()
+		relic_card.setup(i, relic_def, relic_price, run_state.coins >= relic_price, relic_purchased)
+		relic_card.size = Vector2(relic_width, relic_height)
+		relic_card.custom_minimum_size = relic_card.size
+		relic_card.position = Vector2(relic_start_x + (relic_width + 42.0) * i, relic_y)
+		relic_card.pivot_offset = relic_card.size * 0.5
+		if relic_purchased:
+			relic_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		else:
+			relic_card.picked.connect(_on_shop_relic_picked.bind(i, relic_card, coins))
+		relic_card.info_hovered.connect(_show_relic_tooltip)
+		relic_card.info_hidden.connect(_hide_tile_tooltip)
+		choice_overlay.add_child(relic_card)
+		shop_relic_items.append(relic_card)
+
+	var remove_price = run_state.shop_remove_price()
+	shop_remove_button = ShopRemoveTileButton.new()
+	shop_remove_button.setup(remove_price, run_state.coins >= remove_price and run_state.board.size() > 1 and not current_shop_remove_used, current_shop_remove_used)
+	shop_remove_button.size = Vector2(150, 154)
+	shop_remove_button.position = Vector2(viewport_size.x - 204, viewport_size.y * 0.58)
+	shop_remove_button.pivot_offset = shop_remove_button.size * 0.5
+	shop_remove_button.picked.connect(_show_shop_delete_overlay)
+	choice_overlay.add_child(shop_remove_button)
+
+	var leave = _make_button("继续前进", Color(0.16, 0.82, 0.72))
+	leave.position = Vector2(viewport_size.x - 200, viewport_size.y - 78)
+	leave.size = Vector2(160, 50)
+	leave.pressed.connect(_show_map)
+	choice_overlay.add_child(leave)
+	_refresh_shop_prices(coins)
+	_update_ui()
+
+func _ensure_shop_inventory() -> void:
+	var shop_key = current_map_node_id if not current_map_node_id.is_empty() else "shop_%d" % battle_number
+	if current_shop_node_id == shop_key and not current_shop_cards.is_empty():
+		return
+	current_shop_node_id = shop_key
+	current_shop_remove_used = false
+	current_shop_cards.clear()
+	current_shop_relics.clear()
+	for spec in _shop_card_specs():
+		var card_spec: Dictionary = spec.duplicate(true)
+		card_spec["purchased"] = false
+		current_shop_cards.append(card_spec)
+	for relic_id in run_state.draw_relic_choices(3):
+		var relic_def: Dictionary = relic_definitions.get(str(relic_id), {"id": str(relic_id)})
+		current_shop_relics.append({
+			"relic_id": str(relic_id),
+			"price": _shop_relic_price(relic_def),
+			"purchased": false
+		})
+
+func _shop_card_specs() -> Array[Dictionary]:
+	var specs: Array[Dictionary] = []
+	for tile_id in run_state.draw_tile_choices_by_rarity(2, "common"):
+		specs.append({"tile_id": tile_id, "price": rng.randi_range(50, 70)})
+	for tile_id in run_state.draw_tile_choices_by_rarity(1, "rare"):
+		specs.append({"tile_id": tile_id, "price": rng.randi_range(90, 120)})
+	for tile_id in run_state.draw_tile_choices_by_rarity(1, "uncommon"):
+		specs.append({"tile_id": tile_id, "price": rng.randi_range(130, 160)})
+	while specs.size() < 4:
+		var fallback = run_state.draw_tile_choices(1)
+		if fallback.is_empty():
+			break
+		specs.append({"tile_id": fallback[0], "price": rng.randi_range(60, 90)})
+	return specs
+
+func _shop_relic_price(relic_def: Dictionary) -> int:
+	var price = int(relic_def.get("price", 0))
+	if price > 0:
+		return price
+	match str(relic_def.get("rarity_code", "common")):
+		"rare":
+			return rng.randi_range(190, 230)
+		"uncommon":
+			return rng.randi_range(210, 250)
+		_:
+			return rng.randi_range(140, 180)
+
+func _on_shop_card_picked(_idx: int, shop_index: int, card: Control, coins_label: Label) -> void:
+	if shop_index < 0 or shop_index >= current_shop_cards.size():
+		return
+	var spec: Dictionary = current_shop_cards[shop_index]
+	if bool(spec.get("purchased", false)):
+		return
+	var tile_id = str(spec.get("tile_id", "T001"))
+	var price = int(spec.get("price", 50))
+	if not run_state.spend_coins(price):
+		_sfx("ui_cancel", -4.0)
+		_negative_feedback(card)
+		return
+	spec["purchased"] = true
+	current_shop_cards[shop_index] = spec
+	pending_shop_card_index = shop_index
+	pending_shop_card_price = price
+	pending_insert_return = "shop"
+	pending_tile = _make_tile(tile_id)
+	card.modulate = Color(0.48, 0.48, 0.50, 0.62)
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_mark_shop_label_purchased(shop_index)
+	_refresh_shop_prices(coins_label)
+	_update_ui()
+	_sfx("reward_pick", -3.0)
+	choice_overlay.visible = false
+	enter_insert_mode()
+
+func _on_shop_relic_picked(_idx: int, shop_index: int, card: Control, coins_label: Label) -> void:
+	if shop_index < 0 or shop_index >= current_shop_relics.size():
+		return
+	var spec: Dictionary = current_shop_relics[shop_index]
+	if bool(spec.get("purchased", false)):
+		return
+	var relic_id = str(spec.get("relic_id", ""))
+	var price = int(spec.get("price", 0))
+	if not run_state.spend_coins(price):
+		_sfx("ui_cancel", -4.0)
+		_negative_feedback(card)
+		return
+	run_state.add_relic(relic_id)
+	spec["purchased"] = true
+	current_shop_relics[shop_index] = spec
+	card.modulate = Color(0.50, 0.50, 0.52, 0.68)
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if card.has_method("setup"):
+		card.setup(_idx, relic_definitions.get(relic_id, {"id": relic_id}), price, true, true)
+	_refresh_shop_prices(coins_label)
+	_update_ui()
+	_sfx("reward_pick", -3.0)
+
+func _mark_shop_label_purchased(shop_index: int) -> void:
+	for label in shop_price_labels:
+		if int(label.get_meta("shop_index", -1)) != shop_index:
+			continue
+		label.text = "已购买"
+		label.set_meta("purchased", true)
+		label.add_theme_color_override("font_color", Color(0.70, 0.72, 0.76))
+		return
+
+func _refresh_shop_prices(coins_label: Label) -> void:
+	if coins_label != null:
+		coins_label.text = "金币 %d" % run_state.coins
+	for label in shop_price_labels:
+		if bool(label.get_meta("purchased", false)):
+			continue
+		var price = int(label.get_meta("price", 0))
+		var color = Color(1.0, 0.86, 0.24) if run_state.coins >= price else Color(1.0, 0.28, 0.34)
+		label.add_theme_color_override("font_color", color)
+	for item in shop_relic_items:
+		if item != null and is_instance_valid(item) and item.has_method("setup"):
+			item.setup(item.item_index, item.relic_data, item.price, run_state.coins >= item.price, item.purchased)
+	if shop_remove_button != null and shop_remove_button.has_method("setup"):
+		var remove_price = run_state.shop_remove_price()
+		shop_remove_button.setup(remove_price, run_state.coins >= remove_price and run_state.board.size() > 1 and not current_shop_remove_used, current_shop_remove_used)
+
+func _show_shop_delete_overlay() -> void:
+	if run_state == null:
+		return
+	if current_shop_remove_used:
+		_sfx("ui_cancel", -4.0)
+		return
+	mode = "shop_delete"
+	_clear_overlay(choice_overlay)
+	choice_overlay.visible = true
+	shop_price_labels.clear()
+	shop_relic_items.clear()
+	shop_remove_button = null
+	var viewport_size = get_viewport_rect().size
+	choice_overlay.add_child(_make_overlay_dim(Color(0.03, 0.035, 0.04, 0.92)))
+	var title = _make_label("选择要删除的地块", 34, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
+	title.position = Vector2(viewport_size.x * 0.5 - 260, 42)
+	title.size = Vector2(520, 48)
+	choice_overlay.add_child(title)
+	var price = run_state.shop_remove_price()
+	var price_label = _make_label("本次删除：%d 金币" % price, 22, Color(1.0, 0.84, 0.24) if run_state.coins >= price else Color(1.0, 0.28, 0.34), HORIZONTAL_ALIGNMENT_CENTER)
+	price_label.position = Vector2(viewport_size.x * 0.5 - 220, 92)
+	price_label.size = Vector2(440, 34)
+	choice_overlay.add_child(price_label)
+	var back = _make_button("返回商店", Color(0.16, 0.82, 0.72))
+	back.position = Vector2(40, viewport_size.y - 78)
+	back.size = Vector2(150, 50)
+	back.pressed.connect(_show_shop_overlay)
+	choice_overlay.add_child(back)
+	var tile_size = 78.0
+	var gap = 18.0
+	var columns = max(3, min(8, int((viewport_size.x - 140.0) / (tile_size + gap))))
+	var total_width = float(columns) * tile_size + float(columns - 1) * gap
+	var start_x = viewport_size.x * 0.5 - total_width * 0.5
+	var start_y = 154.0
+	_sync_from_run_state()
+	for i in range(tiles_data.size()):
+		var tile = TileJuice.new()
+		tile.setup(i, tiles_data[i])
+		tile.size = Vector2(tile_size, tile_size)
+		tile.custom_minimum_size = tile.size
+		var row = int(i / columns)
+		var col = i % columns
+		tile.position = Vector2(start_x + col * (tile_size + gap), start_y + row * (tile_size + gap + 18.0))
+		tile.pivot_offset = tile.size * 0.5
+		tile.set_delete_hint(true)
+		tile.picked.connect(_confirm_shop_delete_tile)
+		tile.info_hovered.connect(_show_tile_tooltip)
+		tile.info_hidden.connect(_hide_tile_tooltip)
+		choice_overlay.add_child(tile)
+
+func _confirm_shop_delete_tile(index: int) -> void:
+	if run_state == null or index < 0 or index >= run_state.board.size():
+		return
+	var tile = run_state.board.get_tile(index)
+	if tile == null:
+		return
+	var price = run_state.shop_remove_price()
+	var viewport_size = get_viewport_rect().size
+	var modal = PanelContainer.new()
+	modal.z_index = 260
+	modal.add_theme_stylebox_override("panel", _make_panel_style(Color(0.05, 0.05, 0.065, 0.98), Color(1.0, 0.82, 0.22), 8))
+	modal.position = Vector2(viewport_size.x * 0.5 - 210, viewport_size.y * 0.5 - 100)
+	modal.size = Vector2(420, 200)
+	choice_overlay.add_child(modal)
+	var stack = VBoxContainer.new()
+	stack.alignment = BoxContainer.ALIGNMENT_CENTER
+	stack.add_theme_constant_override("separation", 12)
+	modal.add_child(stack)
+	var label = _make_label("确认删除「%s」？" % tile.name, 23, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
+	label.custom_minimum_size = Vector2(380, 38)
+	stack.add_child(label)
+	var cost = _make_label("消耗 %d 金币，删除后不会再出现在轮盘里。" % price, 18, Color(0.96, 0.86, 0.28), HORIZONTAL_ALIGNMENT_CENTER)
+	cost.custom_minimum_size = Vector2(380, 34)
+	stack.add_child(cost)
+	var buttons = HBoxContainer.new()
+	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
+	buttons.add_theme_constant_override("separation", 18)
+	stack.add_child(buttons)
+	var confirm = _make_button("确认删除", Color(1.0, 0.36, 0.42))
+	confirm.custom_minimum_size = Vector2(136, 46)
+	confirm.pressed.connect(func() -> void:
+		modal.queue_free()
+		_perform_shop_delete_tile(index)
+	)
+	buttons.add_child(confirm)
+	var cancel = _make_button("取消", Color(0.44, 0.48, 0.54))
+	cancel.custom_minimum_size = Vector2(112, 46)
+	cancel.pressed.connect(func() -> void:
+		modal.queue_free()
+	)
+	buttons.add_child(cancel)
+
+func _perform_shop_delete_tile(index: int) -> void:
+	if run_state == null:
+		return
+	if current_shop_remove_used:
+		_sfx("ui_cancel", -4.0)
+		return
+	var price = run_state.shop_remove_price()
+	if run_state.board.size() <= 1 or not run_state.spend_coins(price):
+		_sfx("ui_cancel", -4.0)
+		return
+	var event = run_state.remove_shop_tile(index)
+	if event.is_empty():
+		run_state.add_coins(price)
+		_sfx("ui_cancel", -4.0)
+		return
+	current_shop_remove_used = true
+	_sfx("tile_destroy", -2.5)
+	_sync_from_run_state()
+	_rebuild_board_tiles()
+	_position_pawns()
+	_update_ui()
+	_show_shop_overlay()
+
+func _show_rest_overlay() -> void:
+	mode = "rest"
+	roll_locked = true
+	map_overlay.visible = false
+	_clear_overlay(choice_overlay)
+	choice_overlay.visible = true
+	var viewport_size = get_viewport_rect().size
+	_add_room_background(choice_overlay, "res://assets/generated/rooms/campfire_room.png", Color(0.05, 0.03, 0.02, 0.80))
+	var title = _make_label("篝火", 40, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
+	title.position = Vector2(viewport_size.x * 0.5 - 180, viewport_size.y * 0.16)
+	title.size = Vector2(360, 54)
+	choice_overlay.add_child(title)
+	var rest = _make_button("休息", Color(1.0, 0.68, 0.22))
+	rest.position = Vector2(viewport_size.x * 0.5 - 100, viewport_size.y * 0.46)
+	rest.size = Vector2(200, 54)
+	rest.pressed.connect(_on_rest_pressed.bind(rest))
+	choice_overlay.add_child(rest)
+	var upgrade = _make_button("升级卡牌", Color(0.42, 0.42, 0.45))
+	upgrade.position = Vector2(viewport_size.x * 0.5 - 100, viewport_size.y * 0.55)
+	upgrade.size = Vector2(200, 54)
+	upgrade.disabled = true
+	choice_overlay.add_child(upgrade)
+
+func _on_rest_pressed(rest_button: Button) -> void:
+	if run_state == null:
+		return
+	var heal_amount = max(1, int(round(float(run_state.player_max_hp) * 0.30)))
+	var event = run_state.apply_player_heal(heal_amount)
+	_sfx("player_block", -4.0, 1.05)
+	for child in choice_overlay.get_children():
+		if child is Button:
+			child.visible = false
+	var viewport_size = get_viewport_rect().size
+	var healed = _make_label("恢复 %d 点生命" % int(event.get("amount", 0)), 28, Color(0.62, 1.0, 0.58), HORIZONTAL_ALIGNMENT_CENTER)
+	healed.position = Vector2(viewport_size.x * 0.5 - 220, viewport_size.y * 0.48)
+	healed.size = Vector2(440, 42)
+	choice_overlay.add_child(healed)
+	var leave = _make_button("继续前进", Color(0.16, 0.82, 0.72))
+	leave.position = Vector2(viewport_size.x * 0.5 - 100, viewport_size.y * 0.60)
+	leave.size = Vector2(200, 54)
+	leave.pressed.connect(_show_map)
+	choice_overlay.add_child(leave)
+	_update_ui()
+
+func _show_chest_overlay() -> void:
+	mode = "chest"
+	roll_locked = true
+	map_overlay.visible = false
+	_clear_overlay(choice_overlay)
+	choice_overlay.visible = true
+	var viewport_size = get_viewport_rect().size
+	_add_room_background(choice_overlay, "res://assets/generated/rooms/chest_room.png", Color(0.03, 0.035, 0.045, 0.82))
+	var title = _make_label("宝箱房", 38, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
+	title.position = Vector2(viewport_size.x * 0.5 - 220, 48)
+	title.size = Vector2(440, 52)
+	choice_overlay.add_child(title)
+	var chest = TextureButton.new()
+	var closed = "res://assets/generated/rooms/chest_closed.png"
+	var opened = "res://assets/generated/rooms/chest_open.png"
+	chest.texture_normal = load(closed) if ResourceLoader.exists(closed) else null
+	chest.texture_hover = chest.texture_normal
+	chest.ignore_texture_size = true
+	chest.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	chest.position = Vector2(viewport_size.x * 0.5 - 130, viewport_size.y * 0.34)
+	chest.size = Vector2(260, 190)
+	chest.pressed.connect(_on_chest_opened.bind(chest, opened))
+	choice_overlay.add_child(chest)
+
+func _on_chest_opened(chest: TextureButton, opened_path: String) -> void:
+	chest.disabled = true
+	if ResourceLoader.exists(opened_path):
+		chest.texture_normal = load(opened_path)
+	var gold = rng.randi_range(50, 80)
+	run_state.add_coins(gold)
+	var relic_choices = run_state.draw_relic_choices(1)
+	var relic_id = relic_choices[0] if not relic_choices.is_empty() else ""
+	if not relic_id.is_empty():
+		run_state.add_relic(relic_id)
+	_sfx("reward_open", -2.5)
+	_update_ui()
+	var viewport_size = get_viewport_rect().size
+	var popup = PanelContainer.new()
+	popup.add_theme_stylebox_override("panel", _make_panel_style(Color(0.05, 0.05, 0.07, 0.94), Color(1.0, 0.80, 0.22), 8))
+	popup.position = Vector2(viewport_size.x * 0.5 - 210, viewport_size.y * 0.58)
+	popup.size = Vector2(420, 180)
+	choice_overlay.add_child(popup)
+	var stack = VBoxContainer.new()
+	stack.alignment = BoxContainer.ALIGNMENT_CENTER
+	stack.add_theme_constant_override("separation", 8)
+	popup.add_child(stack)
+	var gold_label = _make_label("+%d 金币" % gold, 24, Color(1.0, 0.86, 0.24), HORIZONTAL_ALIGNMENT_CENTER)
+	gold_label.custom_minimum_size = Vector2(380, 34)
+	stack.add_child(gold_label)
+	if not relic_id.is_empty():
+		var relic_name = str(relic_definitions.get(relic_id, {}).get("name", relic_id))
+		var relic_label = _make_label("获得遗物：%s" % relic_name, 22, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
+		relic_label.custom_minimum_size = Vector2(380, 34)
+		stack.add_child(relic_label)
+	var leave = _make_button("继续前进", Color(0.16, 0.82, 0.72))
+	leave.custom_minimum_size = Vector2(180, 48)
+	leave.pressed.connect(_show_map)
+	stack.add_child(leave)
+
+func _add_room_background(parent: Control, texture_path: String, fallback_color: Color) -> void:
+	if ResourceLoader.exists(texture_path):
+		var texture_rect = TextureRect.new()
+		texture_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+		texture_rect.texture = load(texture_path)
+		texture_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		texture_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		parent.add_child(texture_rect)
+	else:
+		parent.add_child(_make_overlay_dim(fallback_color))
+	parent.add_child(_make_overlay_dim(Color(0.0, 0.0, 0.0, 0.22)))
 
 func _start_battle() -> void:
 	var max_battles = MonsterConfig.battle_count(monster_config)
@@ -448,6 +1004,10 @@ func _begin_battle(monster_def: Dictionary, new_battle_number: int, rolls: int) 
 	current_battle_rolls = rolls
 	run_state.start_battle(battle_number, monster_def)
 	run_state.begin_player_turn(current_battle_rolls)
+	run_state.apply_relic_battle_start()
+	run_state.apply_relic_turn_start()
+	run_state.apply_turn_start_durability_curses()
+	run_state.apply_turn_start_tile_spawns()
 	total_rolls = run_state.turn_rolls_total
 	rolls_left = run_state.turn_rolls_left
 	mode = "play"
@@ -455,6 +1015,9 @@ func _begin_battle(monster_def: Dictionary, new_battle_number: int, rolls: int) 
 	pending_roll_value = 0
 	current_rolls.clear()
 	pending_tile.clear()
+	pending_insert_return = ""
+	pending_shop_card_index = -1
+	pending_shop_card_price = 0
 	for dice in dice_nodes.values():
 		dice.set_concealed(false)
 	_clear_roll_preview()
@@ -482,8 +1045,11 @@ func _setup_monster_views() -> void:
 		monster_intent_icons[i].visible = visible
 		monster_intent_labels[i].visible = visible
 		monster_hit_areas[i].visible = visible
+		if i < monster_target_reticles.size():
+			monster_target_reticles[i].set_active(false)
 		if visible:
 			monster_views[i].set_art_key(str(run_state.enemy_units[i].get("art_key", "slime")))
+	_layout_current_monsters()
 
 func _choose_next_monster_intent() -> void:
 	for i in range(run_state.enemy_units.size()):
@@ -640,6 +1206,21 @@ func _on_monster_hit_area_input(event: InputEvent, unit_index: int) -> void:
 			accept_event()
 			damage_target_chosen.emit(unit_index)
 
+func _on_monster_hit_area_entered(unit_index: int) -> void:
+	if not selecting_damage_target or run_state == null:
+		return
+	if unit_index < 0 or unit_index >= run_state.enemy_units.size():
+		return
+	if int(run_state.enemy_units[unit_index].get("hp", 0)) <= 0:
+		return
+	for i in range(monster_target_reticles.size()):
+		monster_target_reticles[i].set_active(i == unit_index)
+	_sfx("ui_hover", -8.0, 1.05)
+
+func _on_monster_hit_area_exited(unit_index: int) -> void:
+	if unit_index >= 0 and unit_index < monster_target_reticles.size():
+		monster_target_reticles[unit_index].set_active(false)
+
 func _on_end_turn_pressed() -> void:
 	if mode != "play" or roll_locked:
 		return
@@ -657,7 +1238,7 @@ func _on_end_turn_pressed() -> void:
 	run_state.record_current_intents_used()
 	run_state.battle_turn += 1
 	run_state.begin_player_turn(current_battle_rolls)
-	await _apply_turn_start_generated_tiles(true)
+	await _apply_player_turn_start_effects(true)
 	_sfx("turn_start", -5.0)
 	total_rolls = run_state.turn_rolls_total
 	rolls_left = run_state.turn_rolls_left
@@ -674,15 +1255,18 @@ func _on_end_turn_pressed() -> void:
 	_position_pawns()
 	_update_ui()
 
-func _apply_turn_start_generated_tiles(play_feedback: bool) -> void:
-	var events = run_state.apply_turn_start_tile_spawns()
+func _apply_player_turn_start_effects(play_feedback: bool) -> void:
+	var events: Array[Dictionary] = []
+	events.append_array(run_state.apply_relic_turn_start())
+	events.append_array(run_state.apply_turn_start_durability_curses())
+	events.append_array(run_state.apply_turn_start_tile_spawns())
 	if events.is_empty():
 		return
 	_sync_from_run_state()
 	_rebuild_board_tiles()
 	_position_pawns()
 	if play_feedback:
-		await _play_board_change_feedback(events)
+		await _play_turn_feedback_events(events)
 	_sync_from_run_state()
 	_rebuild_board_tiles()
 	_position_pawns()
@@ -726,7 +1310,7 @@ func _execute_monster_turn() -> void:
 				"DESTROY_TILE_ID":
 					events.append_array(_destroy_tiles_by_id(str(effect.get("param", ""))))
 				"CORRUPT_TILE":
-					events.append_array(_corrupt_tiles(str(effect.get("param", "T010")), int(effect.get("value", 1))))
+					events.append_array(_corrupt_tiles(str(effect.get("param", _tile_id_by_name("废墟", "T012"))), int(effect.get("value", 1))))
 				"STRENGTH":
 					events.append(run_state.add_enemy_strength(unit_index, int(effect.get("value", 0))))
 				"SET_DICE_RANGE":
@@ -825,6 +1409,11 @@ func _apply_player_roll_passives() -> Array[Dictionary]:
 	var events: Array[Dictionary] = []
 	run_state.increment_counter("battle", "player_rolls", 1)
 	var roll_count = run_state.get_counter("battle", "player_rolls")
+	var roll_block_bonus = run_state.get_counter("battle", "roll_block_bonus")
+	if roll_block_bonus > 0:
+		run_state.player_block += roll_block_bonus
+		events.append({"type": "player_block_added", "amount": roll_block_bonus, "sourceId": "roll_block_bonus", "sourceIndex": -1, "turnTotal": run_state.player_block})
+	events.append_array(run_state.apply_roll_passive_relics())
 	for i in range(run_state.enemy_units.size()):
 		var unit: Dictionary = run_state.enemy_units[i]
 		if int(unit.get("hp", 0)) <= 0:
@@ -865,6 +1454,10 @@ func _play_turn_feedback(turn) -> void:
 				total_rolls = int(event.get("rollsTotal", run_state.turn_rolls_total))
 				await _floating(("%+d 骰子" % amount), _event_source_position(event), Color(1.0, 0.90, 0.25))
 				_update_ui()
+			"coins_added":
+				var coin_amount = int(event.get("amount", 0))
+				await _floating("+%d 金币" % coin_amount, _event_source_position(event), Color(1.0, 0.86, 0.22))
+				_update_ui()
 			"attack_multiplier_added":
 				_sfx("tile_buff", -3.0)
 				await _floating("强化 x%.0f" % float(event.get("multiplier", 2.0)), _event_source_position(event), Color(1.0, 0.78, 1.0))
@@ -877,6 +1470,8 @@ func _play_turn_feedback(turn) -> void:
 			"tile_durability_changed":
 				var text = "虚弱" if bool(event.get("weak", false)) else "耐久 %d" % int(event.get("durability", 0))
 				await _floating(text, _event_tile_position(event), Color(0.74, 0.92, 1.0))
+			"tile_enhanced":
+				await _floating("汇聚", _event_tile_position(event), Color(0.56, 1.0, 0.76))
 			"roll_start_bonus_added":
 				await _floating("每骰+%d" % int(event.get("amount", 0)), _event_source_position(event), Color(1.0, 0.90, 0.25))
 			"turn_start_tile_added":
@@ -897,6 +1492,11 @@ func _play_turn_feedback(turn) -> void:
 				await _floating("敏捷 %+d" % int(event.get("amount", 0)), _event_source_position(event), Color(0.58, 0.86, 1.0))
 	await _play_board_change_feedback(turn.events)
 
+func _play_turn_feedback_events(events: Array) -> void:
+	var turn = TurnContext.new()
+	turn.events = events
+	await _play_turn_feedback(turn)
+
 func _choose_monster_damage_target(event: Dictionary) -> Dictionary:
 	if run_state == null or run_state.alive_enemy_count() <= 1:
 		return run_state.apply_monster_damage_to_unit(run_state.first_alive_enemy_index(), int(event.get("raw", 0)), str(event.get("sourceId", "")), int(event.get("sourceIndex", -1)), str(event.get("diceId", "")))
@@ -913,8 +1513,8 @@ func _set_monster_targeting(active: bool) -> void:
 	for i in range(monster_hit_areas.size()):
 		var alive = run_state != null and i < run_state.enemy_units.size() and int(run_state.enemy_units[i].get("hp", 0)) > 0
 		monster_hit_areas[i].mouse_filter = Control.MOUSE_FILTER_STOP if active and alive else Control.MOUSE_FILTER_IGNORE
-		if i < monster_views.size() and alive:
-			monster_views[i].scale = Vector2(1.06, 1.06) if active else Vector2.ONE
+		if not active and i < monster_target_reticles.size():
+			monster_target_reticles[i].set_active(false)
 
 func _play_monster_damage_event(event: Dictionary) -> void:
 	var amount = int(event.get("amount", 0))
@@ -996,7 +1596,33 @@ func _finish_battle_victory() -> void:
 	shaker.shake(world, 8.0, 0.28)
 	await get_tree().create_timer(0.55).timeout
 	await _cleanup_battle_feedback()
+	await _award_battle_room_rewards()
 	_show_choice_overlay()
+
+func _award_battle_room_rewards() -> void:
+	if run_state == null:
+		return
+	pending_relic_choice_count = 0
+	var room_type = str(selected_map_node.get("room_type", "MONSTER")) if not selected_map_node.is_empty() else "MONSTER"
+	var gold_range = [12, 18]
+	if room_type == "ELITE":
+		gold_range = [25, 35]
+	elif room_type == "BOSS":
+		gold_range = [95, 115]
+	var gold = rng.randi_range(gold_range[0], gold_range[1])
+	run_state.add_coins(gold)
+	pending_room_reward_gold = gold
+	_update_ui()
+	await _floating("+%d 金币" % gold, player_hp_bar.global_position + Vector2(96, 18), Color(1.0, 0.86, 0.22))
+	if room_type == "ELITE":
+		var relic_choices = run_state.draw_relic_choices(1)
+		if not relic_choices.is_empty():
+			run_state.add_relic(relic_choices[0])
+			_update_ui()
+			var relic_name = str(relic_definitions.get(relic_choices[0], {}).get("name", relic_choices[0]))
+			await _floating("获得遗物：%s" % relic_name, player_hp_bar.global_position + Vector2(180, 46), Color(1.0, 0.80, 0.30))
+	elif room_type == "BOSS":
+		pending_relic_choice_count = 3
 
 func _cleanup_battle_feedback() -> void:
 	if run_state == null:
@@ -1057,9 +1683,54 @@ func _show_choice_overlay() -> void:
 	skip.pressed.connect(_on_reward_skipped)
 	choice_overlay.add_child(skip)
 
+func _show_relic_reward_overlay(count: int) -> void:
+	mode = "choice"
+	_update_ui()
+	_clear_overlay(choice_overlay)
+	choice_overlay.visible = true
+	_sfx("reward_open", -3.0)
+	var viewport_size = get_viewport_rect().size
+	choice_overlay.add_child(_make_overlay_dim(Color(0.06, 0.05, 0.09, 0.90)))
+	var title = _make_label("选择一个遗物", 34, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
+	title.position = Vector2(viewport_size.x * 0.5 - 300, viewport_size.y * 0.15)
+	title.size = Vector2(600, 48)
+	choice_overlay.add_child(title)
+	var choices = run_state.draw_relic_choices(count)
+	if choices.is_empty():
+		pending_relic_choice_count = 0
+		_after_relic_reward_done()
+		return
+	var card_width: float = clamp(viewport_size.x * 0.18, 172.0, 212.0)
+	var card_height: float = clamp(viewport_size.y * 0.34, 252.0, 302.0)
+	var gap: float = 34.0
+	var total_width: float = card_width * choices.size() + gap * max(0, choices.size() - 1)
+	var start_x: float = viewport_size.x * 0.5 - total_width * 0.5
+	var y: float = viewport_size.y * 0.28
+	for i in range(choices.size()):
+		var relic_id = str(choices[i])
+		var card = RelicChoiceCard.new()
+		card.setup(i, relic_definitions.get(relic_id, {"id": relic_id, "name": relic_id}))
+		card.size = Vector2(card_width, card_height)
+		card.custom_minimum_size = card.size
+		card.position = Vector2(start_x + (card_width + gap) * i, y)
+		card.pivot_offset = card.size * 0.5
+		card.picked.connect(func(_idx: int) -> void:
+			_on_relic_reward_chosen(relic_id)
+		)
+		choice_overlay.add_child(card)
+
+func _on_relic_reward_chosen(relic_id: String) -> void:
+	_sfx("reward_pick", -2.5)
+	run_state.add_relic(relic_id)
+	pending_relic_choice_count = 0
+	choice_overlay.visible = false
+	_update_ui()
+	_after_relic_reward_done()
+
 func _on_reward_tile_chosen(tile_data: Dictionary) -> void:
 	_sfx("reward_pick", -2.5)
 	pending_tile = tile_data.duplicate(true)
+	pending_insert_return = "reward"
 	choice_overlay.visible = false
 	enter_insert_mode()
 
@@ -1069,6 +1740,12 @@ func _on_reward_skipped() -> void:
 	_after_round_reward_done()
 
 func _after_round_reward_done() -> void:
+	if pending_relic_choice_count > 0:
+		_show_relic_reward_overlay(pending_relic_choice_count)
+		return
+	_after_relic_reward_done()
+
+func _after_relic_reward_done() -> void:
 	if not act_map.is_empty():
 		if str(selected_map_node.get("room_type", "")) == "BOSS":
 			_show_run_complete_overlay()
@@ -1102,7 +1779,11 @@ func _insert_pending_tile_after(index: int) -> void:
 	run_state.reindex_dice_after_insert(insert_at)
 	_sync_from_run_state()
 	var inserted_tile = inserted_tile_runtime.to_display_data()
+	var return_mode = pending_insert_return
 	pending_tile.clear()
+	pending_insert_return = ""
+	pending_shop_card_index = -1
+	pending_shop_card_price = 0
 	_clear_board_hints()
 	_set_action_banner("")
 	_update_ui()
@@ -1111,7 +1792,10 @@ func _insert_pending_tile_after(index: int) -> void:
 	_update_ui()
 	_flash(Color(0.16, 0.82, 0.72, 0.22), 0.32)
 	await get_tree().create_timer(0.18).timeout
-	_after_round_reward_done()
+	if return_mode == "shop":
+		_show_shop_overlay()
+	else:
+		_after_round_reward_done()
 
 func _play_insert_animation(insert_at: int, inserted_tile: Dictionary) -> void:
 	var old_nodes = tile_nodes.duplicate()
@@ -1153,7 +1837,14 @@ func _on_cancel_action() -> void:
 	_clear_board_hints()
 	_set_action_banner("")
 	if mode == "insert":
+		if pending_insert_return == "shop":
+			_cancel_pending_shop_tile_purchase()
+			pending_tile.clear()
+			pending_insert_return = ""
+			_show_shop_overlay()
+			return
 		pending_tile.clear()
+		pending_insert_return = ""
 		_after_round_reward_done()
 	elif mode == "choose_dice":
 		current_rolls.clear()
@@ -1163,6 +1854,16 @@ func _on_cancel_action() -> void:
 	else:
 		mode = "play"
 	_update_ui()
+
+func _cancel_pending_shop_tile_purchase() -> void:
+	if pending_shop_card_index >= 0 and pending_shop_card_index < current_shop_cards.size():
+		var spec: Dictionary = current_shop_cards[pending_shop_card_index]
+		spec["purchased"] = false
+		current_shop_cards[pending_shop_card_index] = spec
+	if pending_shop_card_price > 0 and run_state != null:
+		run_state.add_coins(pending_shop_card_price)
+	pending_shop_card_index = -1
+	pending_shop_card_price = 0
 
 func _show_fail_overlay() -> void:
 	mode = "fail"
@@ -1391,6 +2092,12 @@ func _show_tile_tooltip(tile_data: Dictionary, anchor_global_pos: Vector2) -> vo
 func _show_reference_tooltip(tile_id: String, anchor_global_pos: Vector2) -> void:
 	_show_tile_tooltip(_make_tile(tile_id), anchor_global_pos)
 
+func _show_relic_tooltip(relic_data: Dictionary, anchor_global_pos: Vector2) -> void:
+	if info_tooltip == null:
+		return
+	_sfx("ui_hover", -11.0, 0.96)
+	info_tooltip.show_relic(relic_data, anchor_global_pos, get_viewport_rect())
+
 func _hide_tile_tooltip() -> void:
 	if info_tooltip != null:
 		info_tooltip.hide_tooltip()
@@ -1461,6 +2168,10 @@ func _update_ui() -> void:
 			player_hp_bar.set_values(run_state.player_hp, run_state.player_max_hp)
 		player_hp_label.text = "%d / %d" % [run_state.player_hp, run_state.player_max_hp]
 		player_block_label.text = "护盾 %d" % run_state.player_block
+		if coin_label != null:
+			coin_label.text = "金币 %d" % run_state.coins
+		_refresh_relic_bar()
+		_layout_current_monsters()
 		for i in range(monster_views.size()):
 			var visible = i < run_state.enemy_units.size()
 			if i < monster_views.size():
@@ -1472,10 +2183,14 @@ func _update_ui() -> void:
 			if i < monster_hp_labels.size():
 				monster_hp_labels[i].visible = visible
 			if not visible:
+				if i < monster_target_reticles.size():
+					monster_target_reticles[i].set_active(false)
 				continue
 			var unit: Dictionary = run_state.enemy_units[i]
 			var alive = int(unit.get("hp", 0)) > 0
 			monster_views[i].modulate = Color(1, 1, 1, 1) if alive else Color(0.42, 0.42, 0.42, 0.55)
+			if not alive and i < monster_target_reticles.size():
+				monster_target_reticles[i].set_active(false)
 			monster_name_labels[i].text = str(unit.get("name", "怪物"))
 			monster_hp_bars[i].set_values(int(unit.get("hp", 0)), int(unit.get("max_hp", 1)))
 			monster_hp_labels[i].text = "护甲 %d" % int(unit.get("block", 0)) if int(unit.get("block", 0)) > 0 else ""
@@ -1485,6 +2200,22 @@ func _update_ui() -> void:
 		roll_counter_badge.set_counts(rolls_left, total_rolls)
 	roll_button.disabled = roll_locked or mode != "play" or rolls_left <= 0
 	end_turn_button.disabled = roll_locked or mode != "play"
+
+func _refresh_relic_bar() -> void:
+	if relic_bar == null or run_state == null:
+		return
+	for child in relic_bar.get_children():
+		child.queue_free()
+	for relic_id in run_state.relics:
+		var texture = GeneratedRelicIcon.get_texture(str(relic_id))
+		var icon = TextureRect.new()
+		icon.custom_minimum_size = Vector2(38, 38)
+		icon.size = Vector2(38, 38)
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.texture = texture
+		icon.tooltip_text = str(relic_definitions.get(str(relic_id), {}).get("name", relic_id))
+		relic_bar.add_child(icon)
 
 func _clear_board_hints() -> void:
 	for tile in tile_nodes:
@@ -1546,6 +2277,13 @@ func _set_dice_selectable(value: bool) -> void:
 func _make_tile(tile_id: String) -> Dictionary:
 	return TileRuntime.from_definition(tile_definitions.get(tile_id, tile_definitions["T000"]), 0).to_display_data()
 
+func _tile_id_by_name(tile_name: String, fallback: String = "T000") -> String:
+	for tile_id in tile_definitions.keys():
+		var definition: Dictionary = tile_definitions[tile_id]
+		if str(definition.get("name", "")) == tile_name:
+			return str(tile_id)
+	return fallback
+
 func _sync_from_run_state() -> void:
 	if run_state == null:
 		return
@@ -1569,6 +2307,56 @@ func _make_label(text_value: String, font_size: int, color: Color, alignment: Ho
 func _sfx(key: String, volume_db: float = 0.0, pitch_scale: float = 1.0) -> void:
 	if sfx_bus != null:
 		sfx_bus.play(key, volume_db, pitch_scale)
+
+func _format_scale_label(scale_value: float) -> String:
+	if is_equal_approx(scale_value, roundf(scale_value)):
+		return "%d" % int(roundf(scale_value))
+	return "%.1f" % scale_value
+
+func _on_window_size_selected(index: int) -> void:
+	_apply_window_size_index(index, true)
+
+func _apply_window_size_index(index: int, play_feedback: bool = true) -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	var safe_index = clamp(index, 0, WINDOW_SIZE_SCALES.size() - 1)
+	var scale_value = float(WINDOW_SIZE_SCALES[safe_index])
+	var target_size = Vector2i(roundi(BASE_WINDOW_SIZE.x * scale_value), roundi(BASE_WINDOW_SIZE.y * scale_value))
+	DisplayServer.window_set_size(target_size)
+	var screen = DisplayServer.window_get_current_screen()
+	var screen_size = DisplayServer.screen_get_size(screen)
+	var centered_position = Vector2i(max(0, int((screen_size.x - target_size.x) / 2)), max(0, int((screen_size.y - target_size.y) / 2)))
+	DisplayServer.window_set_position(centered_position)
+	if size_selector != null and size_selector.selected != safe_index:
+		size_selector.select(safe_index)
+	if play_feedback:
+		_sfx("ui_click", -4.0)
+
+func _on_gm_heal_pressed() -> void:
+	if run_state == null:
+		return
+	run_state.apply_player_heal(50)
+	_sfx("player_block", -4.0, 1.08)
+	_update_ui()
+
+func _on_gm_gold_pressed() -> void:
+	if run_state == null:
+		return
+	run_state.add_coins(10000)
+	_sfx("reward_pick", -3.0)
+	_update_ui()
+
+func _on_gm_kill_pressed() -> void:
+	if run_state == null or ["map", "choice", "shop", "rest", "chest", "complete"].has(mode):
+		return
+	var events = run_state.kill_all_enemies("gm_kill")
+	if events.is_empty():
+		return
+	_sfx("tile_attack", -2.5)
+	await _play_turn_feedback_events(events)
+	_update_ui()
+	if run_state.alive_enemy_count() <= 0:
+		await _finish_battle_victory()
 
 func _make_button(text_value: String, accent: Color) -> Button:
 	var button = Button.new()
@@ -1654,13 +2442,21 @@ func _on_resized() -> void:
 	player_hp_label.size = player_hp_bar.size
 	player_block_label.position = Vector2(30, 56)
 	player_block_label.size = Vector2(260, 34)
+	if coin_label != null:
+		coin_label.position = Vector2(232, 22)
+		coin_label.size = Vector2(118, 28)
+	if relic_bar != null:
+		relic_bar.position = Vector2(350, 18)
+		relic_bar.size = Vector2(max(120.0, viewport_size.x - 700.0), 42)
+	if size_selector != null:
+		size_selector.position = Vector2(viewport_size.x - 210, 18)
+		size_selector.size = Vector2(186, 34)
 	action_banner.position = Vector2(viewport_size.x * 0.5 - 360, 76)
 	action_banner.size = Vector2(720, 42)
 	cancel_action_button.position = Vector2(viewport_size.x * 0.5 + 270, 78)
 	cancel_action_button.size = Vector2(110, 42)
 
-	var circle = _get_board_circle()
-	_layout_monster_units(circle["center"])
+	_layout_current_monsters()
 
 	var shell_size = Vector2(510, 116)
 	var shell_position = Vector2(viewport_size.x * 0.5 - shell_size.x * 0.5, viewport_size.y - shell_size.y - 28)
@@ -1670,6 +2466,15 @@ func _on_resized() -> void:
 	roll_counter_badge.size = Vector2(66, 66)
 	roll_result_label.position = Vector2(viewport_size.x * 0.5 - 230, shell_position.y - 42)
 	roll_result_label.size = Vector2(460, 34)
+	if gm_gold_button != null:
+		gm_gold_button.position = Vector2(viewport_size.x - 170, viewport_size.y - 78)
+		gm_gold_button.size = Vector2(148, 38)
+	if gm_heal_button != null:
+		gm_heal_button.position = Vector2(viewport_size.x - 170, viewport_size.y - 122)
+		gm_heal_button.size = Vector2(148, 38)
+	if gm_kill_button != null:
+		gm_kill_button.position = Vector2(viewport_size.x - 170, viewport_size.y - 166)
+		gm_kill_button.size = Vector2(148, 38)
 
 	for color_key in pawn_order:
 		if dice_nodes.has(color_key):
@@ -1678,18 +2483,26 @@ func _on_resized() -> void:
 		_rebuild_board_tiles()
 		_position_pawns()
 
-func _layout_monster_units(center: Vector2) -> void:
+func _layout_current_monsters() -> void:
+	if monster_views.is_empty():
+		return
+	var circle = _get_board_circle()
+	_layout_monster_units(circle["center"], float(circle["radius"]))
+
+func _layout_monster_units(center: Vector2, radius: float) -> void:
 	var count = 1
 	if run_state != null:
 		count = max(1, run_state.enemy_units.size())
 	var offsets = [Vector2.ZERO]
-	var boss_size = Vector2(190, 170)
+	var boss_size = Vector2(214, 192)
 	if count == 2:
-		offsets = [Vector2(-92, 0), Vector2(92, 0)]
-		boss_size = Vector2(150, 138)
+		var two_offset = clamp(radius * 0.66, 168.0, 270.0)
+		offsets = [Vector2(-two_offset, 0), Vector2(two_offset, 0)]
+		boss_size = Vector2(176, 158)
 	elif count >= 3:
-		offsets = [Vector2(-146, 0), Vector2(0, -4), Vector2(146, 0)]
-		boss_size = Vector2(126, 118)
+		var three_offset = clamp(radius * 0.88, 230.0, 340.0)
+		offsets = [Vector2(-three_offset, 14), Vector2(0, -18), Vector2(three_offset, 14)]
+		boss_size = Vector2(148, 134)
 	for i in range(monster_views.size()):
 		var visible = i < count
 		var unit_center = center + (offsets[i] if i < offsets.size() else Vector2.ZERO) + Vector2(0, -8)
@@ -1700,6 +2513,11 @@ func _layout_monster_units(center: Vector2) -> void:
 		view.size = boss_size
 		monster_hit_areas[i].position = view.position
 		monster_hit_areas[i].size = view.size
+		if i < monster_target_reticles.size():
+			var reticle_size = Vector2(96, 96) if count <= 2 else Vector2(82, 82)
+			monster_target_reticles[i].size = reticle_size
+			monster_target_reticles[i].pivot_offset = reticle_size * 0.5
+			monster_target_reticles[i].position = unit_center - reticle_size * 0.5 + Vector2(0, -6)
 		monster_intent_icons[i].position = unit_center + Vector2(-26, -120)
 		monster_intent_icons[i].size = Vector2(52, 52)
 		monster_intent_labels[i].position = unit_center + Vector2(-80, -72)

@@ -107,7 +107,7 @@
       "art_key": "skeleton_soldier",
       "source_description": "1.受到一次伤害，给玩家增加一个骨头地块 2.骨头挥击 造成11点伤害 3.骨刺 造成3*3伤害",
       "passive": {
-        "on_damaged_add_tile": "T069",
+        "on_damaged_add_tile": "T070",
         "count": 1
       }
     },
@@ -131,7 +131,7 @@
       "art_key": "skeleton_archer",
       "source_description": "1.受到一次伤害，给玩家增加一个骨头地块 2.齐射 造成3*3伤害 3.强化 获得1点力量",
       "passive": {
-        "on_damaged_add_tile": "T069",
+        "on_damaged_add_tile": "T070",
         "count": 1
       }
     },
@@ -165,7 +165,7 @@
       "art_key": "skeleton_king",
       "source_description": "1.受到一次伤害，给玩家增加一个骨头地块 2.骨刺：造成(3+场上骨头地块)*3的伤害，并消耗掉所有骨头地块（场上骨头地块大于等于3个，判定意图时必然为骨刺 3.骨盾 生成8点护盾   3.重击，造成14点伤害",
       "passive": {
-        "on_damaged_add_tile": "T069",
+        "on_damaged_add_tile": "T070",
         "count": 1
       }
     },
@@ -642,7 +642,7 @@
       "min_turn": 1,
       "cooldown": 0,
       "max_repeat": 2,
-      "require": "TILE_COUNT:T069>=3",
+      "require": "TILE_COUNT:T070>=3",
       "forbid": ""
     },
     {
@@ -653,7 +653,7 @@
       "cooldown": 1,
       "max_repeat": 2,
       "require": "",
-      "forbid": "TILE_COUNT:T069>=3"
+      "forbid": "TILE_COUNT:T070>=3"
     },
     {
       "pool_id": "skeleton_king_pool",
@@ -663,7 +663,7 @@
       "cooldown": 0,
       "max_repeat": 2,
       "require": "",
-      "forbid": "TILE_COUNT:T069>=3"
+      "forbid": "TILE_COUNT:T070>=3"
     },
     {
       "pool_id": "werewolf_pool",
@@ -682,7 +682,7 @@
       "min_turn": 2,
       "cooldown": 0,
       "max_repeat": 2,
-      "require": "TILE_COUNT:T070>=1",
+      "require": "TILE_COUNT:T071>=1",
       "forbid": ""
     },
     {
@@ -692,7 +692,7 @@
       "min_turn": 2,
       "cooldown": 1,
       "max_repeat": 2,
-      "require": "TILE_COUNT:T070>=1",
+      "require": "TILE_COUNT:T071>=1",
       "forbid": ""
     },
     {
@@ -702,7 +702,7 @@
       "min_turn": 2,
       "cooldown": 0,
       "max_repeat": 2,
-      "require": "TILE_COUNT:T070<=0",
+      "require": "TILE_COUNT:T071<=0",
       "forbid": ""
     },
     {
@@ -712,7 +712,7 @@
       "min_turn": 2,
       "cooldown": 1,
       "max_repeat": 2,
-      "require": "TILE_COUNT:T070<=0",
+      "require": "TILE_COUNT:T071<=0",
       "forbid": ""
     },
     {
@@ -752,7 +752,7 @@
       "min_turn": 1,
       "cooldown": 0,
       "max_repeat": 2,
-      "require": "TILE_COUNT:T071<=0",
+      "require": "TILE_COUNT:T072<=0",
       "forbid": ""
     },
     {
@@ -763,7 +763,7 @@
       "cooldown": 0,
       "max_repeat": 2,
       "require": "",
-      "forbid": "TILE_COUNT:T071<=0"
+      "forbid": "TILE_COUNT:T072<=0"
     },
     {
       "pool_id": "medusa_pool",
@@ -773,7 +773,7 @@
       "cooldown": 0,
       "max_repeat": 2,
       "require": "",
-      "forbid": "TILE_COUNT:T071<=0"
+      "forbid": "TILE_COUNT:T072<=0"
     },
     {
       "pool_id": "void_eye_pool",
@@ -1216,7 +1216,7 @@
       "target": "PLAYER_BOARD",
       "value": 1,
       "duration": 0,
-      "param": "T067"
+      "param": "T068"
     },
     {
       "intent_id": "goblin_mace",
@@ -1261,7 +1261,7 @@
       "target": "PLAYER_BOARD",
       "value": 2,
       "duration": 0,
-      "param": "T068"
+      "param": "T069"
     },
     {
       "intent_id": "skeleton_swing",
@@ -1418,7 +1418,7 @@
       "target": "PLAYER",
       "value": 1,
       "duration": 0,
-      "param": "T069",
+      "param": "T070",
       "base": 3,
       "hits": 3
     },
@@ -1429,7 +1429,7 @@
       "target": "PLAYER_BOARD",
       "value": 0,
       "duration": 0,
-      "param": "T069"
+      "param": "T070"
     },
     {
       "intent_id": "skeleton_king_bone_shield",
@@ -1456,7 +1456,7 @@
       "target": "PLAYER_BOARD",
       "value": 1,
       "duration": 0,
-      "param": "T070"
+      "param": "T071"
     },
     {
       "intent_id": "werewolf_claw",
@@ -1510,7 +1510,7 @@
       "target": "PLAYER",
       "value": 6,
       "duration": 0,
-      "param": "T064"
+      "param": "T065"
     },
     {
       "intent_id": "headless_wildfire",
@@ -1519,7 +1519,7 @@
       "target": "PLAYER_BOARD",
       "value": 2,
       "duration": 0,
-      "param": "T064"
+      "param": "T065"
     },
     {
       "intent_id": "medusa_petrify",
@@ -1537,7 +1537,7 @@
       "target": "PLAYER_BOARD",
       "value": 3,
       "duration": 0,
-      "param": "T071"
+      "param": "T072"
     },
     {
       "intent_id": "medusa_snake_bite",
@@ -1566,7 +1566,7 @@
       "target": "RANDOM_PLAYER_TILE",
       "value": 1,
       "duration": 0,
-      "param": "T072"
+      "param": "T073"
     },
     {
       "intent_id": "void_eye_void_gaze",
@@ -1584,7 +1584,7 @@
       "target": "PLAYER_BOARD",
       "value": 3,
       "duration": 0,
-      "param": "T065"
+      "param": "T066"
     },
     {
       "intent_id": "dice_demon_fog",

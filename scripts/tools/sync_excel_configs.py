@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
@@ -9,14 +10,20 @@ from openpyxl import load_workbook
 
 ROOT = Path(__file__).resolve().parents[2]
 CARD_XLSX = Path(r"C:\Users\yu\Desktop\card.xlsx")
+RELIC_XLSX = Path(r"C:\Users\yu\Documents\xwechat_files\wxid_8dzrcbxqxc0322_5fea\msg\file\2026-06\relics.xlsx")
 MONSTER_XLSX = Path(r"C:\Users\yu\Desktop\monster_new.xlsx")
 TILE_CONFIG = ROOT / "data" / "tile_config.json"
+RELIC_CONFIG = ROOT / "data" / "relic_config.json"
 MONSTER_CONFIG = ROOT / "data" / "monster_config.json"
 MAP_CONFIG = ROOT / "data" / "map_config.json"
 
 
 def tid(value: int) -> str:
     return f"T{value:03d}"
+
+
+def rid(value: int) -> str:
+    return f"R{value:03d}"
 
 
 def read_rows(path: Path) -> list[list[Any]]:
@@ -60,7 +67,18 @@ def sort_tile(tile: dict[str, Any]) -> tuple[int, str]:
     return 9999, tile_id
 
 
-def sync_tiles() -> None:
+def rarity_code(rarity: str) -> str:
+    return {
+        "基础牌": "basic",
+        "普通": "common",
+        "稀有": "rare",
+        "非凡": "uncommon",
+        "诅咒": "curse",
+        "boss": "boss",
+    }.get(rarity, "common")
+
+
+def _legacy_sync_tiles() -> None:
     config = json.loads(TILE_CONFIG.read_text(encoding="utf-8"))
     tiles = {str(tile["id"]): tile for tile in config.get("tiles", [])}
     card_rows = {number(row[0]): row for row in read_rows(CARD_XLSX) if row[0] is not None}
@@ -98,6 +116,55 @@ def sync_tiles() -> None:
             "effects": [{"type": "block", "value": 5}],
             "passEffects": [{"type": "block", "value": 4, "condition": {"reason_in": ["warp_passed"]}}],
         },
+        40: {
+            "tags": ["skill", "void"],
+            "icon_kind": "void",
+            "color": [0.36, 0.22, 0.62, 1.0],
+            "accent": [0.88, 0.52, 1.0, 1.0],
+            "durability": 3,
+            "effects": [
+                {"type": "increment_counter", "scope": "turn", "counter": "player_damage_cap_1", "value": 1},
+                {"type": "generate_tile", "tile": "T072", "count": 1},
+            ],
+            "weakEffects": [],
+        },
+        45: {
+            "tags": ["skill", "defense"],
+            "icon_kind": "shield_wall",
+            "effects": [
+                {"type": "increment_counter", "scope": "battle", "counter": "roll_block_bonus", "value": 2},
+                {"type": "destroy_self"},
+            ],
+        },
+        49: {
+            "tags": ["skill", "durability"],
+            "icon_kind": "power",
+            "color": [0.22, 0.52, 0.90, 1.0],
+            "accent": [0.66, 0.92, 1.0, 1.0],
+            "effects": [
+                {"type": "block", "value": 8},
+                {"type": "add_durability_all", "value": 1},
+            ],
+        },
+        55: {
+            "tags": ["skill", "energy"],
+            "icon_kind": "coin",
+            "color": [0.15, 0.74, 0.65, 1.0],
+            "accent": [1.0, 0.86, 0.22, 1.0],
+            "effects": [
+                {"type": "add_rolls", "value": 2},
+                {"type": "destroy_self"},
+            ],
+        },
+        63: {
+            "tags": ["attack"],
+            "icon_kind": "sword",
+            "color": [0.96, 0.30, 0.36, 1.0],
+            "accent": [0.40, 1.0, 0.96, 1.0],
+            "durability": 2,
+            "effects": [{"type": "damage", "value": 28}],
+            "weakEffects": [{"type": "damage", "value": 10}],
+        },
         66: {
             "tags": ["skill", "heal"],
             "icon_kind": "heal",
@@ -125,7 +192,10 @@ def sync_tiles() -> None:
             "icon_kind": "bone",
             "color": [0.58, 0.56, 0.50, 1.0],
             "accent": [0.95, 0.92, 0.75, 1.0],
-            "effects": [],
+            "passEffects": [
+                {"type": "destroy_self", "condition": {"pass_through_only": True}},
+            ],
+            "effects": [{"type": "destroy_self"}],
         },
         70: {
             "tags": ["curse", "moon"],
@@ -153,18 +223,118 @@ def sync_tiles() -> None:
             "accent": [0.86, 0.46, 1.0, 1.0],
             "effects": [],
         },
+        73: {
+            "tags": ["attack", "aoe"],
+            "icon_kind": "sword",
+            "color": [0.94, 0.30, 0.36, 1.0],
+            "accent": [1.0, 0.86, 0.22, 1.0],
+            "effects": [{"type": "damage_all", "value": 8}],
+        },
+        74: {
+            "tags": ["attack", "aoe"],
+            "icon_kind": "sword",
+            "color": [0.94, 0.30, 0.36, 1.0],
+            "accent": [0.44, 1.0, 0.94, 1.0],
+            "durability": 2,
+            "effects": [{"type": "damage_all", "value": 16}],
+            "weakEffects": [{"type": "damage_all", "value": 8}],
+        },
+        75: {
+            "tags": ["skill", "energy", "destroy"],
+            "icon_kind": "charge",
+            "durability": 2,
+            "effects": [
+                {"type": "add_rolls", "value": 1},
+                {"type": "destroy_tiles", "targetRule": {"type": "random", "count": 1, "excludeCurrent": True}, "destroyMode": {"type": "configured"}},
+            ],
+            "weakEffects": [],
+        },
+        76: {
+            "tags": ["skill", "supply"],
+            "icon_kind": "lab",
+            "effects": [
+                {"type": "add_converge_to_tiles", "count": 2},
+                {"type": "destroy_self"},
+            ],
+        },
+        77: {
+            "tags": ["skill", "aoe"],
+            "icon_kind": "sword",
+            "effects": [
+                {"type": "increment_counter", "scope": "battle", "counter": "stray_bullet_storm", "value": 1},
+                {"type": "destroy_self"},
+            ],
+        },
+        78: {
+            "tags": ["skill", "durability"],
+            "icon_kind": "charge",
+            "durability": 1,
+            "effects": [
+                {"type": "increment_counter", "scope": "turn", "counter": "no_durability_cost_turn", "value": 1},
+                {"type": "set_tile_weak"},
+            ],
+            "weakEffects": [],
+        },
+        79: {
+            "tags": ["curse", "weakness"],
+            "icon_kind": "void",
+            "effects": [{"type": "destroy_self"}],
+        },
+        80: {
+            "tags": ["skill", "gold"],
+            "icon_kind": "coin",
+            "color": [0.95, 0.60, 0.18, 1.0],
+            "accent": [1.0, 0.95, 0.28, 1.0],
+            "effects": [
+                {"type": "add_coins", "value": 15},
+                {"type": "destroy_self"},
+            ],
+        },
+        81: {
+            "tags": ["curse", "headache"],
+            "icon_kind": "void",
+            "effects": [],
+        },
+        82: {
+            "tags": ["skill", "basic", "repair"],
+            "icon_kind": "repair",
+            "color": [0.18, 0.62, 0.78, 1.0],
+            "accent": [1.0, 0.86, 0.22, 1.0],
+            "effects": [
+                {"type": "block", "value": 4},
+                {"type": "add_durability_all", "value": 1},
+            ],
+        },
+        83: {
+            "tags": ["attack", "basic", "energy"],
+            "icon_kind": "charge",
+            "color": [0.92, 0.24, 0.32, 1.0],
+            "accent": [0.52, 0.92, 1.0, 1.0],
+            "effects": [
+                {"type": "damage", "value": 4},
+                {"type": "add_rolls", "value": 1},
+            ],
+        },
     }
 
-    for numeric_id in [14, 27, 28, 29, 66, 67, 68, 69, 70, 71, 72]:
+    changed_ids = {
+        number(row[0])
+        for row in read_rows(CARD_XLSX)
+        if row[0] is not None and len(row) > 8 and flag(row[8])
+    }
+    sync_ids = sorted({14, 27, 28, 29, 66, 67, 68, 69, 70, 71, 72, 82, 83}.union(changed_ids).intersection(card_rows.keys()))
+    for numeric_id in sync_ids:
         row = card_rows[numeric_id]
         tile_id = tid(numeric_id)
         current = tiles.get(tile_id, {"id": tile_id})
+        rarity = text(row[3])
         current.update(
             {
                 "id": tile_id,
                 "type": text(row[1]),
                 "name": text(row[2]),
-                "rarity": text(row[3]),
+                "rarity": rarity,
+                "rarity_code": rarity_code(rarity),
                 "description": text(row[4]),
                 "displayDescription": text(row[5], text(row[4])),
                 "selectable": flag(row[6]),
@@ -173,11 +343,178 @@ def sync_tiles() -> None:
                 "changed": flag(row[8] if len(row) > 8 else 0),
             }
         )
-        current.update(extra_defs[numeric_id])
+        current.update(extra_defs.get(numeric_id, {}))
         tiles[tile_id] = current
 
     config["tiles"] = sorted(tiles.values(), key=sort_tile)
+    config["start_tiles"] = ["T001", "T002", "T001", "T002", "T001", "T002", "T003", "T004"]
     write_json(TILE_CONFIG, config)
+
+
+def sync_tiles() -> None:
+    config = json.loads(TILE_CONFIG.read_text(encoding="utf-8"))
+    existing_tiles = config.get("tiles", [])
+    existing_by_id = {str(tile.get("id", "")): tile for tile in existing_tiles if isinstance(tile, dict)}
+    existing_by_name = {
+        text(tile.get("name", "")): tile
+        for tile in existing_tiles
+        if isinstance(tile, dict) and text(tile.get("name", ""))
+    }
+    card_rows = {number(row[0]): row for row in read_rows(CARD_XLSX) if row[0] is not None}
+
+    def tile_id_by_name(name: str, fallback: str) -> str:
+        for numeric_id, row in card_rows.items():
+            if text(row[2]) == name:
+                return tid(numeric_id)
+        return fallback
+
+    overrides_by_name: dict[str, dict[str, Any]] = {
+        "修修补补": {
+            "tags": ["skill", "basic", "repair", "durability"],
+            "icon_kind": "repair",
+            "color": [0.22, 0.52, 0.90, 1.0],
+            "accent": [0.66, 0.92, 1.0, 1.0],
+            "effects": [
+                {"type": "block", "value": 8},
+                {"type": "add_durability_all", "value": 1},
+            ],
+        },
+        "充能剑": {
+            "tags": ["attack", "basic", "energy", "durability"],
+            "icon_kind": "charge_sword",
+            "color": [0.92, 0.25, 0.32, 1.0],
+            "accent": [1.0, 0.82, 0.22, 1.0],
+            "durability": 2,
+            "effects": [{"type": "damage", "value": 10}],
+            "weakEffects": [{"type": "damage", "value": 2}],
+        },
+    }
+
+    table_ids = set(card_rows.keys())
+    preserved: list[dict[str, Any]] = []
+    for tile in existing_tiles:
+        if not isinstance(tile, dict):
+            continue
+        tile_id = str(tile.get("id", ""))
+        numeric = int(tile_id[1:]) if tile_id.startswith("T") and tile_id[1:].isdigit() else -1
+        if tile_id == "T000" or numeric >= 900 or numeric < 0:
+            preserved.append(deepcopy(tile))
+
+    synced: list[dict[str, Any]] = []
+    for numeric_id, row in sorted(card_rows.items()):
+        tile_id = tid(numeric_id)
+        name = text(row[2], tile_id)
+        current = deepcopy(existing_by_name.get(name, existing_by_id.get(tile_id, {"id": tile_id})))
+        rarity = text(row[3])
+        current.update(
+            {
+                "id": tile_id,
+                "type": text(row[1]),
+                "name": name,
+                "rarity": rarity,
+                "rarity_code": rarity_code(rarity),
+                "description": text(row[4]),
+                "displayDescription": text(row[5], text(row[4])),
+                "selectable": flag(row[6]),
+                "temporary": flag(row[7]),
+                "destroy_after_battle": flag(row[7]),
+                "changed": flag(row[8] if len(row) > 8 else 0),
+                "tile_name": name,
+                "tile_rare": rarity,
+                "tile_describe": text(row[5], text(row[4])),
+            }
+        )
+        current.update(deepcopy(overrides_by_name.get(name, {})))
+        synced.append(current)
+
+    config["tiles"] = sorted(preserved + synced, key=sort_tile)
+    attack = tile_id_by_name("普通攻击", "T001")
+    defense = tile_id_by_name("普通防御", "T002")
+    config["start_tiles"] = [
+        attack,
+        defense,
+        attack,
+        defense,
+        attack,
+        defense,
+        tile_id_by_name("修修补补", "T003"),
+        tile_id_by_name("充能剑", "T004"),
+    ]
+    write_json(TILE_CONFIG, config)
+
+
+def tile_id_from_config_name(name: str, fallback: str = "T000") -> str:
+    if not TILE_CONFIG.exists():
+        return fallback
+    config = json.loads(TILE_CONFIG.read_text(encoding="utf-8"))
+    for tile in config.get("tiles", []):
+        if isinstance(tile, dict) and text(tile.get("name", "")) == name:
+            return str(tile.get("id", fallback))
+    return fallback
+
+
+def sync_relics() -> None:
+    gold_tile = tile_id_from_config_name("黄金", "T081")
+    headache_tile = tile_id_from_config_name("头疼", "T082")
+    effect_by_index: dict[int, list[dict[str, Any]]] = {
+        1: [{"type": "dice_roll_energy", "threshold": 10, "amount": 1}],
+        2: [{"type": "battle_start_tile", "tile": gold_tile, "count": 1}],
+        3: [{"type": "battle_start_strength", "amount": 1}],
+        4: [{"type": "battle_start_dexterity", "amount": 1}],
+        5: [{"type": "turn_start_rolls", "turn": 1, "amount": 1}],
+        6: [{"type": "turn_interval_rolls", "interval": 4, "amount": 1}],
+        7: [{"type": "turn_start_block", "turn": 1, "amount": 10}],
+        8: [{"type": "turn_start_block", "turn": 2, "amount": 13}],
+        9: [{"type": "turn_start_block", "turn": 3, "amount": 18}],
+        10: [{"type": "durability_interval_recharge", "threshold": 10, "amount": 1}],
+        11: [{"type": "warp_interval_rolls", "threshold": 3, "amount": 1}],
+        12: [{"type": "attack_interval_strength", "threshold": 3, "amount": 1}],
+        13: [
+            {"type": "turn_start_rolls", "amount": 1},
+            {"type": "dice_roll_hp_loss", "threshold": 10, "amount": 1},
+        ],
+        14: [
+            {"type": "turn_start_rolls", "amount": 1},
+            {"type": "battle_start_tile", "tile": headache_tile, "count": 2},
+        ],
+        15: [],
+    }
+    icon_kinds = {
+        1: "dice",
+        2: "gold_eye",
+        3: "strength",
+        4: "dexterity",
+        5: "orb",
+        6: "chip",
+        7: "white_robe",
+        8: "red_robe",
+        9: "purple_robe",
+        10: "support",
+        11: "wormhole",
+        12: "target",
+        13: "blood_dice",
+        14: "potion",
+        15: "portal",
+    }
+    relics: list[dict[str, Any]] = []
+    for index, row in enumerate(read_rows(RELIC_XLSX), start=1):
+        rarity = text(row[3], "普通")
+        price_text = text(row[4])
+        relics.append(
+            {
+                "id": rid(index),
+                "name": text(row[1], f"遗物{index}"),
+                "type": text(row[2], "普通"),
+                "rarity": rarity,
+                "rarity_code": rarity_code(rarity),
+                "price": 0 if price_text == "/" else number(row[4], 0),
+                "description": text(row[5]),
+                "displayDescription": text(row[6], text(row[5])),
+                "icon_kind": icon_kinds.get(index, "relic"),
+                "effects": effect_by_index.get(index, []),
+            }
+        )
+    write_json(RELIC_CONFIG, {"relics": relics})
 
 
 MONSTER_META = {
@@ -273,12 +610,20 @@ def group_monster(monster_id: str, name: str, monster_type: str, region: str, un
 
 def sync_monsters() -> None:
     rows_by_id = {number(row[0]): row for row in read_rows(MONSTER_XLSX) if row[0] is not None}
+    fire_tile = tile_id_from_config_name("烈火", "T065")
+    stun_tile = tile_id_from_config_name("晕眩", "T066")
+    snot_tile = tile_id_from_config_name("鼻涕液", "T068")
+    mud_tile = tile_id_from_config_name("淤泥", "T069")
+    bone_tile = tile_id_from_config_name("骨头", "T070")
+    moon_tile = tile_id_from_config_name("月圆", "T071")
+    split_arrow_tile = tile_id_from_config_name("分裂箭", "T072")
+    void_tile = tile_id_from_config_name("虚空", "T073")
 
     monsters: list[dict[str, Any]] = []
     for monster_id, (source_id, art_key) in MONSTER_META.items():
         passive: dict[str, Any] | None = None
         if monster_id in {"skeleton_soldier", "skeleton_archer", "skeleton_king"}:
-            passive = {"on_damaged_add_tile": "T069", "count": 1}
+            passive = {"on_damaged_add_tile": bone_tile, "count": 1}
         elif monster_id == "dice_demon":
             passive = {"strength_per_player_rolls": 5, "strength_amount": 1}
         monsters.append(monster_from_row(monster_id, rows_by_id[source_id], art_key, passive))
@@ -334,20 +679,20 @@ def sync_monsters() -> None:
         pool("baby_dragon_pool", "baby_dragon_flame", 42),
         pool("baby_dragon_pool", "baby_dragon_burn", 28, cooldown=2, max_uses=2),
         pool("baby_dragon_pool", "baby_dragon_tail", 30),
-        pool("skeleton_king_pool", "skeleton_king_bone_spikes", 1000, require="TILE_COUNT:T069>=3"),
-        pool("skeleton_king_pool", "skeleton_king_bone_shield", 35, forbid="TILE_COUNT:T069>=3", cooldown=1),
-        pool("skeleton_king_pool", "skeleton_king_slam", 65, forbid="TILE_COUNT:T069>=3"),
+        pool("skeleton_king_pool", "skeleton_king_bone_spikes", 1000, require=f"TILE_COUNT:{bone_tile}>=3"),
+        pool("skeleton_king_pool", "skeleton_king_bone_shield", 35, forbid=f"TILE_COUNT:{bone_tile}>=3", cooldown=1),
+        pool("skeleton_king_pool", "skeleton_king_slam", 65, forbid=f"TILE_COUNT:{bone_tile}>=3"),
         pool("werewolf_pool", "werewolf_moon", 100, require="TURN<=1", cooldown=99, max_repeat=1),
-        pool("werewolf_pool", "werewolf_claw", 55, min_turn=2, require="TILE_COUNT:T070>=1"),
-        pool("werewolf_pool", "werewolf_lick", 45, min_turn=2, require="TILE_COUNT:T070>=1", cooldown=1),
-        pool("werewolf_pool", "werewolf_hysteria", 60, min_turn=2, require="TILE_COUNT:T070<=0"),
-        pool("werewolf_pool", "werewolf_moonbath", 40, min_turn=2, require="TILE_COUNT:T070<=0", cooldown=1),
+        pool("werewolf_pool", "werewolf_claw", 55, min_turn=2, require=f"TILE_COUNT:{moon_tile}>=1"),
+        pool("werewolf_pool", "werewolf_lick", 45, min_turn=2, require=f"TILE_COUNT:{moon_tile}>=1", cooldown=1),
+        pool("werewolf_pool", "werewolf_hysteria", 60, min_turn=2, require=f"TILE_COUNT:{moon_tile}<=0"),
+        pool("werewolf_pool", "werewolf_moonbath", 40, min_turn=2, require=f"TILE_COUNT:{moon_tile}<=0", cooldown=1),
         pool("headless_knight_pool", "headless_swing", 38),
         pool("headless_knight_pool", "headless_flame_combo", 32, min_turn=2),
         pool("headless_knight_pool", "headless_wildfire", 30, cooldown=2, max_repeat=1),
-        pool("medusa_pool", "medusa_split_arrow", 1000, require="TILE_COUNT:T071<=0"),
-        pool("medusa_pool", "medusa_petrify", 34, forbid="TILE_COUNT:T071<=0"),
-        pool("medusa_pool", "medusa_snake_bite", 66, forbid="TILE_COUNT:T071<=0"),
+        pool("medusa_pool", "medusa_split_arrow", 1000, require=f"TILE_COUNT:{split_arrow_tile}<=0"),
+        pool("medusa_pool", "medusa_petrify", 34, forbid=f"TILE_COUNT:{split_arrow_tile}<=0"),
+        pool("medusa_pool", "medusa_snake_bite", 66, forbid=f"TILE_COUNT:{split_arrow_tile}<=0"),
         pool("void_eye_pool", "void_eye_void_gaze", 1000, require="TURN_MOD:5=0"),
         pool("void_eye_pool", "void_eye_hot_ray", 55, forbid="TURN_MOD:5=0"),
         pool("void_eye_pool", "void_eye_stun", 45, forbid="TURN_MOD:5=0", cooldown=2),
@@ -401,12 +746,12 @@ def sync_monsters() -> None:
     ]
 
     effects = [
-        effect("goblin_snot", 1, "ADD_TILE", 1, "PLAYER_BOARD", "T067"),
+        effect("goblin_snot", 1, "ADD_TILE", 1, "PLAYER_BOARD", snot_tile),
         effect("goblin_mace", 1, "DAMAGE", 9, "PLAYER"),
         effect("goblin_shield", 1, "BLOCK", 6, "SELF"),
         effect("slime_attack", 1, "DAMAGE", 10, "PLAYER"),
         effect("slime_defend", 1, "BLOCK", 5, "SELF"),
-        effect("slime_mud", 1, "ADD_TILE", 2, "PLAYER_BOARD", "T068"),
+        effect("slime_mud", 1, "ADD_TILE", 2, "PLAYER_BOARD", mud_tile),
         effect("skeleton_swing", 1, "DAMAGE", 11, "PLAYER"),
         effect("skeleton_spikes", 1, "DAMAGE", 3, "PLAYER", hits=3),
         effect("murloc_swamp_charge", 1, "DAMAGE", 1, "PLAYER", hits=6),
@@ -423,25 +768,25 @@ def sync_monsters() -> None:
         effect("baby_dragon_flame", 1, "DAMAGE", 16, "PLAYER"),
         effect("baby_dragon_burn", 1, "DESTROY_TILES", 2, "PLAYER_BOARD", "non_curse"),
         effect("baby_dragon_tail", 1, "DAMAGE", 3, "PLAYER", hits=4),
-        effect("skeleton_king_bone_spikes", 1, "DAMAGE_BY_TILE_COUNT", 1, "PLAYER", "T069", base=3, hits=3),
-        effect("skeleton_king_bone_spikes", 2, "DESTROY_TILE_ID", 0, "PLAYER_BOARD", "T069"),
+        effect("skeleton_king_bone_spikes", 1, "DAMAGE_BY_TILE_COUNT", 1, "PLAYER", bone_tile, base=3, hits=3),
+        effect("skeleton_king_bone_spikes", 2, "DESTROY_TILE_ID", 0, "PLAYER_BOARD", bone_tile),
         effect("skeleton_king_bone_shield", 1, "BLOCK", 8, "SELF"),
         effect("skeleton_king_slam", 1, "DAMAGE", 14, "PLAYER"),
-        effect("werewolf_moon", 1, "ADD_TILE", 1, "PLAYER_BOARD", "T070"),
+        effect("werewolf_moon", 1, "ADD_TILE", 1, "PLAYER_BOARD", moon_tile),
         effect("werewolf_claw", 1, "DAMAGE", 12, "PLAYER"),
         effect("werewolf_lick", 1, "HEAL", 6, "SELF"),
         effect("werewolf_hysteria", 1, "DAMAGE", 24, "PLAYER"),
         effect("werewolf_moonbath", 1, "HEAL", 10, "SELF"),
         effect("headless_swing", 1, "DAMAGE", 22, "PLAYER"),
-        effect("headless_flame_combo", 1, "DAMAGE_PER_TILE", 6, "PLAYER", "T064"),
-        effect("headless_wildfire", 1, "ADD_TILE", 2, "PLAYER_BOARD", "T064"),
+        effect("headless_flame_combo", 1, "DAMAGE_PER_TILE", 6, "PLAYER", fire_tile),
+        effect("headless_wildfire", 1, "ADD_TILE", 2, "PLAYER_BOARD", fire_tile),
         effect("medusa_petrify", 1, "LOCK_DICE", 2, "PLAYER_NEXT_TURN"),
-        effect("medusa_split_arrow", 1, "ADD_TILE", 3, "PLAYER_BOARD", "T071"),
+        effect("medusa_split_arrow", 1, "ADD_TILE", 3, "PLAYER_BOARD", split_arrow_tile),
         effect("medusa_snake_bite", 1, "DAMAGE", 2, "PLAYER", hits=6),
         effect("void_eye_hot_ray", 1, "DAMAGE", 2, "PLAYER", hits=5),
-        effect("void_eye_void_gaze", 1, "CORRUPT_TILE", 1, "RANDOM_PLAYER_TILE", "T072"),
+        effect("void_eye_void_gaze", 1, "CORRUPT_TILE", 1, "RANDOM_PLAYER_TILE", void_tile),
         effect("void_eye_void_gaze", 2, "STRENGTH", 1, "SELF"),
-        effect("void_eye_stun", 1, "ADD_TILE", 3, "PLAYER_BOARD", "T065"),
+        effect("void_eye_stun", 1, "ADD_TILE", 3, "PLAYER_BOARD", stun_tile),
         effect("dice_demon_fog", 1, "SET_DICE_FOG", 3, "PLAYER_NEXT_TURNS", duration=3),
         effect("dice_demon_control", 1, "SET_DICE_RANGE", 1, "PLAYER_NEXT_TURNS", "1-1", duration=1),
         effect("dice_demon_throw", 1, "DAMAGE", 2, "PLAYER", hits=6),
@@ -501,6 +846,7 @@ def sync_map() -> None:
 
 def main() -> None:
     sync_tiles()
+    sync_relics()
     sync_monsters()
     sync_map()
 

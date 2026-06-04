@@ -10,6 +10,7 @@ var tags: Array = []
 var counters: Dictionary = {}
 var state: Dictionary = {}
 var runtime_flags: Dictionary = {}
+var tile_buffs: Array = []
 var definition: Dictionary = {}
 
 static func from_definition(definition_data: Dictionary, serial: int = 0) -> RefCounted:
@@ -25,6 +26,7 @@ static func from_definition(definition_data: Dictionary, serial: int = 0) -> Ref
 	tile.counters = definition_data.get("counters", {}).duplicate(true)
 	tile.state = definition_data.get("state", {}).duplicate(true)
 	tile.runtime_flags = definition_data.get("runtimeFlags", {}).duplicate(true)
+	tile.tile_buffs = definition_data.get("tileBuffs", []).duplicate(true)
 	return tile
 
 func duplicate_runtime(new_serial: int = -1) -> RefCounted:
@@ -40,14 +42,38 @@ func duplicate_runtime(new_serial: int = -1) -> RefCounted:
 	tile.counters = counters.duplicate(true)
 	tile.state = state.duplicate(true)
 	tile.runtime_flags = runtime_flags.duplicate(true)
+	tile.tile_buffs = tile_buffs.duplicate(true)
 	return tile
 
 func reset_battle_state() -> void:
 	runtime_flags.erase("temporarily_destroyed")
 	runtime_flags.erase("weak")
+	runtime_flags.erase("converge")
+	clear_tile_buffs_for_duration("battle")
 	var max_durability = int(definition.get("durability", 0))
 	if max_durability > 0:
 		state["durability"] = max_durability
+
+func has_tile_buff(buff_id: String) -> bool:
+	for buff in tile_buffs:
+		if typeof(buff) == TYPE_DICTIONARY and str(buff.get("id", "")) == buff_id:
+			return true
+	return false
+
+func add_tile_buff(buff: Dictionary) -> void:
+	var buff_id = str(buff.get("id", ""))
+	if buff_id.is_empty():
+		return
+	for existing in tile_buffs:
+		if typeof(existing) == TYPE_DICTIONARY and str(existing.get("id", "")) == buff_id:
+			existing.merge(buff, true)
+			return
+	tile_buffs.append(buff.duplicate(true))
+
+func clear_tile_buffs_for_duration(duration_type: String) -> void:
+	tile_buffs = tile_buffs.filter(func(buff):
+		return typeof(buff) != TYPE_DICTIONARY or str(buff.get("durationType", "")) != duration_type
+	)
 
 func max_durability() -> int:
 	return int(definition.get("durability", 0))
@@ -96,6 +122,7 @@ func to_display_data() -> Dictionary:
 		"counters": counters.duplicate(true),
 		"state": state.duplicate(true),
 		"runtime_flags": runtime_flags.duplicate(true),
+		"tileBuffs": tile_buffs.duplicate(true),
 		"durability": durability_remaining(),
 		"maxDurability": max_durability(),
 		"weak": is_weak()

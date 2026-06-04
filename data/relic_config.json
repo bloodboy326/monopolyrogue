@@ -1,0 +1,274 @@
+{
+  "relics": [
+    {
+      "id": "R001",
+      "name": "骰子",
+      "type": "普通",
+      "rarity": "稀有",
+      "rarity_code": "rare",
+      "price": 220,
+      "description": "每骰十次，获得一点能量",
+      "displayDescription": "每骰十次，获得一点能量，右下方通用计数器",
+      "icon_kind": "dice",
+      "effects": [
+        {
+          "type": "dice_roll_energy",
+          "threshold": 10,
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "id": "R002",
+      "name": "黄金眼",
+      "type": "普通",
+      "rarity": "非凡",
+      "rarity_code": "uncommon",
+      "price": 230,
+      "description": "每场战斗开始，生成一个黄金地块",
+      "displayDescription": "每场战斗开始，随机生成一个黄金地块",
+      "icon_kind": "gold_eye",
+      "effects": [
+        {
+          "type": "battle_start_tile",
+          "tile": "T081",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "R003",
+      "name": "举重",
+      "type": "普通",
+      "rarity": "普通",
+      "rarity_code": "common",
+      "price": 150,
+      "description": "获得1点力量",
+      "displayDescription": "获得1点力量",
+      "icon_kind": "strength",
+      "effects": [
+        {
+          "type": "battle_start_strength",
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "id": "R004",
+      "name": "长跑",
+      "type": "普通",
+      "rarity": "普通",
+      "rarity_code": "common",
+      "price": 150,
+      "description": "获得1点敏捷",
+      "displayDescription": "获得1点敏捷",
+      "icon_kind": "dexterity",
+      "effects": [
+        {
+          "type": "battle_start_dexterity",
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "id": "R005",
+      "name": "光滑圆球",
+      "type": "普通",
+      "rarity": "普通",
+      "rarity_code": "common",
+      "price": 160,
+      "description": "每场战斗第一回合，获得一点能量",
+      "displayDescription": "每场战斗第一回合，获得一点能量",
+      "icon_kind": "orb",
+      "effects": [
+        {
+          "type": "turn_start_rolls",
+          "turn": 1,
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "id": "R006",
+      "name": "记忆芯片",
+      "type": "普通",
+      "rarity": "普通",
+      "rarity_code": "common",
+      "price": 180,
+      "description": "每4个回合获得一点能量",
+      "displayDescription": "每4个回合获得一点能量,右下方通用计数器",
+      "icon_kind": "chip",
+      "effects": [
+        {
+          "type": "turn_interval_rolls",
+          "interval": 4,
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "id": "R007",
+      "name": "白袍",
+      "type": "普通",
+      "rarity": "普通",
+      "rarity_code": "common",
+      "price": 130,
+      "description": "每场战斗第一回合开始获得10点格挡",
+      "displayDescription": "每场战斗第一回合开始获得10点格挡",
+      "icon_kind": "white_robe",
+      "effects": [
+        {
+          "type": "turn_start_block",
+          "turn": 1,
+          "amount": 10
+        }
+      ]
+    },
+    {
+      "id": "R008",
+      "name": "红袍",
+      "type": "普通",
+      "rarity": "普通",
+      "rarity_code": "common",
+      "price": 180,
+      "description": "每场战斗第二回合开始获得13点格挡",
+      "displayDescription": "每场战斗第二回合开始获得13点格挡",
+      "icon_kind": "red_robe",
+      "effects": [
+        {
+          "type": "turn_start_block",
+          "turn": 2,
+          "amount": 13
+        }
+      ]
+    },
+    {
+      "id": "R009",
+      "name": "紫袍",
+      "type": "普通",
+      "rarity": "稀有",
+      "rarity_code": "rare",
+      "price": 220,
+      "description": "每场战斗第三回合开始获得18点格挡",
+      "displayDescription": "每场战斗第三回合开始获得18点格挡",
+      "icon_kind": "purple_robe",
+      "effects": [
+        {
+          "type": "turn_start_block",
+          "turn": 3,
+          "amount": 18
+        }
+      ]
+    },
+    {
+      "id": "R010",
+      "name": "支撑",
+      "type": "星际战士",
+      "rarity": "稀有",
+      "rarity_code": "rare",
+      "price": 200,
+      "description": "每消耗10次耐力，场上所有耐力块耐力+1",
+      "displayDescription": "每消耗10次耐力，场上所有耐力块耐力+1，右下方通用计数器",
+      "icon_kind": "support",
+      "effects": [
+        {
+          "type": "durability_interval_recharge",
+          "threshold": 10,
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "id": "R011",
+      "name": "虫洞",
+      "type": "星际战士",
+      "rarity": "稀有",
+      "rarity_code": "rare",
+      "price": 220,
+      "description": "一回合内每累计跃迁3次，获得1点能量",
+      "displayDescription": "一回合内每累计跃迁3次，获得1点能量，右下方通用计数器",
+      "icon_kind": "wormhole",
+      "effects": [
+        {
+          "type": "warp_interval_rolls",
+          "threshold": 3,
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "id": "R012",
+      "name": "打靶",
+      "type": "普通",
+      "rarity": "普通",
+      "rarity_code": "common",
+      "price": 240,
+      "description": "一回合内每累计攻击三次，获得1点力量",
+      "displayDescription": "一回合内每累计攻击三次，获得1点力量,右下方通用计数器",
+      "icon_kind": "target",
+      "effects": [
+        {
+          "type": "attack_interval_strength",
+          "threshold": 3,
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "id": "R013",
+      "name": "血骰子",
+      "type": "普通",
+      "rarity": "boss",
+      "rarity_code": "boss",
+      "price": 0,
+      "description": "每回合能量+1，每骰10次扣一滴血",
+      "displayDescription": "每回合能量+1，每骰10次扣一滴血,右下方通用计数器",
+      "icon_kind": "blood_dice",
+      "effects": [
+        {
+          "type": "turn_start_rolls",
+          "amount": 1
+        },
+        {
+          "type": "dice_roll_hp_loss",
+          "threshold": 10,
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "id": "R014",
+      "name": "禁药",
+      "type": "普通",
+      "rarity": "boss",
+      "rarity_code": "boss",
+      "price": 0,
+      "description": "每回合能量+1，每场战斗开始，生成两个头疼地块",
+      "displayDescription": "每回合能量+1，每场战斗开始，生成两个头疼地块",
+      "icon_kind": "potion",
+      "effects": [
+        {
+          "type": "turn_start_rolls",
+          "amount": 1
+        },
+        {
+          "type": "battle_start_tile",
+          "tile": "T082",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "R015",
+      "name": "传送门",
+      "type": "星际战士",
+      "rarity": "boss",
+      "rarity_code": "boss",
+      "price": 0,
+      "description": "",
+      "displayDescription": "",
+      "icon_kind": "portal",
+      "effects": []
+    }
+  ]
+}

@@ -3,6 +3,9 @@ extends RefCounted
 static func damage_monster(amount, source: String = "", attack: bool = true) -> Dictionary:
 	return {"type": "DamageMonster", "amount": amount, "source": source, "attack": attack}
 
+static func damage_all_monsters(amount, source: String = "", attack: bool = true) -> Dictionary:
+	return {"type": "DamageAllMonsters", "amount": amount, "source": source, "attack": attack}
+
 static func damage_player(amount: int, source: String = "", piercing: bool = false) -> Dictionary:
 	return {"type": "DamagePlayer", "amount": amount, "source": source, "piercing": piercing}
 
@@ -37,7 +40,7 @@ static func set_destroy_next_tile(source: String = "") -> Dictionary:
 	return {"type": "SetDestroyNextTile", "source": source}
 
 static func add_coins(amount, source: String = "") -> Dictionary:
-	return damage_monster(int(amount), source, true)
+	return {"type": "AddCoins", "amount": amount, "source": source}
 
 static func add_buff(buff: Dictionary) -> Dictionary:
 	return {"type": "AddBuff", "buff": buff}
@@ -59,6 +62,12 @@ static func consume_tile_durability(tile_index: int, tile_instance_id: String, s
 
 static func add_durability_all(amount: int, source: String = "") -> Dictionary:
 	return {"type": "AddDurabilityAll", "amount": amount, "source": source}
+
+static func add_converge_to_tiles(count: int, source: String = "") -> Dictionary:
+	return {"type": "AddConvergeToTiles", "count": count, "source": source}
+
+static func set_tile_weak(tile_index: int, tile_instance_id: String, source: String = "") -> Dictionary:
+	return {"type": "SetTileWeak", "tileIndex": tile_index, "tileInstanceId": tile_instance_id, "source": source}
 
 static func transform_tile(tile_index: int, target_tile_id: String, options: Dictionary = {}) -> Dictionary:
 	return {"type": "TransformTile", "tileIndex": tile_index, "targetTileId": target_tile_id, "options": options}

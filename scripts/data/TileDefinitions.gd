@@ -54,6 +54,7 @@ static func _normalize(raw_tile: Dictionary) -> Dictionary:
 		"name": name,
 		"type": type_name,
 		"rarity": rarity,
+		"rarity_code": str(raw_tile.get("rarity_code", _rarity_code(rarity))),
 		"baseCoin": 0,
 		"description": description,
 		"displayDescription": display_description,
@@ -79,3 +80,18 @@ static func _normalize(raw_tile: Dictionary) -> Dictionary:
 		"destroyEffects": raw_tile.get("destroyEffects", []).duplicate(true),
 		"autoAddBaseCoin": false
 	}
+
+static func _rarity_code(rarity: String) -> String:
+	match rarity:
+		"基础牌":
+			return "basic"
+		"普通":
+			return "common"
+		"稀有":
+			return "rare"
+		"非凡":
+			return "uncommon"
+		"诅咒":
+			return "curse"
+		_:
+			return "common"
